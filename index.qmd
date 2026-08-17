@@ -1,0 +1,29 @@
+---
+title: "JHEEM Wiki"
+---
+
+Cross-repo knowledge base for the **JHEEM** (Johns Hopkins Epidemiological and Economic Model) ecosystem: what the pieces are, how they fit together, and why they're shaped the way they are.
+
+## What lives here (and what doesn't)
+
+One boundary rule, applied ruthlessly:
+
+- **Knowledge that changes with a commit lives in the repo it changes with.** Function documentation, vignettes, per-repo `CLAUDE.md` files, build instructions for a single repo.
+- **Knowledge that spans repos or outlives commits lives here.** The ecosystem map, data-flow narratives, runbooks, the modernization roadmap, and the decision log.
+
+If a page here starts describing one repo's internals, it probably belongs in that repo.
+
+## Start here
+
+| Page | What it answers |
+|------|-----------------|
+| [Ecosystem Map](ecosystem-map.qmd) | What are all these repos? How does data flow from raw sources to jheem.org? |
+| [Modernization Roadmap](roadmap.qmd) | What are we improving, in what order, and why? |
+| [Decision Log](decisions.qmd) | Why is it done this way? What was already decided (and what's still open)? |
+| [Archive](archive/index.qmd) | Historical planning docs, preserved with provenance notes. |
+
+## How to contribute
+
+Canonical content is markdown in this git repository; the rendered site is a view of it. To change a page, edit the file and open a PR (the "Edit this page" path from the rendered site works without a local clone).
+
+**For AI agents:** read the ecosystem map and decision log before making cross-repo claims or proposals. At the end of a working session, draft wiki updates for anything you learned that spans repos or reverses a documented decision — as a PR, not a direct push. Date-stamp substantive additions.

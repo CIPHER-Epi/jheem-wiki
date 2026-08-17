@@ -1,0 +1,58 @@
+---
+title: "Modernization Roadmap"
+date: 2026-08-17
+---
+
+The program: make the JHEEM ecosystem legible, testable, and observable — for humans and agents — without ever betting the science on an untested change. Status updates land here as work completes; rationale for the ordering lives in the [decision log](decisions.qmd).
+
+## Where we stand (August 2026)
+
+The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated tests, no CI, mega-files, and folklore APIs. The other end: delivery infrastructure that is above industry standard (digest-promoted containers with golden tests, release-versioned data, the portal). The missing middle is the work. Two prior proofs — the syphilis-manager CI and the container platform — show modern practice already succeeds in this ecosystem.
+
+A Dec 2025 refactor attempt (package extraction on a long-lived branch, tests deferred) stalled after one week of work and is being mined for parts, not merged ([D-002](decisions.qmd)). Team-requested payoffs shaping this program: real documentation with runnable examples, and calibration observability.
+
+## Sequence
+
+Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
+
+### Now
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **In progress** (this commit) | Publish decision pending namespace ([D-010](decisions.qmd)) |
+| 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | Not started | Hours of work; validate via container golden tests; S3 fix retires the Shiny export-everything workaround |
+| 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | Not started | Time-boxed; keystone for everything below ([D-008](decisions.qmd)) |
+| 4 | **CI skeleton on jheem2** — `R CMD check` (baseline allowed-to-fail, then ratchet) + container-suite gate for engine changes | Not started | First durable regression net ([D-001](decisions.qmd)) |
+| 5 | **Calibration monitor (read-only)** — traces, acceptance, R-hat/ESS per city over existing MCMC caches | Not started | Team ask; zero science-path risk ([D-007](decisions.qmd)) |
+
+### Next
+
+- **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.
+- **`@examples` on the top ~50 exports**, chosen by usage-grep of `jheem_analyses`/`jheem2_interactive` — doubles as API curation (public vs. `@keywords internal`).
+- **pkgdown site** for jheem2, linked from this wiki.
+- **Graceful-stop hook** for calibration (sentinel checked at cache writes) — only after the test net exists.
+- **Graduate census + surveillance managers** into the syphilis CI pattern ([D-004](decisions.qmd)).
+- **Wiki goes public** — GitHub Pages, later `docs.jheem.org` — once it informs rather than confuses.
+
+### Later / deferred
+
+- **Structural decomposition of jheem2** ([D-003](decisions.qmd)) — revisit after API curation and tests; extraction becomes cheap and optional rather than heroic.
+- **Platform org-ownership migration** and a **second operator** able to run at least one delivery workflow end-to-end (bus-factor mitigation; coupled to [D-010](decisions.qmd)).
+- Retire source-mode loading of jheem2 in favor of `library()` + `devtools::load_all()`.
+- Format-versioned data-manager representation (reduce serialized-R6 fragility).
+- Hygiene sweep: `browser()` calls behind a debug flag, condition-object error capture replacing `.GlobalEnv` writes, `R/tests` and `R/beta_code` moved out of `R/`.
+
+## Success criteria
+
+- Any jheem2 PR gets an automated verdict (check + regression) before merge.
+- A new person — or an agent — runs the quickstart end-to-end in under 30 minutes with nothing but the package.
+- A running calibration can be inspected (likelihood behavior, mixing, per-city status) without asking anyone.
+- The ecosystem map exists, is current, and is linked from every repo's `CLAUDE.md`/README.
+- A three-month interruption costs re-reading this wiki, not re-deriving it.
+
+## Standing risks
+
+- **Doc-momentum trap:** the Dec 2025 effort produced ~4,800 lines of plans and one week of code. Mitigation: wiki work is time-boxed; every planning increment is paired with a landed code change.
+- **Fixture turns out hard:** fallback recorded in [D-008](decisions.qmd).
+- **Solo-effort sustainability:** interruption-tolerance is a design requirement — small merges, state in the wiki, agents re-orient from the map.
+- **Two-speed masking:** platform polish must not substitute for core legibility; both ends of the barbell move.

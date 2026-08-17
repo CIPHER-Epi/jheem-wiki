@@ -1,0 +1,30 @@
+project:
+  type: website
+
+website:
+  title: "JHEEM Wiki"
+  description: "Cross-repo knowledge base for the JHEEM modeling ecosystem"
+  sidebar:
+    style: docked
+    search: true
+    contents:
+      - href: index.qmd
+        text: Home
+      - href: ecosystem-map.qmd
+        text: Ecosystem Map
+      - href: roadmap.qmd
+        text: Modernization Roadmap
+      - href: decisions.qmd
+        text: Decision Log
+      - section: Archive
+        contents:
+          - archive/index.qmd
+  page-footer:
+    left: "JHEEM — Johns Hopkins Epidemiological and Economic Model"
+    right: "Canonical source: markdown in git. Edit via PR."
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    link-external-newwindow: true

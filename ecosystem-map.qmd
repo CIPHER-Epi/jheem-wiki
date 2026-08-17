@@ -1,0 +1,79 @@
+---
+title: "Ecosystem Map"
+date: 2026-08-17
+---
+
+JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (team-maintained R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
+
+## The repositories
+
+### Modeling core (team-maintained)
+
+| Repo | What it is |
+|------|-----------|
+| `jheem2` | The simulation engine R package (~64k lines R + ~10k lines C++ via Rcpp, R6-based). Model specification → compiled specification → ODE engine → simulations → likelihoods → calibration, plus the data-manager class, ontology mapping, interventions, and plotting. Working branch is `dev`. |
+| `jheem_analyses` | Applications repo: ~18 model applications (EHE, SHIELD, Ryan White, CDC testing, …), the data-manager build pipelines (`data_processing/`, `input_managers/`), shared glue (`commoncode/`, `source_code.R`), and the **syphilis-manager CI workflows** (`.github/workflows/`). |
+| `jheem2_interactive` | The legacy Shiny app. Its startup exports jheem2 internals into the global environment to work around unregistered S3 methods (a known jheem2 bug, fix planned). Superseded for public-facing use by the portal. |
+| `jheem_interactive` | Older-generation interactive app. Historical. |
+
+### Support packages (team-maintained)
+
+| Repo | What it is |
+|------|-----------|
+| `locations` | Location codes/geography (e.g., `C.12580` = Baltimore MSA). A snapshot is baked into jheem2 at build time as internal package data. |
+| `distributions` | Probability distribution utilities used across modeling code. |
+| `bayesian.simulations` | MCMC machinery (adaptive blockwise Metropolis). Runs calibrations, **checkpoints chains to per-version/per-location cache directories** (resumable; acceptance stats stored per chain/step). |
+
+### Delivery platform (solo-maintained; team-adopted surface is the portal)
+
+| Repo | What it is |
+|------|-----------|
+| `jheem-portal` | Next.js frontend, live at [jheem.org](https://jheem.org). Ryan White (city + state), CDC testing, aging projections, custom on-demand simulations. **The one platform piece in team-wide use.** |
+| `jheem-backend` | Orchestration hub: `models.json` (source of truth for application/runtime/product config) + reusable GitHub Actions workflows that run containers to extract data and deploy to S3/CloudFront. |
+| `jheem-containers` | Canonical monorepo for container images: shared R base + per-model images. Build → test-by-digest → promote CI with smoke, golden-regression, and perturbation tests; base-image compatibility cascade; fail-closed promotion (release re-tags the tested digest, never rebuilds). |
+| `jheem-base` | Shared R base image (R 4.4.2, renv.lock-pinned packages **including jheem2 at a fixed ref**). Model containers extend it. |
+| `jheem-simulations` | Simulation data distributed as semver'd GitHub Releases (3–86 GB per release), with documented deprecations. Feeds the container workflows. |
+| `jheem-ryan-white-*-container`, `jheem-cdc-testing-container`, `jheem-container-minimal` | Former per-model container repos, consolidated into `jheem-containers` (history preserved). Treat as legacy; `jheem-container-minimal` remains a useful minimal-workspace reference. |
+
+**Locations on disk:** modeling core + support packages live under `…/Documents/jheem/code/`; platform repos live under `…/Documents/` directly. Platform repos are on GitHub under `ncsizemore` (org migration is an open decision — see the [decision log](decisions.qmd)).
+
+## How data flows
+
+```{mermaid}
+flowchart LR
+    RAW["Raw data<br/>(NAS / data-raw releases)"] --> DM["Data managers<br/>(.rdata artifacts)<br/>built by syphilis CI or locally"]
+    DM --> CAL["Calibration<br/>(bayesian.simulations MCMC,<br/>per-city cache dirs)"]
+    CAL --> SIM["Simsets<br/>(.rdata per city/state)"]
+    SIM --> REL["GitHub Releases<br/>(jheem-simulations)"]
+    REL --> CONT["Containers<br/>(jheem-containers,<br/>extract + transform)"]
+    CONT --> S3["S3 + CloudFront"]
+    S3 --> PORTAL["jheem.org<br/>(jheem-portal)"]
+```
+
+1. **Raw data** comes from surveillance sources (CDC Atlas, BRFSS, census, …), historically on the NAS / Q: drive, now also snapshotted as immutable `data-raw-v*` GitHub Releases.
+2. **Data managers** are serialized R6 objects (`surveillance.manager.rdata`, `census.manager.rdata`, `syphilis.manager.rdata`, …) built by scripts in `jheem_analyses/data_processing/`. The **syphilis manager builds via CI**: release-pinned inputs, regression-gated merge, promotion workflow. Other managers are still built locally and ride along as pre-built dependencies. Analyses load managers into well-known globals (`SURVEILLANCE.MANAGER`, …) via `source_code.R`.
+3. **Calibration** runs MCMC per location against likelihoods defined in jheem2, producing calibrated parameter sets. Chains checkpoint to cache directories at a configurable frequency and are resumable.
+4. **Simsets** (simulation sets) are generated from calibrated parameters and stored as `.rdata`, then published as versioned **GitHub Releases** in `jheem-simulations`.
+5. **Containers** (orchestrated by `jheem-backend` workflows) download release data, run jheem2 code to extract/transform outcomes, and write JSON/plot data to **S3**, served via **CloudFront**.
+6. **The portal** reads that data and serves the interactive explorers.
+
+## How jheem2 is loaded by consumers
+
+Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`:
+
+- **Package mode** (`USE.JHEEM2.PACKAGE = T`): `library(jheem2)` against an installed build. Most of the team works this way; CI and containers always work this way (pinned to a git ref).
+- **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++. Legacy dev convenience; slated for retirement in favor of `devtools::load_all()`.
+
+## Gotchas worth knowing
+
+- **Serialized R6 is fragile.** Data managers and simsets are serialized R6 objects; evolving a class can strand old `.rdata` files. The CI's version pinning contains this; a format-versioned representation is the long-term fix.
+- **The `jheem2` NAMESPACE under-registers S3 methods** (`protected.numeric.vector`), which breaks method dispatch under `Rscript` and forced the Shiny app's export-everything workaround. Fix is planned (see roadmap).
+- **jheem2 has no automated test suite yet.** The container golden tests in `jheem-containers` are currently the strongest regression net for engine changes — engine-touching work should be validated against them until in-package tests exist.
+- **Dates inside the December 2025 refactor documents say 2024.** The git history is authoritative; the docs' internal dates are wrong. See the [archive](archive/index.qmd).
+
+## Where knowledge lives today
+
+- Per-repo `CLAUDE.md` files: `jheem-backend`, `jheem-portal`, `jheem-container-minimal`, `jheem_analyses` (symlinked to OneDrive `claude-notes`).
+- Cross-repo contracts: `jheem-containers/docs/CONFIG-OWNERSHIP-AND-CONTRACTS.md` (the `models.json` / `models.yml` boundary).
+- Data-manager CI design: `jheem_analyses/CI_PIPELINE_PLAN.md`, `SELF_HOSTED_RUNNER_PLAN.md` (self-hosted runner: `shield1`).
+- Historical refactor planning: this wiki's [archive](archive/index.qmd) (rescued from the stale `refactor/extract-packages` branch of jheem2).

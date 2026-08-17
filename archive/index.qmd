@@ -1,0 +1,18 @@
+---
+title: "Archive"
+---
+
+Historical planning documents, preserved verbatim with provenance notes. These are **inputs to decisions, not current guidance** — the [decision log](../decisions.qmd) records what was kept, changed, or rejected from them.
+
+## December 2025 refactor effort
+
+Rescued from the `refactor/extract-packages` branch of `jheem2` (stale; being mined, not merged — see [D-002](../decisions.qmd)). **Provenance caution:** the dates *inside* these documents say 2023–2024; the actual work was committed November–December 2025. Git history is authoritative.
+
+| Document | What it is |
+|----------|-----------|
+| [Architecture Analysis](2025-12-architecture-analysis.md) | Dependency matrix, 11 circular-dependency cycles, proposed 5-package layered architecture, cycle-breaking patterns. The analysis remains the best structural map of jheem2; its packaging endgame is deferred per [D-003](../decisions.qmd). |
+| [Refactoring Execution Plan](2025-12-refactoring-execution-plan.md) | The 3-phase execution plan actually followed. Note it inverted the analysis's own test-first ordering — the core lesson behind [D-001](../decisions.qmd). |
+| [Refactor Status](2025-12-refactor-status.md) | Where the effort stopped: "Phase 1 Week 1 complete + validated," including the `validate.R` fingerprint baseline. |
+| [Refactor Issues](2025-12-refactor-issues.md) | Bugs and tech debt discovered during extraction — several are *current `dev` bugs* (unregistered S3 methods, load-time top-level code) queued as free wins on the [roadmap](../roadmap.qmd). |
+
+Related documents that remain in their home repos (linked, not moved): `jheem_analyses/CI_PIPELINE_PLAN.md`, `jheem_analyses/SELF_HOSTED_RUNNER_PLAN.md`, `jheem-containers/docs/CONFIG-OWNERSHIP-AND-CONTRACTS.md`.
