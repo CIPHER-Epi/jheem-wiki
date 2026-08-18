@@ -20,7 +20,7 @@ website:
         contents:
           - archive/index.qmd
   page-footer:
-    left: "JHEEM — Johns Hopkins Epidemiological and Economic Model"
+    left: "JHEEM — Joint HIV Epidemiology and Economic Model"
     right: "Canonical source: markdown in git. Edit via PR."
 
 format:

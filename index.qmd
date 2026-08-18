@@ -2,7 +2,7 @@
 title: "JHEEM Wiki"
 ---
 
-Cross-repo knowledge base for the **JHEEM** (Johns Hopkins Epidemiological and Economic Model) ecosystem: what the pieces are, how they fit together, and why they're shaped the way they are.
+Cross-repo knowledge base for the **JHEEM** (Joint HIV Epidemiology and Economic Model) ecosystem: what the pieces are, how they fit together, and why they're shaped the way they are.
 
 ## What lives here (and what doesn't)
 

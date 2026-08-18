@@ -35,7 +35,7 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 | `jheem-simulations` | Simulation data distributed as semver'd GitHub Releases (3–86 GB per release), with documented deprecations. Feeds the container workflows. |
 | `jheem-ryan-white-*-container`, `jheem-cdc-testing-container`, `jheem-container-minimal` | Former per-model container repos, consolidated into `jheem-containers` (history preserved). Treat as legacy; `jheem-container-minimal` remains a useful minimal-workspace reference. |
 
-**Locations on disk:** modeling core + support packages live under `…/Documents/jheem/code/`; platform repos live under `…/Documents/` directly. Platform repos are on GitHub under `ncsizemore` (org migration is an open decision — see the [decision log](decisions.qmd)).
+**Locations on disk:** modeling core + support packages live under `…/Documents/jheem/code/`; platform repos live under `…/Documents/` directly. On GitHub, `jheem2` and this wiki live in the **CIPHER-Epi** org (`jheem2` was transferred from `tfojo1/jheem2`; old remotes redirect); platform repos remain under `ncsizemore` (org migration still open — see the [decision log](decisions.qmd)).
 
 ## How data flows
 

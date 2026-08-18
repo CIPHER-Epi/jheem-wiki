@@ -20,7 +20,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); site publish deferred |
-| 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`8b0596d` (v1.11.2). Dispatch verified under `Rscript`; man pages regenerated. Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
+| 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`474abc3`. Dispatch verified under `Rscript`; man pages regenerated. Version set per [D-012](decisions.qmd) (an initial 1.11.2 bump was corrected to 1.12.3.9000). Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
 | 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | Not started | Time-boxed; keystone for everything below ([D-008](decisions.qmd)) |
 | 4 | **CI skeleton on jheem2** — `R CMD check` (baseline allowed-to-fail, then ratchet) + container-suite gate for engine changes | Not started | First durable regression net ([D-001](decisions.qmd)) |
 | 5 | **Calibration monitor (read-only)** — traces, acceptance, R-hat/ESS per city over existing MCMC caches | Not started | Team ask; zero science-path risk ([D-007](decisions.qmd)) |
@@ -40,6 +40,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 - **Platform org-ownership migration** and a **second operator** able to run at least one delivery workflow end-to-end (bus-factor mitigation; coupled to [D-010](decisions.qmd)).
 - Retire source-mode loading of jheem2 in favor of `library()` + `devtools::load_all()`.
 - Format-versioned data-manager representation (reduce serialized-R6 fragility).
+- Release hygiene for jheem2: git tags on master version bumps, a NEWS.md, and (once CI exists) a version-monotonicity check ([D-012](decisions.qmd)).
 - Hygiene sweep: `browser()` calls behind a debug flag, condition-object error capture replacing `.GlobalEnv` writes, `R/tests` and `R/beta_code` moved out of `R/`.
 
 ## Success criteria

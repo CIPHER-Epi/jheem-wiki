@@ -9,6 +9,10 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ---
 
+## D-012 · jheem2 version convention: releases on master, `.9000` dev suffix on dev
+
+*2026-08-18.* Observed practice: versions are bumped manually on **master** in dedicated "Increment version number" commits (1.12.3 as of March 2026); dev's DESCRIPTION goes stale between releases (it read 1.11.1 for seven months). Decision: keep release bumps on master exactly as practiced, and have dev carry `<last-release>.9000` (currently `1.12.3.9000`) — the standard R dev-version convention — so any dev build is distinguishable from, and sorts above, the latest release. Recorded gaps for the roadmap, not blocking: no git tags, no NEWS.md/changelog, DESCRIPTION `Date` was never maintained; release identity currently reconstructable only from bump commits. Consumers pinning git refs (containers, CI) are unaffected.
+
 ## D-011 · Wiki lives in the CIPHER-Epi org — resolves D-010
 
 *2026-08-18.* The wiki repo is hosted at `CIPHER-Epi/jheem-wiki` (team org), private for now. The GitHub Pages publish workflow is manual-trigger-only until the "wiki goes public" roadmap item; enabling Pages will require making the repo public (or a paid org plan). The broader platform org-ownership question (delivery-platform repos under `ncsizemore`) remains open and is tracked on the roadmap.
