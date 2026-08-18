@@ -1,8 +1,12 @@
 name: Publish wiki
 
+# Manual-only until the "wiki goes public" roadmap item: Pages isn't enabled
+# on the private repo, so a push trigger would fail on every commit.
+# When publishing: enable Pages (Settings → Pages → GitHub Actions) and
+# restore the push trigger:
+#   push:
+#     branches: [main]
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

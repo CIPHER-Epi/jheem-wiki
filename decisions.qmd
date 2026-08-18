@@ -9,7 +9,11 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ---
 
-## D-010 · Wiki repo hosting namespace — **Open**
+## D-011 · Wiki lives in the CIPHER-Epi org — resolves D-010
+
+*2026-08-18.* The wiki repo is hosted at `CIPHER-Epi/jheem-wiki` (team org), private for now. The GitHub Pages publish workflow is manual-trigger-only until the "wiki goes public" roadmap item; enabling Pages will require making the repo public (or a paid org plan). The broader platform org-ownership question (delivery-platform repos under `ncsizemore`) remains open and is tracked on the roadmap.
+
+## D-010 · Wiki repo hosting namespace — **Resolved by D-011**
 
 *2026-08-17.* The wiki (and the delivery-platform repos) currently live under the `ncsizemore` personal GitHub namespace. Whether to migrate to a team/org namespace is undecided and is coupled to the broader platform org-ownership question (bus-factor mitigation). Until decided, the wiki develops locally / under personal namespace; migration is a rename, not a rewrite, because content is plain markdown in git.
 
