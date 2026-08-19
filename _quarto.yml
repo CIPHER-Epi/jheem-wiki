@@ -10,6 +10,8 @@ website:
     contents:
       - href: index.qmd
         text: Home
+      - href: program.qmd
+        text: The Program
       - href: ecosystem-map.qmd
         text: Ecosystem Map
       - href: roadmap.qmd

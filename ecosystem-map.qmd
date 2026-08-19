@@ -3,20 +3,19 @@ title: "Ecosystem Map"
 date: 2026-08-17
 ---
 
-JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (team-maintained R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
+JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
 
 ## The repositories
 
-### Modeling core (team-maintained)
+### Modeling core
 
 | Repo | What it is |
 |------|-----------|
 | `jheem2` | The simulation engine R package (~64k lines R + ~10k lines C++ via Rcpp, R6-based). Model specification → compiled specification → ODE engine → simulations → likelihoods → calibration, plus the data-manager class, ontology mapping, interventions, and plotting. Working branch is `dev`. |
 | `jheem_analyses` | Applications repo: ~18 model applications (EHE, SHIELD, Ryan White, CDC testing, …), the data-manager build pipelines (`data_processing/`, `input_managers/`), shared glue (`commoncode/`, `source_code.R`), and the **syphilis-manager CI workflows** (`.github/workflows/`). |
-| `jheem2_interactive` | The legacy Shiny app. Its startup exports jheem2 internals into the global environment to work around unregistered S3 methods (a known jheem2 bug, fix planned). Superseded for public-facing use by the portal. |
-| `jheem_interactive` | Older-generation interactive app. Historical. |
+| `jheem2_interactive`, `jheem_interactive` | Earlier Shiny-based interactive apps, superseded by the portal. Historical. |
 
-### Support packages (team-maintained)
+### Support packages
 
 | Repo | What it is |
 |------|-----------|
@@ -24,18 +23,18 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 | `distributions` | Probability distribution utilities used across modeling code. |
 | `bayesian.simulations` | MCMC machinery (adaptive blockwise Metropolis). Runs calibrations, **checkpoints chains to per-version/per-location cache directories** (resumable; acceptance stats stored per chain/step). |
 
-### Delivery platform (solo-maintained; team-adopted surface is the portal)
+### Delivery platform
 
 | Repo | What it is |
 |------|-----------|
-| `jheem-portal` | Next.js frontend, live at [jheem.org](https://jheem.org). Ryan White (city + state), CDC testing, aging projections, custom on-demand simulations. **The one platform piece in team-wide use.** |
+| `jheem-portal` | Next.js frontend, live at [jheem.org](https://jheem.org). Ryan White (city + state), CDC testing, aging projections, custom on-demand simulations. |
 | `jheem-backend` | Orchestration hub: `models.json` (source of truth for application/runtime/product config) + reusable GitHub Actions workflows that run containers to extract data and deploy to S3/CloudFront. |
 | `jheem-containers` | Canonical monorepo for container images: shared R base + per-model images. Build → test-by-digest → promote CI with smoke, golden-regression, and perturbation tests; base-image compatibility cascade; fail-closed promotion (release re-tags the tested digest, never rebuilds). |
 | `jheem-base` | Shared R base image (R 4.4.2, renv.lock-pinned packages **including jheem2 at a fixed ref**). Model containers extend it. |
 | `jheem-simulations` | Simulation data distributed as semver'd GitHub Releases (3–86 GB per release), with documented deprecations. Feeds the container workflows. |
 | `jheem-ryan-white-*-container`, `jheem-cdc-testing-container`, `jheem-container-minimal` | Former per-model container repos, consolidated into `jheem-containers` (history preserved). Treat as legacy; `jheem-container-minimal` remains a useful minimal-workspace reference. |
 
-**Locations on disk:** modeling core + support packages live under `…/Documents/jheem/code/`; platform repos live under `…/Documents/` directly. On GitHub, `jheem2` and this wiki live in the **CIPHER-Epi** org (`jheem2` was transferred from `tfojo1/jheem2`; old remotes redirect); platform repos remain under `ncsizemore` (org migration still open — see the [decision log](decisions.qmd)).
+**Where the repos live:** `jheem2` and this wiki are in the **CIPHER-Epi** GitHub org (`jheem2` was transferred there; clones pointed at the old location still redirect). The delivery-platform repos are under `ncsizemore`, with org migration an open item on the [roadmap](roadmap.qmd).
 
 ## How data flows
 
@@ -61,20 +60,19 @@ flowchart LR
 
 Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`:
 
-- **Package mode** (`USE.JHEEM2.PACKAGE = T`): `library(jheem2)` against an installed build. Most of the team works this way; CI and containers always work this way (pinned to a git ref).
-- **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++. Legacy dev convenience; slated for retirement in favor of `devtools::load_all()`.
+- **Package mode** (`USE.JHEEM2.PACKAGE = T`): `library(jheem2)` against an installed build. Used for analysis workflows; CI and containers always work this way (pinned to a git ref).
+- **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++.
+
+Sourcing a model specification currently *requires* source mode: spec files call jheem2 functions that aren't exported from the package NAMESPACE (details in the [Spec Framework Notes](spec-framework-notes.qmd)). The NAMESPACE export sweep on the [roadmap](roadmap.qmd) removes that constraint, after which package mode (plus `devtools::load_all()` during development) can become the single supported path.
 
 ## Gotchas worth knowing
 
 - **Serialized R6 is fragile.** Data managers and simsets are serialized R6 objects; evolving a class can strand old `.rdata` files. The CI's version pinning contains this; a format-versioned representation is the long-term fix.
-- **The Shiny app still carries an export-everything workaround** for what was an unregistered-S3-methods bug in jheem2 (`protected.numeric.vector`; broke dispatch under `Rscript`). Fixed on jheem2 `dev` 2026-08-18 (v1.11.2); the workaround in `jheem2_interactive` can be retired once it updates to that version.
 - **jheem2 has no automated test suite yet.** The container golden tests in `jheem-containers` are currently the strongest regression net for engine changes — engine-touching work should be validated against them until in-package tests exist.
 - **Source-mode loading recompiles the C++ every session**, making the local toolchain (R version, clang, SDK) a hidden dependency of the computation — the same jheem2 source ran clean under R 4.4 and segfaulted under R 4.5 (latent UB, see [Spec Framework Notes](spec-framework-notes.qmd)). Package mode compiles once per install; the NAMESPACE export sweep on the [roadmap](roadmap.qmd) is what unblocks it as the default.
-- **Dates inside the December 2025 refactor documents say 2024.** The git history is authoritative; the docs' internal dates are wrong. See the [archive](archive/index.qmd).
+## Related documentation
 
-## Where knowledge lives today
-
-- Per-repo `CLAUDE.md` files: `jheem-backend`, `jheem-portal`, `jheem-container-minimal`, `jheem_analyses` (symlinked to OneDrive `claude-notes`).
 - Cross-repo contracts: `jheem-containers/docs/CONFIG-OWNERSHIP-AND-CONTRACTS.md` (the `models.json` / `models.yml` boundary).
-- Data-manager CI design: `jheem_analyses/CI_PIPELINE_PLAN.md`, `SELF_HOSTED_RUNNER_PLAN.md` (self-hosted runner: `shield1`).
-- Historical refactor planning: this wiki's [archive](archive/index.qmd) (rescued from the stale `refactor/extract-packages` branch of jheem2).
+- Data-manager CI design: `jheem_analyses/CI_PIPELINE_PLAN.md` and `SELF_HOSTED_RUNNER_PLAN.md`.
+- Specification framework reference: this wiki's [Spec Framework Notes](spec-framework-notes.qmd).
+- Prior exploratory planning documents: this wiki's [archive](archive/index.qmd).

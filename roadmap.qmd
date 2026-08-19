@@ -3,13 +3,13 @@ title: "Modernization Roadmap"
 date: 2026-08-17
 ---
 
-The program: make the JHEEM ecosystem legible, testable, and observable — for humans and agents — without ever betting the science on an untested change. Status updates land here as work completes; rationale for the ordering lives in the [decision log](decisions.qmd).
+This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
 
 ## Where we stand (August 2026)
 
-The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated tests, no CI, mega-files, and folklore APIs. The other end: delivery infrastructure that is above industry standard (digest-promoted containers with golden tests, release-versioned data, the portal). The missing middle is the work. Two prior proofs — the syphilis-manager CI and the container platform — show modern practice already succeeds in this ecosystem.
+The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated tests, no CI, and several very large files. The other end: delivery infrastructure that is above industry standard (digest-promoted containers with golden tests, release-versioned data, the portal). The missing middle is the work. Two existing proofs — the syphilis-manager CI and the container platform — show modern practice already succeeds in this ecosystem.
 
-A Dec 2025 refactor attempt (package extraction on a long-lived branch, tests deferred) stalled after one week of work and is being mined for parts, not merged ([D-002](decisions.qmd)). Team-requested payoffs shaping this program: real documentation with runnable examples, and calibration observability.
+The sequencing is also informed by earlier exploratory refactoring analysis (archived [here](archive/index.qmd)), and shaped by the team's requested payoffs: real documentation with runnable examples, and calibration observability.
 
 ## Sequence
 
@@ -19,7 +19,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); site publish deferred |
+| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); public since 2026-08-19 at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) |
 | 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`474abc3`. Dispatch verified under `Rscript`; man pages regenerated. Version set per [D-012](decisions.qmd) (an initial 1.11.2 bump was corrected to 1.12.3.9000). Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
 | 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap script as package fixture + first testthat file (feeds item 4); data-manager half comes with the likelihood demo |
 | 4 | **CI skeleton on jheem2** — `R CMD check` (baseline allowed-to-fail, then ratchet) + container-suite gate for engine changes | Not started | First durable regression net ([D-001](decisions.qmd)) |
@@ -34,7 +34,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 - **pkgdown site** for jheem2, linked from this wiki.
 - **Graceful-stop hook** for calibration (sentinel checked at cache writes) — only after the test net exists.
 - **Graduate census + surveillance managers** into the syphilis CI pattern ([D-004](decisions.qmd)).
-- **Wiki goes public** — GitHub Pages, later `docs.jheem.org` — once it informs rather than confuses.
+- **Custom domain for this site** (`docs.jheem.org`) once the team is using it.
 
 ### Later / deferred
 
@@ -51,12 +51,12 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 - Any jheem2 PR gets an automated verdict (check + regression) before merge.
 - A new person — or an agent — runs the quickstart end-to-end in under 30 minutes with nothing but the package.
 - A running calibration can be inspected (likelihood behavior, mixing, per-city status) without asking anyone.
-- The ecosystem map exists, is current, and is linked from every repo's `CLAUDE.md`/README.
+- The ecosystem map exists, is current, and is linked from every repo's README.
 - A three-month interruption costs re-reading this wiki, not re-deriving it.
 
 ## Standing risks
 
-- **Doc-momentum trap:** the Dec 2025 effort produced ~4,800 lines of plans and one week of code. Mitigation: wiki work is time-boxed; every planning increment is paired with a landed code change.
+- **Planning outpacing shipping:** documentation and planning feel like progress without changing anything. Mitigation: wiki work is time-boxed, and every planning increment is paired with a landed code change.
 - **Fixture turns out hard:** fallback recorded in [D-008](decisions.qmd).
-- **Solo-effort sustainability:** interruption-tolerance is a design requirement — small merges, state in the wiki, agents re-orient from the map.
+- **Continuity:** the effort must tolerate interruptions — small merges, state recorded in this wiki, anyone (or any agent) able to re-orient from the map.
 - **Two-speed masking:** platform polish must not substitute for core legibility; both ends of the barbell move.

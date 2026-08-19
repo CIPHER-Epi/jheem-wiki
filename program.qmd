@@ -1,0 +1,51 @@
+---
+title: "The Program"
+date: 2026-08-19
+---
+
+A modest, continuous investment in the engineering around the JHEEM models — so that everyday modeling work gets faster, results get easier to trust and reproduce, and the ecosystem gets easier to learn, use, and share.
+
+The models' science has grown sophisticated over years of work. The engineering around that science hasn't kept pace, and the gap shows up as everyday friction: knowledge that lives in people's heads instead of documentation, calibrations that run as black boxes, changes to shared code that can't be verified safe, and "works on my machine" mysteries that cost afternoons. This program closes that gap — incrementally, without ever pausing the science to do it.
+
+## What it delivers
+
+Each of these is a concrete capability, and each was raised by someone on the team:
+
+**Watch calibrations while they run.** Today a running calibration is a black box until it finishes. The MCMC machinery already saves its progress to disk as it goes; a monitor reading those files can show, per city: how the likelihood is behaving, whether chains are mixing, and which cities are struggling — while the run is still going. Later, runs that clearly aren't mixing can be stopped automatically instead of burning cluster time.
+
+**Documentation that actually answers questions.** "How do I use this function, what are the arguments, what are the defaults" — answered with reference pages and *runnable* examples, not by asking whoever wrote it. This becomes possible because of a small self-contained **toy model** that runs in under half a second with no data dependencies: every example and tutorial can execute for real, which also means the documentation can never silently go stale — if an example breaks, we know the day it breaks.
+
+**Changes to shared code, proven safe.** Every proposed change to jheem2 gets checked automatically: does the package still build, and — more importantly — does the toy model still produce *exactly* the same numbers? That's the difference between "I think my change didn't affect anything" and "the system verified it." It also changes the economics of small fixes: the little unfinished corners everyone notices (a missing argument check here, a confusing error there) become safe and cheap to fix in passing, instead of lingering because nobody can risk touching them.
+
+**Onboarding in an afternoon.** A new student or collaborator reads this site's [ecosystem map](ecosystem-map.qmd), runs the toy model quickstart, and has executed a complete specify → simulate → plot loop on day one — instead of absorbing the system by osmosis over months.
+
+**Reproducibility receipts.** The syphilis data manager already builds this way: pinned inputs, automated checks, versioned outputs — so "which data, which code, which result" always has an exact answer. The program extends that same pattern to the other data managers and, over time, to the whole path from raw data to published result. When a reviewer or collaborator asks "can you reproduce Figure 3," the answer is a version tag, not archaeology.
+
+**Fewer works-on-my-machine mysteries.** A real example: the same jheem2 code, the same inputs, ran clean under R 4.4 and crashed under R 4.5 — because the common workflow recompiles the engine's C++ from scratch every session on whatever compiler each machine happens to have. Moving everyone onto the installed package (one bounded fix unblocks this) makes the code everyone runs the same code, compiled once.
+
+## How the work runs
+
+- **Small slices, continuously.** No rewrites, no long-lived branches, no "freeze while we refactor." Every increment lands within days and the models keep working throughout.
+- **Something visible every couple of weeks.** Each stretch of work ships something a team member can see or use — a monitor, a guide, a fixed annoyance — not just internal scaffolding.
+- **At most two things in flight.** A deliberate work-in-progress cap keeps the program from sprawling.
+- **The team steers.** The [roadmap](roadmap.qmd) is the working tracker; priorities on it get reviewed and re-ranked with the team. Anything not paying off gets cut.
+- **Safety before surgery.** Changes that could affect model results wait until the automated checks exist to prove they didn't. Nothing about this program bets the science on an untested change.
+
+## Already delivered
+
+The first slices are done, as a proof of shape:
+
+- This site — the ecosystem map, a working [specification reference](spec-framework-notes.qmd), and the program's own running record.
+- The **toy model**: a complete, self-contained JHEEM model that runs in 0.37 seconds ([details](toy-fixture-spike.qmd)) — the foundation for the documentation, tutorials, and automated checks above. Building it also surfaced and fixed real bugs in the engine.
+- First fixes landed in jheem2: a method-registration bug that had forced a workaround in the interactive app, repository cleanup, and crash fixes.
+- The template already existed: the syphilis-manager CI pipeline is the pattern the rest of the program follows.
+
+## What it costs
+
+A sustained minority share of engineering-capable time — on the order of a day a week in aggregate — plus the team's input at reviews: which capabilities matter most next. Paper deadlines always win; the program is designed to be interruptible and to pick back up without loss.
+
+## Where the details live
+
+- [Roadmap](roadmap.qmd) — the working tracker: sequence, status, technical specifics.
+- [Decision log](decisions.qmd) — why things are done the way they're done.
+- [Ecosystem map](ecosystem-map.qmd) — what all the pieces are and how data flows through them.

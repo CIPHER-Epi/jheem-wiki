@@ -17,8 +17,10 @@ If a page here starts describing one repo's internals, it probably belongs in th
 
 | Page | What it answers |
 |------|-----------------|
+| [The Program](program.qmd) | What is the modernization effort, what does it deliver, and why is it worth the time? |
 | [Ecosystem Map](ecosystem-map.qmd) | What are all these repos? How does data flow from raw sources to jheem.org? |
-| [Modernization Roadmap](roadmap.qmd) | What are we improving, in what order, and why? |
+| [Modernization Roadmap](roadmap.qmd) | What's in flight, in what order — the working tracker. |
+| [Spec Framework Notes](spec-framework-notes.qmd) | How does the jheem2 specification framework actually behave? |
 | [Decision Log](decisions.qmd) | Why is it done this way? What was already decided (and what's still open)? |
 | [Archive](archive/index.qmd) | Historical planning docs, preserved with provenance notes. |
 

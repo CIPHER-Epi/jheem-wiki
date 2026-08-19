@@ -9,6 +9,10 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ---
 
+## D-013 · Wiki voice: neutral and audience-invariant; no machine- or person-specific detail
+
+*2026-08-19.* Wiki content is written for any reader — a team member, a new student, an outside collaborator — not from any one contributor's vantage point. Concretely: no local disk paths, no personal-tooling inventory (agent context files, symlinks), no maintainer attribution in structural descriptions, and pre-program history framed by its status (exploratory vs. team-adopted) rather than narrated. Machine- and person-specific operational detail lives outside the wiki (per-repo files, personal notes); the private surface is deliberately kept at zero — if genuinely non-public material ever needs a home, that's a separate private repo, created then, not preemptively. Plain-language motivation lives on [The Program](program.qmd); the roadmap stays the technical tracker.
+
 ## D-012 · jheem2 version convention: releases on master, `.9000` dev suffix on dev
 
 *2026-08-18.* Observed practice: versions are bumped manually on **master** in dedicated "Increment version number" commits (1.12.3 as of March 2026); dev's DESCRIPTION goes stale between releases (it read 1.11.1 for seven months). Decision: keep release bumps on master exactly as practiced, and have dev carry `<last-release>.9000` (currently `1.12.3.9000`) — the standard R dev-version convention — so any dev build is distinguishable from, and sorts above, the latest release. Recorded gaps for the roadmap, not blocking: no git tags, no NEWS.md/changelog, DESCRIPTION `Date` was never maintained; release identity currently reconstructable only from bump commits. Consumers pinning git refs (containers, CI) are unaffected.
@@ -23,7 +27,7 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ## D-009 · WIP discipline: ≤2 active tracks, no branch older than a week
 
-*2026-08-17.* The Dec 2025 refactor stalled partly because work accumulated on a long-lived branch that drifted 74 commits behind `dev`. Rule: at most two modernization tracks active at once; every increment merges to `dev` (or lands in this wiki) within a session or two; no working branch lives past ~a week.
+*2026-08-17.* Long-lived branches drift and die — the archived Dec 2025 exploration accumulated on one that fell 74 commits behind `dev`. Rule: at most two modernization tracks active at once; every increment merges to `dev` (or lands in this wiki) within a session or two; no working branch lives past ~a week.
 
 ## D-008 · Toy fixture is the keystone artifact; spike it early
 
@@ -55,4 +59,4 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ## D-001 · Test-first sequencing for all jheem2 structural work
 
-*2026-08-17.* Characterization/golden-master tests + CI come **before** refactoring, extraction, or engine changes — not "after the architecture stabilizes." This inverts the Dec 2025 execution order, which deferred testthat and stalled. Interim net until in-package tests exist: the `jheem-containers` golden/perturbation suite, run against candidate jheem2 refs (the base image pins jheem2, so the container cascade can gate engine changes now).
+*2026-08-17.* Characterization/golden-master tests + CI come **before** refactoring, extraction, or engine changes — not "after the architecture stabilizes" (the ordering an earlier exploratory plan chose; see the [archive](archive/index.qmd)). Interim net until in-package tests exist: the `jheem-containers` golden/perturbation suite, run against candidate jheem2 refs (the base image pins jheem2, so the container cascade can gate engine changes now).
