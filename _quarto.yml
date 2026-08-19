@@ -16,6 +16,8 @@ website:
         text: Modernization Roadmap
       - href: decisions.qmd
         text: Decision Log
+      - href: toy-fixture-spike.qmd
+        text: Toy Fixture Spike
       - section: Archive
         contents:
           - archive/index.qmd

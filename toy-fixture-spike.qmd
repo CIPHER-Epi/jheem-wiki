@@ -1,0 +1,174 @@
+---
+title: "Toy Fixture Spike"
+date: 2026-08-19
+---
+
+**Verdict: GO.** A fully self-contained JHEEM model — no data managers, no NAS, no `jheem_analyses` — compiles, registers, and **runs in 0.37 seconds** with sane dynamics (population grows at fertility-minus-mortality; incidence grows exponentially from seeded infections). The full script is at the bottom; it is the seed of the package fixture, runnable `@examples`, and the quickstart vignette ([D-008](decisions.qmd)).
+
+## The minimal-model recipe
+
+Discovered by error-driven iteration (jheem2's validation messages are genuinely good — most errors said exactly what was missing):
+
+1. `create.jheem.specification` formally requires only `version`, `iteration`, `description`, `start.year` — and `start.year` must be in **[1800, 1980]**.
+2. The compiler requires exactly four dynamics registrations, and enumerates all of them in one error: `register.mortality`, `register.natality`, `register.transmission`, `register.initial.population`.
+3. Scalar constants are accepted almost everywhere: rates, fertility, susceptibility, proportions can all be plain numbers or references to scalar quantities.
+4. **At least one dynamic outcome** must be tracked (built-in dynamic quantities: `population`, `mortality`, `births`, `incidence` and variants, `remission`).
+5. **At least one model element** (with a functional form) must be registered; `create.static.functional.form(value=..., link=...)` is the simplest.
+6. Paired from/to dimensions (contact mixing, birth proportions) are introduced with the **subset idiom**: a scalar base `register.model.quantity` plus `register.model.quantity.subset` whose `applies.to` uses `<dim>.from` / `<dim>.to` names. Literal arrays with those dimnames are not accepted.
+7. Quantities that must span model dimensions (initial population needs `age` × `sex`) also use the subset idiom — see bug 3 below for why literal arrays fail.
+8. Age compartment labels are auto-formatted from `age.endpoints` (e.g., `"0-49 years"`, `"50+ years"`); error messages state the expected labels.
+9. Population as a gettable outcome follows the EHE pattern: a `track.point.outcome` over `expression(uninfected + infected)` (built-in state quantities), wrapped in a `track.integrated.outcome`.
+10. `engine$run()` requires a **named** numeric parameter vector; an empty named vector works when the spec defines no sampleable parameters. Any real location code works (`C.12580` used) since nothing pulls location data.
+
+## Engine bugs found (degenerate cases no real spec ever hit)
+
+All three should be fixed on `dev` as a follow-up free-win — they currently greet anyone building a small model with brutal low-level errors:
+
+| # | Symptom | Cause | Location |
+|---|---------|-------|----------|
+| 1 | `invalid subscript type 'list'` at engine creation | Zero dynamic outcomes → `sapply` over empty vector returns `list()`, used as a subscript | `R/JHEEM_kernel.R` ~line 289 |
+| 2 | `invalid argument type` at run | Zero model elements → empty-`sapply` `list()` assigned into a logical vector silently coerces it to a list; `!` fails later | `R/JHEEM_engine.R` ~line 3411 |
+| 3 | `missing required dimensions` at run for an array-valued quantity | A literal array value **passes compile-time dimname validation** but its dims are lost by the run-time dimname resolution — the two paths disagree | quantity dimname calculation |
+
+Also noted (quirk, not crash): `track.dynamic.outcome` of the `population` dynamic quantity compiles and runs but extracts as all-zero; the point+integrated pattern (recipe step 9) is what real specs use.
+
+## Verified behavior
+
+```
+run wall time: 0.37 s
+population by year (1970, 1990, 2010): 4024, 4915, 6003
+incidence  by year (1971, 1990, 2010): 0.46, 2.51, 14.49
+```
+
+Initial population is 4,000 (1,000 × 2 ages × 2 sexes); growth matches fertility 0.02 vs mortality 0.01; incidence grows from 4 seeded undiagnosed infections through the uniform-mixing transmission machinery.
+
+## Next steps
+
+- Wrap the script as a package-side fixture (`register.toy.specification()` or similar) plus a first testthat file asserting the fingerprint above — this is roadmap item 4's foundation.
+- Fix the three degenerate-case bugs on `dev`.
+- Build the quickstart vignette on top of the fixture.
+- Extend the toy later with: one sampleable parameter (so `engine$run` demos calibration parameters), a trivial data manager with fake surveillance counts (so likelihoods become demoable), and an intervention example.
+
+## The working script
+
+```r
+library(jheem2)
+
+spec = create.jheem.specification(
+    version = "toy",
+    iteration = "1",
+    description = "Minimal self-contained toy model for tests and examples",
+    start.year = 1970,
+    age.endpoints = c(0, 50, Inf),
+    compartments.for.infected.and.uninfected = list(
+        location = "location",
+        age = "all.ages",
+        sex = c("female", "male")
+    ),
+    compartments.for.infected.only = list(
+        continuum = c("undiagnosed", "diagnosed")
+    ))
+
+# Mortality: flat rate for everyone
+register.model.quantity(spec, name = "toy.mortality.rate", value = 0.01)
+register.mortality(spec,
+                   groups = c("infected", "uninfected"),
+                   mortality.rate.value = "toy.mortality.rate")
+
+# Natality: flat fertility; births are uninfected, into age group 1, 50/50 sex
+register.model.quantity(spec, name = "toy.fertility.rate", value = 0.02)
+register.model.quantity(spec, name = "toy.birth.proportions", value = 0)
+register.model.quantity.subset(spec, name = "toy.birth.proportions",
+                               applies.to = list(sex.to = c("female", "male")),
+                               value = 0.5)
+register.natality(spec,
+                  parent.groups = c("infected", "uninfected"),
+                  child.groups = "uninfected",
+                  fertility.rate.value = "toy.fertility.rate",
+                  birth.proportions.value = "toy.birth.proportions",
+                  all.births.into.compartments = list(age = 1))
+
+# One model element with a functional form (required; also the calibration hook)
+register.model.element(spec,
+                       name = "transmission.rate",
+                       scale = "rate",
+                       functional.form = create.static.functional.form(value = 0.1, link = "log"))
+
+# Transmission: uniform sex mixing, constant susceptibility,
+# all new infections start undiagnosed
+register.model.quantity(spec, name = "toy.contact", value = 0)
+register.model.quantity.subset(spec, name = "toy.contact",
+                               applies.to = list(sex.from = c("female", "male"),
+                                                 sex.to = c("female", "male")),
+                               value = 0.5)
+register.model.quantity(spec, name = "toy.susceptibility", value = 1)
+register.model.quantity(spec, name = "toy.new.infection.proportions", value = 1)
+register.transmission(spec,
+                      contact.value = "toy.contact",
+                      susceptibility.value = "toy.susceptibility",
+                      transmissibility.value = "transmission.rate",
+                      new.infection.proportions.value = "toy.new.infection.proportions",
+                      new.infections.applies.to = list(continuum = "undiagnosed"))
+
+# Initial population: 1000 uninfected per age x sex stratum,
+# 1 seeded undiagnosed infection per stratum
+register.model.quantity(spec, name = "toy.init.uninfected", value = 0)
+register.model.quantity.subset(spec, name = "toy.init.uninfected",
+                               applies.to = list(age = c("0-49 years", "50+ years"),
+                                                 sex = c("female", "male")),
+                               value = 1000)
+register.initial.population(spec, group = "uninfected", value = "toy.init.uninfected")
+register.model.quantity(spec, name = "init.infected", value = 0)
+register.model.quantity.subset(spec, name = "init.infected",
+                               applies.to = list(continuum = "undiagnosed",
+                                                 age = c("0-49 years", "50+ years"),
+                                                 sex = c("female", "male")),
+                               value = 1)
+register.initial.population(spec, group = "infected", value = "init.infected")
+
+# Outcomes: incidence (dynamic) + population (point outcome, integrated)
+track.dynamic.outcome(spec,
+                      name = "incidence",
+                      outcome.metadata = create.outcome.metadata(
+                          display.name = "Incidence",
+                          description = "New infections in the past year",
+                          scale = "non.negative.number",
+                          axis.name = "Infections",
+                          units = "infections",
+                          singular.unit = "infection"),
+                      dynamic.quantity.name = "incidence",
+                      keep.dimensions = c("location", "age", "sex"))
+
+track.point.outcome(spec,
+                    "point.population",
+                    scale = "non.negative.number",
+                    value = expression(uninfected + infected),
+                    keep.dimensions = c("location", "age", "sex"),
+                    outcome.metadata = create.outcome.metadata(
+                        display.name = "Point population",
+                        description = "Population at a point in time",
+                        scale = "non.negative.number",
+                        axis.name = "People",
+                        units = "people",
+                        singular.unit = "person"))
+
+track.integrated.outcome(spec,
+                         name = "population",
+                         outcome.metadata = create.outcome.metadata(
+                             display.name = "Population",
+                             description = "Total population over the year",
+                             scale = "non.negative.number",
+                             axis.name = "People",
+                             units = "people",
+                             singular.unit = "person"),
+                         value.to.integrate = "point.population",
+                         keep.dimensions = c("location", "age", "sex"))
+
+register.model.specification(spec)
+
+engine = create.jheem.engine("toy", "C.12580", end.year = 2010)
+sim = engine$run(setNames(numeric(0), character(0)))
+
+sim$get("population", year = c(1970, 1990, 2010))
+sim$get("incidence", year = c(1971, 1990, 2010))
+```
