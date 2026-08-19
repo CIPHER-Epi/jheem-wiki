@@ -22,13 +22,11 @@ Discovered by error-driven iteration (jheem2's validation messages are genuinely
 
 ## Engine bugs found (degenerate cases no real spec ever hit)
 
-All three should be fixed on `dev` as a follow-up free-win — they currently greet anyone building a small model with brutal low-level errors:
-
-| # | Symptom | Cause | Location |
-|---|---------|-------|----------|
-| 1 | `invalid subscript type 'list'` at engine creation | Zero dynamic outcomes → `sapply` over empty vector returns `list()`, used as a subscript | `R/JHEEM_kernel.R` ~line 289 |
-| 2 | `invalid argument type` at run | Zero model elements → empty-`sapply` `list()` assigned into a logical vector silently coerces it to a list; `!` fails later | `R/JHEEM_engine.R` ~line 3411 |
-| 3 | `missing required dimensions` at run for an array-valued quantity | A literal array value **passes compile-time dimname validation** but its dims are lost by the run-time dimname resolution — the two paths disagree | quantity dimname calculation |
+| # | Symptom | Cause | Status |
+|---|---------|-------|--------|
+| 1 | `invalid subscript type 'list'` at engine creation | Zero dynamic outcomes → `sapply` over empty vector returns `list()`, used as a subscript (`R/JHEEM_kernel.R` ~line 289) | **Fixed on `dev`** (2026-08-19, `90b68ad`): `vapply` with typed FUN.VALUE; zero-outcome specs now run. Toy fingerprint verified identical before/after |
+| 2 | `invalid argument type` at run | Zero model elements → empty-`sapply` `list()` assigned into a logical vector silently coerces it to a list (`R/JHEEM_engine.R` ~line 3411) | **Fixed on `dev`** (same commit); zero-element specs now run |
+| 3 | `missing required dimensions` at run for an array-valued quantity | A literal array value **passes compile-time dimname validation** but its dims are lost by the run-time dimname resolution — the two paths disagree | **Open.** Touches live dimname-resolution paths; deferred until the fixture-based test net exists ([D-001](decisions.qmd)). Workaround: the subset idiom |
 
 Also noted (quirk, not crash): `track.dynamic.outcome` of the `population` dynamic quantity compiles and runs but extracts as all-zero; the point+integrated pattern (recipe step 9) is what real specs use.
 
@@ -45,7 +43,7 @@ Initial population is 4,000 (1,000 × 2 ages × 2 sexes); growth matches fertili
 ## Next steps
 
 - Wrap the script as a package-side fixture (`register.toy.specification()` or similar) plus a first testthat file asserting the fingerprint above — this is roadmap item 4's foundation.
-- Fix the three degenerate-case bugs on `dev`.
+- ~~Fix the degenerate-case bugs on `dev`~~ — bugs 1 and 2 fixed (`90b68ad`); bug 3 deferred behind the test net.
 - Build the quickstart vignette on top of the fixture.
 - Extend the toy later with: one sampleable parameter (so `engine$run` demos calibration parameters), a trivial data manager with fake surveillance counts (so likelihoods become demoable), and an intervention example.
 
