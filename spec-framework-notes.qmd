@@ -1,0 +1,373 @@
+---
+title: "Spec Framework Notes"
+date: 2026-08-19
+---
+
+::: {.callout-note}
+**Provenance:** written and empirically verified by @ncsizemore during Tech2Check development (2026); originated as `tech2check/docs/jheem_spec_notes.md` and explicitly marked "not Tech2Check-specific — transferable to other JHEEM model work," which makes this wiki its natural home per the [boundary rule](index.qmd). Canonical here as of 2026-08-19; the tech2check copy should become a pointer. Code line numbers reference the jheem2 tree as of mid-2026.
+:::
+
+
+> Internal working reference for the jheem2 specification framework. Not Tech2Check-specific — transferable to other JHEEM model work. Grounded in: the `create.jheem.specification()` source in `jheem2/R/SPECIFICATION_model_specification.R`, and the `EHE`, `adap_cuts`, `cdc_testing`, and `tech2check` specs in `jheem_analyses/applications/`. Add findings here as they come up.
+
+## What a specification is
+
+A `jheem.specification` is an R6 object that fully describes a compartmental model: compartments (by dimension), compartment-value aliases, transitions, model elements (named scalar/array parameters), model quantities (computed expressions), and tracked outcomes. A specification can inherit from a parent via `parent.version`, which pulls in the parent's registrations as a starting point and lets the child override, extend, or add.
+
+Specs live in `jheem_analyses/applications/<name>/<name>_specification.R`. They are plain R scripts that build up a specification via successive `register.*` calls and finish with `register.model.specification(<SPEC>)`.
+
+## Conventions
+
+### File layout and sourcing
+
+- R session's working directory is expected to be `jheem2/` (the package root).
+- Source paths use `../jheem_analyses/applications/<name>/<name>_specification.R` — resolves to `jheem/code/jheem_analyses/applications/...` from the jheem2 root.
+- Spec files are `.R` (capital).
+- A child spec begins by sourcing its parent: `source('../jheem_analyses/applications/EHE/ehe_specification.R')`. Sourcing the parent is required — `parent.version = 'ehe'` alone does not load EHE's registrations into the registry.
+
+### Naming
+
+- **Compartments**: `lowercase_underscore` — e.g., `diagnosed_chronic`, `undiagnosed_acute`, `on_intervention`.
+- **Model elements, quantities, aliases**: `dotted.segments` — e.g., `suppression.of.diagnosed`, `testing.of.undiagnosed`, `idu.remission`, `diagnosed.states`.
+- **Version names**: short lowercase string — e.g., `ehe`, `cdct`, `adap`, `tech2check`.
+- **Spec object**: `<VERSION>.SPECIFICATION` in uppercase — e.g., `EHE.SPECIFICATION`, `TECH2CHECK.SPECIFICATION`.
+
+## The registration vocabulary
+
+| Call | Purpose |
+|------|---------|
+| `register.model.element(spec, name, value, scale)` | Named scalar or array parameter. Values are numeric literals (possibly with a `get.functional.form.function` for time-varying). Used for rates, ORs, proportions, thresholds. |
+| `register.model.quantity(spec, name, value, scale)` | Computed quantity. `value` is a string (reference to another element/quantity), an `expression(...)` over other registrations, or a function. Resolved at simulation time. |
+| `register.model.quantity.subset(spec, name, value, applies.to)` | Attaches a different value to a subset of compartments for an already-registered parent quantity. `applies.to` is a list keyed by dimension; values are compartment names or aliases. |
+| `register.transition(spec, dimension, from.compartments, to.compartments, groups, value)` | Compartment flow. `groups` is `'infected'` or `'uninfected'`; `value` is a rate (string reference or expression). |
+| `track.integrated.outcome(...)`, `track.cumulative.outcome(...)`, `track.point.outcome(...)` | Reported model outputs. Not needed for a "sources successfully" check. |
+| `register.model.specification(spec)` | Finalizes the spec in the registry. Called once at the end of the spec file. |
+
+## Inheritance: what transfers, what doesn't
+
+### Compartment-value aliases inherit
+
+Verified at `jheem2/R/SPECIFICATION_model_specification.R:347-357`: when `parent.version` is set, the child's `compartment.value.aliases` list is merged onto the parent's, with child entries winning on name conflict. Both character aliases (e.g., `diagnosed.states = c(...)`) and function aliases (e.g., `location = function(location){location}`) inherit.
+
+**Practical consequence:** declare only the aliases you're *changing*. Everything else — `undiagnosed.states`, `acute.stages`, `idu.states`, `all.ages`, the `location` function alias — inherits for free. Restating inherited aliases is redundant; omitting them is cleaner and makes the intent of the child spec readable.
+
+### Model quantities are referable across specs, but their registrations don't satisfy child-side subset checks
+
+Two related but distinct behaviors:
+
+1. **Expressions in the child can reference parent-registered quantities directly.** A child spec can write `expression(... suppression.of.diagnosed ...)` without re-registering `suppression.of.diagnosed`; the reference resolves via the parent chain at evaluation time.
+
+2. **`register.model.quantity.subset(spec, name = 'X', ...)` requires quantity `X` to be registered *in the current spec* — inheritance from parent does not satisfy this check.** The framework errors with `Cannot register subset for model quantity 'X': No quantity with name 'X' has been registered.`
+
+   Workaround: `register.model.quantity(spec, name = 'X', value = <default>)` in the child before calling `register.model.quantity.subset`. This is the pattern Melissa's sketch used for `suppression` — not redundant, load-bearing.
+
+### The `super.X` pattern
+
+When a child spec *redefines* a parent quantity, `super.X` resolves to the parent's definition. Seen in adap_cuts (`super.suppression.of.diagnosed`) and cdc_testing (`super.testing.of.undiagnosed`). The pattern lets a child decompose a parent aggregate without losing access to it:
+
+```r
+register.model.quantity(CHILD.SPEC, name = 'testing.of.undiagnosed',
+    value = expression(super.testing.of.undiagnosed * modifier))
+```
+
+Use `super.X` only when overriding `X` in the child. If you're just referencing `X` from a new quantity (not overriding), refer to it by name — no prefix.
+
+## Architectural patterns for extending a parent spec
+
+Three distinct patterns are visible in `jheem_analyses/applications/`:
+
+### Pattern A — Quantity-only modification
+
+**Examples:** `adap_cuts`, `cdc_testing`.
+
+Inherit from EHE, add/override model quantities via `register.model.quantity` (usually with `super.X` references), add tracked outcomes. No structural changes to compartments. Suitable when the intervention or program effect can be expressed as an algebraic modification of existing rates/proportions.
+
+### Pattern B — Outcome stratification
+
+**Example:** `adap_cuts` uses `compartments.for.outcomes = list(income = c(...))` to add an income dimension for reporting, without adding an income dimension to the simulated compartments.
+
+Useful for slicing outputs without incurring compartment-count cost in the integrator. The income levels are a reporting breakdown, not separate populations flowing through transitions.
+
+### Pattern C — Compartment structure extension
+
+**Example:** `tech2check`.
+
+Redefine `compartments.for.infected.only` (or the `_uninfected` / `_and_uninfected` variants) to change the set of compartments in a dimension. Required when the modeled phenomenon has genuine state and flow dynamics (like a lifecycle) that cannot be represented as algebraic quantities on existing compartments.
+
+Knock-on requirements:
+- **Update compartment-value aliases** (`diagnosed.states`, `chronic.stages`, etc.) to cover new compartments. Aliases used by inherited registrations need to expand correctly against the new compartment set.
+- **Existing transitions must still resolve.** If a parent transition targets a compartment that no longer exists, either keep that compartment or use `do.not.inherit.transitions.for.dimension` and re-register the transitions against the new compartment names.
+- **`register.model.quantity.subset` on parent quantities requires the parent quantity to be re-registered in the child spec** — see the inheritance note above.
+
+**Tip for Pattern C:** if you can repurpose an existing compartment as one of the new lifecycle states (as Tech2Check does with `diagnosed_chronic` serving as "never intervened"), you avoid having to use `do.not.inherit.transitions.for.dimension` at all — the parent's transitions into that compartment remain valid.
+
+## Compartment aliases — what to know
+
+Aliases are symbolic names for compartment groups (or single compartments) used across many registrations. Defining an alias once and referring to it in many places avoids scattering compartment-name literals across the spec.
+
+**Key EHE aliases:**
+- `diagnosed.states` / `first.diagnosed.states` / `undiagnosed.states` / `undiagnosed.no.prep.states` / `undiagnosed.from.prep.states`
+- `acute.stages` / `chronic.stages`
+- `idu.states` / `active.idu.states` / `non.active.idu.states` / `prior.idu.states` / `never.idu.states`
+- `all.ages`, `all.ages.but.last`
+- `location = function(location){location}` — a function alias; inherits
+
+**When extending compartments**, the aliases that *change* are the ones that previously enumerated compartments you've now altered. For Tech2Check: `diagnosed.states` expanded from `'diagnosed_chronic'` to 4 states; `chronic.stages` expanded similarly. Other aliases (undiagnosed states, IDU states, ages) are untouched and inherit.
+
+## Subset semantics — open questions
+
+When multiple `register.model.quantity.subset` calls cover overlapping compartments (e.g., a broad subset via a multi-compartment alias, plus a narrow subset on a single compartment within that alias), the precedence rule is not documented and has not been empirically verified.
+
+**Current workaround in `tech2check_specification.R`:** register non-overlapping subsets — one per compartment — so precedence is a non-question. Slightly verbose, but unambiguous. Worth revisiting after a simulation confirms behavior.
+
+### Verified: multi-dimensional (age × continuum) non-overlapping subsets dispatch correctly
+
+The overlapping-subset precedence question above is sidestepped by non-overlap; what was *also* untested was whether a subset keyed on **two dimensions at once** dispatches per the intersection. It does. The Tech2Check OR dispatcher (`tech2check.suppression.OR`) was split (#35) from three continuum-only subsets to **six `applies.to = list(continuum = …, age = …)` subsets** — `{on, recently, distantly} × {youth 13-24, adult 25+}`, mutually non-overlapping. `verify_broaden_or.R` set distinct youth/adult ORs per compartment and confirmed, per full stratum (age/race/sex/risk), that each (compartment, age-band) cell applies exactly its own OR via the closed form `OR·p/(1−p+OR·p)`: youth strata match the youth OR to ≤1.4e-3, adult strata the adult OR to ≤3.1e-3, while cross-references (a band against the *other* band's OR) diverge 5–8%. So a subset's `applies.to` is honored as the **intersection** of its named dimensions, and non-overlapping multi-dimension subsets tile cleanly. (Still no evidence on *overlapping* precedence — that remains open; we continue to rely on non-overlap.)
+
+### Verified: a subset-dispatched quantity works as a *transition rate* (not just in expressions)
+
+The dispatcher pattern (a `register.model.quantity` with `register.model.quantity.subset` overrides) is well-exercised as an expression input (EHE's `suppression`; Tech2Check's `tech2check.suppression.OR`). It also works **as a transition's `value`**: register the transition with `value = '<dispatcher-quantity-name>'`, and the engine evaluates the rate per stratum, picking up the subset-dispatched value. Verified empirically for Tech2Check's recruitment (`verify_broaden_recruitment.R`, #35): a `tech2check.recruitment.rate` quantity (default 0) with two **non-overlapping age subsets** routing to underlying youth/adult rate elements produced band-correct recruitment — youth flowed at the youth rate, adults only when the adult rate was set, no leakage in between. This is the first confirmation in this spec that **age-dimension** subsets dispatch (prior confirmation was continuum-only) and that dispatch happens on a **transition-rate** consumer.
+
+### Why transitions can't be split by `applies.to` (use a dispatched rate instead)
+
+jheem2 keys transition core-components by `dimension / from.compartments / to.compartments / group / tag` and **rejects a second transition on the same key regardless of `applies.to`** — `components.clash` (`SPECIFICATION_model_specification.R:7429`) plus its parent (`:6661`) compares type/tag/group/dimension/from/to but never `applies.to`. So you cannot register two `diagnosed_chronic → on_intervention` transitions with different age `applies.to` (the natural first attempt for age-banded recruitment); it errors with "...has already been registered." The working pattern is **one transition whose rate is an age dispatcher** (above). Separately, `register.intervention` rejects a second intervention sharing a `code` — give scenario variants distinct codes.
+
+### A subset-dispatched transition interacts with aging (current-age semantics)
+
+Compartment populations are indexed by **current** age, and individuals age across bands while in a compartment. So a recruitment transition gated to `13-24` still yields population in the `25-34` band over time (youth recruits aging up) — the lifecycle *stock* by age is not a clean readout of who was recruited. The recruitment *flow* (an integrated `rate × population` outcome, which multiplies by the band rate **element**) is the aging-immune signal. This is why the #35 OR effect for adults is keyed to `25+`, not `25-34`: an age-gated effect would silently drop off a recruit who ages past the band. (Empirically confirmed in `verify_broaden_recruitment.R`: the youth-only base shows nonzero `25-34` lifecycle population — aged-in youth — while adult *enrollments* stay exactly 0.)
+
+## Model quantities vs. tracked outcomes — and a subtle inheritance trap
+
+These are different things in different namespaces:
+
+- A **model quantity** is consumed by the ODE solver. It can have subsets — multiple `register.model.quantity.subset` calls attach different values to different compartments. At simulation time the solver looks up the quantity for the relevant compartment and gets the dispatched value. Quantities can also be referenced by other quantities and by tracked outcomes via name.
+- A **tracked outcome** (`track.integrated.outcome`, `track.point.outcome`, `track.cumulative.outcome`, `track.dynamic.outcome`, `track.transition`) is a *report* computed for export — for plots, paper tables, likelihood evaluation. Outcomes never feed back into dynamics; they're read-only consumers of simulation state.
+
+A quantity and an outcome may share a name without conflict — they live in different registries.
+
+### The trap
+
+A tracked outcome's `multiply.by = '<thing>'` argument resolves `<thing>` against quantities and elements in the registry. If `<thing>` is a quantity that has subsets, the outcome dispatches per compartment. If `<thing>` is an underlying scalar value (a model element or a quantity with no subsets), the outcome gets that flat value across all compartments in its `subset.dimension.values`.
+
+This becomes a problem when a child spec extends a parent with new quantity subsets:
+
+- The parent registered an outcome with `multiply.by = 'X'`, where `X` is the underlying flat value.
+- In the parent, a generic-named quantity `Y` has a subset that wires `Y = X` for all relevant compartments. So `multiply.by = 'X'` and `multiply.by = 'Y'` produce the same numbers — equivalent.
+- The child adds *new subsets* to `Y` for newly-introduced compartments, giving `Y` per-compartment values that differ from `X`. The dynamics (which consume `Y`) correctly reflect the per-compartment values.
+- But the inherited outcome still does `multiply.by = 'X'` — bypassing the child's refinement. The headline report reflects baseline behavior even though the simulation was correct.
+
+The trap is silent: `Rscript -e 'source(...)'` succeeds, the simulation runs, plots appear. The numbers are just wrong in a way that hides the intervention effect.
+
+### Detection pattern when extending a parent with new quantity subsets
+
+For each tracked outcome inherited from the parent, check whether `multiply.by` (and `value`, `value.to.integrate`) reaches for an underlying flat value or for a dispatched quantity. If the former, and the child has refined the dispatched quantity, the inherited outcome needs override.
+
+### Resolution: redefine the underlying value
+
+Only one resolution path is actually available, due to a framework limitation (see below): **redefine the underlying value (`X`) so it dispatches per compartment.** The child uses `super.X` to reference the parent's `X`, then re-anchors `X` so its evaluation varies by compartment. Inherited outcomes work unchanged because `multiply.by = 'X'` then also dispatches.
+
+There are two equivalent implementations of this. Pick based on what the per-compartment difference looks like:
+
+**Form A — direct subsets on `X`.** One subset per compartment, each with its own value or expression. Suitable when the per-compartment values don't share a common algebraic shape, or when each compartment's value is a distinct named quantity.
+
+```r
+register.model.quantity(CHILD.SPEC, name = 'X', value = 0)
+register.model.quantity.subset(CHILD.SPEC, name = 'X',
+                               value = 'super.X',
+                               applies.to = list(<dim> = '<compartment-A>'))
+register.model.quantity.subset(CHILD.SPEC, name = 'X',
+                               value = expression(... super.X ... <modifier-B> ...),
+                               applies.to = list(<dim> = '<compartment-B>'))
+```
+
+**Form B — dispatcher composition.** When the per-compartment difference is a single algebraic transform parameterized by a per-compartment quantity, factor that quantity out: register a dispatcher quantity whose subsets carry the per-compartment parameter values, then redefine `X` with a single expression that references both `super.X` and the dispatcher.
+
+```r
+# Per-compartment parameter dispatcher (default = neutral value)
+register.model.quantity(CHILD.SPEC, name = 'modifier', value = <neutral>)
+register.model.quantity.subset(CHILD.SPEC, name = 'modifier',
+                               value = '<modifier-for-compartment-B>',
+                               applies.to = list(<dim> = '<compartment-B>'))
+register.model.quantity.subset(CHILD.SPEC, name = 'modifier',
+                               value = '<modifier-for-compartment-C>',
+                               applies.to = list(<dim> = '<compartment-C>'))
+
+# Single-expression redefinition of X
+register.model.quantity(CHILD.SPEC, name = 'X',
+    value = expression(<f>(super.X, modifier)))
+```
+
+Form B is preferred when applicable because it composes two patterns with team precedent — dispatcher quantities (EHE's `suppression`/`suppression.of.diagnosed` wiring) and `super.X` redefinition with a sibling quantity (Depression, medicaid, adap_cuts). Form A — registering subsets directly on a quantity that's also being redefined via `super.X` — has no team precedent at the time of writing; it should work in principle (subsets and named-quantity registration are independent mechanisms) but lives in uncharted territory until verified.
+
+Cost (both forms): `X` no longer means "parent's flat baseline" — it means whatever the child redefined it to. The flat baseline is still reachable as `super.X`, so it's not lost; just no longer the meaning of the bare name. Document the redefinition with an inline comment.
+
+### Why the seemingly-cleaner alternative isn't available
+
+Conceptually, the cleaner pattern would be to override the inherited tracked *outcome* in the child — same name, change `multiply.by` to point at the dispatched quantity. That preserves the semantic meaning of the underlying value (it stays "parent's flat baseline") and makes the override explicit at the outcome layer.
+
+The framework rejects this:
+
+- `do.store.outcome()` errors on duplicate outcome names: `"The name 'X' has already been used (for a tracked.outcome)"` (`SPECIFICATION_model_specification.R:3672-3677`).
+- The only mutation supported on inherited outcomes is `update.outcome.keep.dimensions()`, which mutates `keep.dimensions` / `exclude.dimensions` only — not `value`, `multiply.by`, `subset.dimension.values`, etc. (line 1571-1582; the validator at line 3010-3015 explicitly says "you can only update keep.dimensions" on ancestor outcomes).
+
+Practical consequence: when a child spec needs to refine what an inherited outcome reports, the change must happen at the underlying-value layer (overload the name `X` with subsets), not at the outcome layer. This forces semantic overload of underlying-value names that would otherwise have stable meanings — a framework gap worth noting as a candidate for the restructure receipts catalogue (see `jheem2/docs/CONTAINER_PERSPECTIVE_ANALYSIS.md` if revisiting that work).
+
+See Tech2Check's `suppression.of.diagnosed` redefinition (and the `decision_log.md` entry for it) for a worked instance of this pattern.
+
+## Transmutability constraints on extension specs
+
+When a child spec is intended to consume calibrated simsets from a parent via the transmute workflow (`create.jheem.transmuter` + `transmuter$transmute(sim.index, parameters)`), the child must satisfy **three sequential compatibility checks**. Each failure surfaces only after the prior one passes, so it's worth knowing all three up front. Framework path: `jheem2/R/JHEEM_transmutation.R::do.evaluate.can.transmute` and `prepare.to.transmute.or.crunch`.
+
+**Empirically validated 2026-05-19** by running tech2check transmute against the MD state-1000 calibrated simset (sim 1). All three checks behaved as described below; calibration was preserved exactly through transmute (transmuted output matched direct-read of stored trajectories with zero abs diff).
+
+### Check 1 — No new dynamic outcomes in the to-spec
+
+An outcome is *dynamic* if it inherits from `DYNAMIC.MODEL.OUTCOME` — produced by `track.transition` (class `transition.model.outcome`) and `track.dynamic.outcome`. The transmuter cannot compute dynamic outcomes from stored state because they require ODE re-evaluation. Static outcomes (`track.point.outcome` → `point.model.outcome`, `track.integrated.outcome` → `integrated.model.outcome`) re-evaluate algebraically against the stored simset trajectories and pass cleanly.
+
+**The team's pattern:** Ryan White's spec uses **zero `track.transition` calls** — every new outcome is `track.integrated.outcome`. This is a deliberate choice to keep RW transmutable from EHE. The docstring on `track.integrated.outcome` describes it as "an approximation of the outcome that would be generated by using `track.dynamic.outcome`" via rectangle-rule integration over the year; for constant-within-year rates the approximation is exact in the limit.
+
+**Practical rule:** an extension spec intended for transmute should use only `track.point.outcome` / `track.integrated.outcome`. A new `track.transition` call is the most common (and silent) way to break transmutability.
+
+For values that are conceptually transition counts (e.g., enrollments into a new compartment), express them as `track.integrated.outcome` with `value.to.integrate = '<group-population>'` × `multiply.by = '<transition.rate>'`, restricted to the source compartment + relevant strata via `subset.dimension.values`. This integrates rate × population over the year — the same math the ODE evaluates at the transition. Tech2Check's `tech2check.enrollments` uses this pattern; see `tech2check_specification.R` and the inline note there.
+
+### Check 2 — Outcome dimensions must match
+
+For every outcome present in both the from-simset's stored kernel and the to-spec, `setequal(names(from.outcome$dim.names), names(to.outcome$dim.names))` must hold. Mismatches arise when the parent's spec was edited after the simset was calibrated (most often via `update.outcome.keep.dimensions` either expanding or contracting an outcome).
+
+**Fix:** call `update.outcome.keep.dimensions` in the to-spec to bring its dimensions back into agreement with the simset's stored set. Counterintuitively, this works in both directions — the function can both restrict and expand keep.dimensions. Restoring dimensions a parent has since dropped is a valid use; verified empirically with Tech2Check's `total.mortality` (current EHE has dropped it to `location`, calibration-era EHE kept the full strata — restored locally in `TECH2CHECK.SPECIFICATION` with `update.outcome.keep.dimensions(... c('location','age','race','sex','risk'))`).
+
+Audit pattern when transmute fails this check: iterate over the simset's stored outcome names, compare `dim.names` against the to-spec's outcome, log every mismatch. The error message only names one outcome at a time, so a full audit avoids whack-a-mole.
+
+### Check 3 — Parameter set congruence
+
+When `transmuter$transmute(sim.index, parameters)` runs, it builds an engine that calls `set.parameters` with `(simset$parameters[, sim.index] + caller-supplied overlay)`. The engine then accesses `i.kernel$calibrated.parameter.names` (the **to-spec's** calibrated set) to derive the simulation seed. Two sub-failures here:
+
+- **NAs from missing parameters:** to-spec has calibrated parameter names that the from-simset doesn't carry (parameters added to the spec since calibration). When the engine does `parameters[calibrated.names]` to pull values, missing names yield NA → `get.simulation.seed.from.parameters` errors. *Local fix possible:* overlay the missing names with prior medians via the `parameters` arg.
+- **"Not used by specification" rejection:** from-simset has parameters that the current to-spec no longer recognizes (renamed or removed since calibration). The engine rejects unrecognized parameter names. *No local fix*: `simset$parameters` is an active binding with explicit read-only enforcement, so these can't be stripped before transmute. This is a hard spec-drift wall.
+
+The third sub-failure is the load-bearing constraint in practice. Even when the calibration-era and current specs are *mostly* compatible, a single removed parameter blocks the whole pipeline.
+
+### What transmute reuses vs. recomputes
+
+Transmute uses a **dual-kernel pattern**: the transmuter holds the simset's stored kernel (the parent spec as-of-calibration) for the from-side, and creates a fresh to-kernel (current child spec) for re-evaluating outcomes. The compatibility checks above compare the two.
+
+- **Reused from simset:** stored ODE trajectories (compartmental states by year).
+- **Recomputed:** outcomes that depend on those states — re-evaluated via the to-spec's algebraic expressions against the stored trajectories.
+- **NOT reconciled:** parameter names. `engine.set.parameters` uses the current (to-spec) calibrated names, even though the simset's stored kernel knows the calibration-era set. The framework captures partial spec-at-calibration-time provenance (via `simset$jheem.kernel`), but the engine's parameter pipeline drives off the current spec. This is the structural source of spec-drift breakage when re-running.
+
+### Implications for releasing calibrated simsets
+
+A calibrated simset is tightly coupled to the spec version that produced it. `simset$jheem.kernel` captures part of this coupling (outcome registrations, dimensions); it does not capture the calibrated parameter set in a form that allows running against an evolved spec.
+
+A consumer of a released simset is implicitly required to run against a compatible spec — typically the commit of `jheem_analyses` that produced it. Two things would make this less fragile:
+
+- **Tag each simset release with the git SHA of `jheem_analyses`** that produced it (release notes or release metadata). Cheap; clarifies what consumers should pin to.
+- **Coordinate calibration with spec evolution** — when EHE adds/removes calibrated parameters, the calibrated simset releases must be regenerated against the new spec. The current implicit convention ("use the current spec, accept transmute may fail") works in tightly-coupled team flows where the calibration cache is updated whenever the spec is; it breaks for external consumers (and for cross-app workflows like ours) the moment those two move out of lockstep.
+
+This applies even when spec changes are scientifically motivated improvements (e.g., adding race-disaggregated parameters for better demographic resolution): the calibration must catch up before downstream artifacts are re-runnable.
+
+## Stage-1 "sources successfully" checklist
+
+Minimum bar for a new spec file. Running `Rscript -e 'options(repos = c(CRAN = "https://cloud.r-project.org")); source("../jheem_analyses/applications/<name>/<name>_specification.R")'` from `jheem2/` should complete without error and leave a valid `<VERSION>.SPECIFICATION` R6 object in the workspace.
+
+- [ ] No trailing comma in `create.jheem.specification(...)` or any `list(...)` (R rejects trailing args).
+- [ ] Parent spec sourced (`source('../jheem_analyses/applications/EHE/ehe_specification.R')`) at the top of the file.
+- [ ] `parent.version` matches the parent's `version`.
+- [ ] All compartments referenced in transitions or subsets exist in the declared compartment set (or are inherited).
+- [ ] All aliases referenced in `applies.to = list(...)` resolve — either declared in this spec or inherited.
+- [ ] Any quantity that appears as the `name` argument to `register.model.quantity.subset` is also registered in this spec via `register.model.quantity` (inheritance does not satisfy this check).
+- [ ] All referenced model elements are registered in this spec or inherited, with consistent `scale`.
+- [ ] Every `register.*` call targets the child spec (not accidentally `EHE.SPECIFICATION`) — easy typo to miss.
+- [ ] File ends with `register.model.specification(<VERSION>.SPECIFICATION)`.
+
+Sourcing does **not** verify: subset precedence at simulation time, OR-modified expressions computing correctly, compartment flows integrating sensibly, calibration behavior. Those require a simulation run (stage 2+).
+
+## Things verified by reading jheem2 source
+
+- Compartment-value-alias inheritance: `SPECIFICATION_model_specification.R:347-357`.
+- Function aliases may only take a single argument named `location`: same file, lines 289-298.
+- `do.not.inherit.transitions.for.dimension` is a first-class parameter of `create.jheem.specification` (full parameter list at `SPECIFICATION_model_specification.R:28-57`).
+- `register.transition` parameters documented at `SPECIFICATION_model_specification.R:1145`.
+- `subset.dimension.values` is supported by all `track.*.outcome` calls (and `track.transition`) — parameter signatures around `SPECIFICATION_model_specification.R:1244-1622`.
+- Re-registering an inherited outcome with the same name is rejected: `do.store.outcome` at `SPECIFICATION_model_specification.R:3672-3677`.
+- The only inherited-outcome mutation supported is `update.outcome.keep.dimensions()` at line 1571 — and the validator at line 3010-3015 explicitly limits it to `keep.dimensions` / `exclude.dimensions`.
+- A single `create.intervention()` **rejects** two intervention effects on the *same* quantity: `INTERVENTIONS_main.R:60-64` (`table(quantity.names) > 1 → stop`). The combine-by-quantity logic at `:147` is for *joining separate interventions* (`join.interventions`), not single-create — don't conflate them. Implication: per-stratum (e.g. youth vs adult) effects on one conceptual quantity require **separate quantities** (Pattern A), not two effects on one quantity. Verified 2026-06-16 (for #35; see `docs/archive/plan_broaden_pool.md`).
+
+## Things inferred but not verified
+
+- How overlapping `register.model.quantity.subset` registrations resolve (precedence rule).
+- Whether inherited subsets from a parent spec re-resolve their `applies.to` aliases against the child's alias table, or keep the parent's resolution.
+- Whether `do.not.inherit.transitions.for.dimension = 'X'` drops all transitions on dimension `X` from the parent, or only transitions whose endpoints no longer exist.
+- Whether a child-registered `register.model.quantity` for a parent-registered name replaces the parent's entire registration (including any subsets attached to it), or only the top-level value.
+
+These should be resolved as they come up during implementation. Adding a bullet under "Things verified" when resolved, and a short code-pointer if possible.
+
+## How jheem2 is loaded in team workflows
+
+Important architectural fact that affects what code actually runs: **jheem2 is typically NOT loaded via `library(jheem2)`** in team workflows. Instead, the source tree is sourced directly from disk each session, with C++ recompiled fresh via `Rcpp::sourceCpp`. This is controlled by a flag in `jheem_analyses` and has significant implications.
+
+### The mechanism
+
+`jheem_analyses/source_code.R` contains:
+
+```r
+source('../jheem_analyses/use_jheem2_package_setting.R')
+# ...
+if (USE.JHEEM2.PACKAGE)
+    library(jheem2)
+if (!USE.JHEEM2.PACKAGE)
+    source('../jheem2/R/tests/source_jheem2_package.R')
+```
+
+`use_jheem2_package_setting.R` sets `USE.JHEEM2.PACKAGE = F` by default. So `source_jheem2_package.R` is invoked, which:
+
+- `source()`s ~60 jheem2 R files directly from `../jheem2/R/` into `.GlobalEnv`
+- `Rcpp::sourceCpp()`s the C++ files, **recompiling them fresh in the current R session**
+
+When any team spec (EHE, RW, CDC, tech2check) is sourced, `source_code.R` runs as part of the spec's startup, so the source-from-disk path is taken.
+
+### Implications
+
+1. **The installed jheem2 binary is essentially irrelevant** for normal team workflow. Whatever's at `git HEAD` of the local `jheem2/` directory is what actually executes. `packageVersion("jheem2")` reports the installed binary, but that's not what's running.
+
+2. **The C++ binary is recompiled per R session.** jheem2's C++ is sensitive to the active toolchain — R version, clang version, SDK version, PATH ordering. Same source compiled with different toolchains can produce different machine code with different runtime behavior. We empirically demonstrated this 2026-05-19/20: R 4.5 toolchain exposed UB in `populate_outcomes_array` (segfault) that R 4.4 toolchain's compilation tolerated (clean execution). See `decision_log.md` 2026-05-20.
+
+3. **NAMESPACE exports don't matter for team usage.** Functions sourced into `.GlobalEnv` are visible regardless of NAMESPACE. Team specs commonly call jheem2 functions unqualified (`create.solver.metadata(...)` not `jheem2::create.solver.metadata(...)`) — works fine via source-from-disk; would fail under `library(jheem2)` if the function isn't exported. We verified 2026-05-20 that `create.solver.metadata` (and likely others) are non-exported, so `library(jheem2)` is currently NOT viable for sourcing the EHE spec.
+
+4. **Multiple R sessions with the same source tree can behave differently** depending on each session's toolchain. The rebuild is automatic and silent — no explicit version tag on the C++ binary active in a session.
+
+5. **Reproducibility requires pinning more than just jheem2 source.** R version + clang + SDK are part of the effective dependency set whenever sourceCpp is the loading path.
+
+### When `USE.JHEEM2.PACKAGE = T` would help (and why it's currently blocked)
+
+The `T` branch is supported in `source_code.R` but currently NOT viable for team specs because jheem2's NAMESPACE doesn't export all functions the specs use unqualified. Making `library(jheem2)` viable would require a NAMESPACE export sweep — a meaningful but bounded change worth discussing with the team. Until then, the team workflow effectively requires the source-from-disk path with its toolchain-sensitivity caveat.
+
+### What this explains
+
+A number of otherwise-puzzling behaviors:
+
+- Upgrading R changes runtime behavior of jheem2 (because C++ recompiles)
+- The "installed jheem2 version" reported by `packageVersion()` may not match what's actually executing
+- Bugs that appear in one team member's session but not another's (different local toolchains)
+- The team's package may be labeled v1.8.0 / v1.10.0 / v1.11.1 in DESCRIPTION while the working source tree is at a different state — and only the source tree state matters for behavior
+- Why `git pull` on jheem2 can change behavior immediately without a `library(...)` reload — sourcing the spec re-runs the from-disk loader
+
+## Framework quirks observed during use
+
+These aren't spec-design questions — they're observations about jheem2 runtime behavior that are useful to know when working with the framework. Recorded here so future Tech2Check or Pattern-C-like work has the heads-up.
+
+### Intervention API works on Pattern C specs (compartment extension)
+
+**Empirically verified 2026-05-15.** The intervention API (`create.intervention.effect` + `create.intervention` + `intervention$run`) targets named quantities/elements regardless of the spec's compartment structure. Pattern C specs (those that add compartments to a parent's continuum dimension) can be used as the base for interventions; the intervention modifies the named target quantity, and the added compartments participate in the downstream dynamics just as they do in raw-parameter runs.
+
+Tested case: Tech2Check intervention activates `tech2check.recruitment.rate` at year 2026, with the spec's added lifecycle compartments (`on_intervention`, `recently_intervened`, `distantly_intervened`) populating from that year forward. Pre-2026: lifecycle compartments are empty (baseline counterfactual). Post-2026: compartments populate via the recruitment transition; the dispatcher applies OR-modified suppression. Adult diagnosed.prevalence remains within 2e-5 of the no-intervention base sim (no adult drainage).
+
+Worth noting because: no team application combined Pattern C with the intervention API prior to this, so there was no precedent. Now there is one. See `applications/tech2check/tech2check_interventions.R` (jheem_analyses) and `scripts/test_intervention_prototype.R` (this repo).
+
+### Unguarded `browser()` calls during intervention runs
+
+`JHEEM_engine.R:4647` and `:4597` have unguarded `browser()` calls inside `calculate.quantity.value` and the surrounding context. They fire whenever a quantity has non-null `after.values`, which is the *normal* state during intervention application (not an error condition). In non-interactive `Rscript` mode, R can't drop into a debugger prompt, so it prints "Called from:" / "debug:" diagnostic lines along with "Error: object 'X' not found" messages where 'X' picks up the caller's variable name via NSE.
+
+**These messages do not affect numerical results** — verified by bit-identical output across multiple runs with different variable names. They're a leftover dev artifact, not a real error.
+
+Fix is one line: gate each `browser()` with `if (debug) ` (the same pattern is correctly used at `JHEEM_engine.R:1739`). Worth a team PR eventually; not blocking our work because the noise is cosmetic.

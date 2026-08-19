@@ -18,6 +18,8 @@ website:
         text: Decision Log
       - href: toy-fixture-spike.qmd
         text: Toy Fixture Spike
+      - href: spec-framework-notes.qmd
+        text: Spec Framework Notes
       - section: Archive
         contents:
           - archive/index.qmd

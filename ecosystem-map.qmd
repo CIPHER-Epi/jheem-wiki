@@ -69,6 +69,7 @@ Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`:
 - **Serialized R6 is fragile.** Data managers and simsets are serialized R6 objects; evolving a class can strand old `.rdata` files. The CI's version pinning contains this; a format-versioned representation is the long-term fix.
 - **The Shiny app still carries an export-everything workaround** for what was an unregistered-S3-methods bug in jheem2 (`protected.numeric.vector`; broke dispatch under `Rscript`). Fixed on jheem2 `dev` 2026-08-18 (v1.11.2); the workaround in `jheem2_interactive` can be retired once it updates to that version.
 - **jheem2 has no automated test suite yet.** The container golden tests in `jheem-containers` are currently the strongest regression net for engine changes — engine-touching work should be validated against them until in-package tests exist.
+- **Source-mode loading recompiles the C++ every session**, making the local toolchain (R version, clang, SDK) a hidden dependency of the computation — the same jheem2 source ran clean under R 4.4 and segfaulted under R 4.5 (latent UB, see [Spec Framework Notes](spec-framework-notes.qmd)). Package mode compiles once per install; the NAMESPACE export sweep on the [roadmap](roadmap.qmd) is what unblocks it as the default.
 - **Dates inside the December 2025 refactor documents say 2024.** The git history is authoritative; the docs' internal dates are wrong. See the [archive](archive/index.qmd).
 
 ## Where knowledge lives today

@@ -27,6 +27,8 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 ### Next
 
+- **NAMESPACE export sweep** — team specs call non-exported jheem2 functions unqualified (e.g. `create.solver.metadata`, verified non-exported in the [Spec Framework Notes](spec-framework-notes.qmd)), which is what actually blocks `library(jheem2)` for spec sourcing. The sweep unblocks package-mode as the default workflow and shrinks the per-session C++ recompile / toolchain-sensitivity surface.
+- **Gate the unguarded `browser()` calls** at `JHEEM_engine.R` ~4597/~4647 — they fire during *normal* intervention runs under `Rscript` (harmless but noisy; outputs verified bit-identical). The correct `if (debug)` pattern already exists at line ~1739.
 - **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.
 - **`@examples` on the top ~50 exports**, chosen by usage-grep of `jheem_analyses`/`jheem2_interactive` — doubles as API curation (public vs. `@keywords internal`).
 - **pkgdown site** for jheem2, linked from this wiki.
@@ -41,6 +43,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 - Retire source-mode loading of jheem2 in favor of `library()` + `devtools::load_all()`.
 - Format-versioned data-manager representation (reduce serialized-R6 fragility).
 - Release hygiene for jheem2: git tags on master version bumps, a NEWS.md, and (once CI exists) a version-monotonicity check ([D-012](decisions.qmd)).
+- Fix the latent C++ undefined behavior in `populate_outcomes_array` (segfaults under the R 4.5 toolchain; tolerated by R 4.4 — see [Spec Framework Notes](spec-framework-notes.qmd)). A sanitizer pass (ASan/UBSan) over the C++ once CI exists.
 - Hygiene sweep: `browser()` calls behind a debug flag, condition-object error capture replacing `.GlobalEnv` writes, `R/tests` and `R/beta_code` moved out of `R/`.
 
 ## Success criteria
