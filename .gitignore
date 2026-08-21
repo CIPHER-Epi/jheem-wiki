@@ -3,3 +3,7 @@
 .DS_Store
 
 **/*.quarto_ipynb
+
+# Session-local planning and review material
+/_program-notes.md
+/_reviews/

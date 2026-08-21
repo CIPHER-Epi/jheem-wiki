@@ -29,4 +29,4 @@ If a page here starts describing one repo's internals, it probably belongs in th
 
 Canonical content is markdown in this git repository; the rendered site is a view of it. To change a page, edit the file and open a PR (the "Edit this page" path from the rendered site works without a local clone).
 
-**For AI agents:** read the ecosystem map and decision log before making cross-repo claims or proposals. At the end of a working session, draft wiki updates for anything you learned that spans repos or reverses a documented decision — as a PR, not a direct push. Date-stamp substantive additions.
+Before making or reviewing cross-repository claims, consult the ecosystem map and decision log. When work establishes durable knowledge that spans repositories or changes a documented decision, update the appropriate page through the normal review process and date-stamp substantive additions. Keep exploratory or session-specific notes outside the public wiki until their conclusions are evidence-backed and ready to share.

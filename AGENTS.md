@@ -62,4 +62,4 @@ growth.
 - Validate Quarto structure and links where practical; render the full site when
   the local toolchain permits it.
 
-Keep this file and `AGENTS.md` aligned when repository instructions change.
+Keep this file and `CLAUDE.md` aligned when repository instructions change.
