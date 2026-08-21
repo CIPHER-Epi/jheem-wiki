@@ -4,6 +4,8 @@ project:
 website:
   title: "JHEEM Wiki"
   description: "Cross-repo knowledge base for the JHEEM modeling ecosystem"
+  repo-url: https://github.com/CIPHER-Epi/jheem-wiki
+  repo-actions: [edit, issue]
   sidebar:
     style: docked
     search: true
@@ -24,9 +26,8 @@ website:
         text: Toy Fixture Spike
       - href: spec-framework-notes.qmd
         text: Spec Framework Notes
-      - section: Archive
-        contents:
-          - archive/index.qmd
+      - href: archive/index.qmd
+        text: Archive
   page-footer:
     left: "JHEEM — Joint HIV Epidemiology and Economic Model"
     right: "Canonical source: markdown in git. Edit via PR."

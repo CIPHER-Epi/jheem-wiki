@@ -38,7 +38,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); public since 2026-08-19 at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) |
+| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); public since 2026-08-19 at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) ([D-016](decisions.qmd)) |
 | 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`474abc3`. Dispatch verified under `Rscript`; man pages regenerated. Version set per [D-012](decisions.qmd) (an initial 1.11.2 bump was corrected to 1.12.3.9000). Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
 | 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap script as package fixture + first testthat file (feeds item 4); data-manager half comes with the likelihood demo |
 | 4 | **CI skeleton on jheem2** — `R CMD check` (baseline allowed-to-fail, then ratchet) + container-suite gate for engine changes | Not started | First durable regression net ([D-001](decisions.qmd)) |
@@ -70,7 +70,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 ## Success criteria
 
 - Any jheem2 PR gets an automated verdict (check + regression) before merge.
-- A new person — or an agent — runs the quickstart end-to-end in under 30 minutes with nothing but the package.
+- A new contributor runs the quickstart end-to-end in under 30 minutes with nothing but the package.
 - A running calibration can be inspected (likelihood behavior, mixing, per-city status) without asking anyone.
 - The ecosystem map exists, is current, and is linked from every repo's README.
 - A three-month interruption costs re-reading this wiki, not re-deriving it.
@@ -79,5 +79,5 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 - **Planning outpacing shipping:** documentation and planning feel like progress without changing anything. Mitigation: wiki work is time-boxed, and every planning increment is paired with a landed code change.
 - **Fixture turns out hard:** fallback recorded in [D-008](decisions.qmd).
-- **Continuity:** the effort must tolerate interruptions — small merges, state recorded in this wiki, anyone (or any agent) able to re-orient from the map.
+- **Continuity:** the effort must tolerate interruptions — small merges, state recorded in this wiki, and a current map from which anyone can re-orient.
 - **Two-speed masking:** platform polish must not substitute for core legibility; both ends of the barbell move.

@@ -6,7 +6,7 @@ Historical planning documents, preserved verbatim with provenance notes. These a
 
 ## December 2025 exploratory refactoring analysis
 
-**Status: exploratory working documents, not a team-adopted plan.** These came out of individual AI-assisted working sessions on the (now stale) `refactor/extract-packages` branch of `jheem2`; the effort was never socialized with the team and its branch is being mined for parts, not merged ([D-002](../decisions.qmd)). They're preserved because the dependency analysis remains the best structural map of jheem2, and because the lessons of that attempt shaped the current program's sequencing. **Provenance caution:** the dates *inside* these documents say 2023–2024; the actual work was committed November–December 2025. Git history is authoritative.
+**Status: exploratory analysis, not current guidance.** The documents record work on the now-stale `refactor/extract-packages` branch of `jheem2`. That branch is more than 74 commits behind `dev`; [D-002](../decisions.qmd) preserves specific findings while rejecting a merge or rebase of the branch, and [D-003](../decisions.qmd) defers its proposed package decomposition. The documents remain useful for their dependency analysis and for the lessons that shaped the current sequencing. **Provenance caution:** the dates *inside* these documents say 2023–2024; the work was committed November–December 2025. Git history is authoritative.
 
 | Document | What it is |
 |----------|-----------|

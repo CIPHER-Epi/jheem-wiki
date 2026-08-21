@@ -4,11 +4,11 @@ title: "JHEEM Wiki"
 
 Cross-repo knowledge base for the **JHEEM** (Joint HIV Epidemiology and Economic Model) ecosystem: what the pieces are, how they fit together, and why they're shaped the way they are.
 
-## What lives here (and what doesn't)
+## What lives here
 
-One boundary rule, applied ruthlessly:
+One routing rule keeps documentation close to the evidence it describes:
 
-- **Knowledge that changes with a commit lives in the repo it changes with.** Function documentation, vignettes, per-repo `CLAUDE.md` files, build instructions for a single repo.
+- **Knowledge that changes with a commit lives in the repo it changes with.** Function documentation, runnable examples, vignettes, and build instructions for a single repo.
 - **Knowledge that spans repos or outlives commits lives here.** The ecosystem map, data-flow narratives, runbooks, the modernization roadmap, and the decision log.
 
 If a page here starts describing one repo's internals, it probably belongs in that repo.
@@ -27,6 +27,6 @@ If a page here starts describing one repo's internals, it probably belongs in th
 
 ## How to contribute
 
-Canonical content is markdown in this git repository; the rendered site is a view of it. To change a page, edit the file and open a PR (the "Edit this page" path from the rendered site works without a local clone).
+Canonical content is Markdown in this git repository; the rendered site is a view of it. Use the page's **Edit this page** link or work in the repository directly; [README](https://github.com/CIPHER-Epi/jheem-wiki#readme) has the local preview and contribution workflow.
 
 Before making or reviewing cross-repository claims, consult the ecosystem map and decision log. When work establishes durable knowledge that spans repositories or changes a documented decision, update the appropriate page through the normal review process and date-stamp substantive additions. Keep exploratory or session-specific notes outside the public wiki until their conclusions are evidence-backed and ready to share.

@@ -29,11 +29,11 @@ The measure of the program is **time from policy question to reproducible publis
 
 Because the strongest pattern already exists here. The container platform's build → test-by-digest → promote pipeline runs today and provides a complete internal exemplar; the syphilis manager's gated assembly-and-promotion path is a partial upstream exemplar whose raw-to-final path remains to be completed. The program is not "adopt best practices" in the abstract — it is extend working practices already demonstrated inside this ecosystem backward through calibration, data, and the engine itself.
 
-## Why now: the AI dividend
+## Why now: verification compounds
 
-The team wants to use AI seriously. The binding constraint on that is not model capability — an AI agent can already draft a plausible change to a 7,000-line engine file. The constraint is that nothing in the ecosystem can currently *verify* one. No automated gate means no way to accept an agent's work (or a new student's) without an expert re-deriving it by hand, which caps AI leverage at roughly zero exactly where the code is hardest.
+Automated verification is a prerequisite for faster onboarding, safer maintenance, and credible AI-assisted work. A plausible change to a large engine file still requires the same evidence regardless of who or what drafted it. Without an automated gate, an expert must re-derive that evidence by hand exactly where the code is hardest.
 
-Every deliverable below is therefore double-purpose. The toy model is a half-second ground truth an agent can check its work against. CI is the machinery that turns "the agent claims this is safe" into "the system verified it." The documentation, the ecosystem map, and the runbooks are the context that lets agents — and people — act without a resident expert in the loop. A legible, tested, fixture-equipped ecosystem is the one where AI multiplies the team's capacity instead of adding review burden to it. That compounding is available to this team within the program's first year, and it is the strongest reason to run the program now rather than eventually.
+The toy model, CI, executable documentation, ecosystem map, and runbooks all reduce that re-derivation cost. Their primary value is safer, more legible engineering; they also allow AI-assisted contributions to be evaluated through the same tests and review standards as any other contribution. Verification is what turns additional implementation capacity into useful capacity rather than additional review burden.
 
 ## The line, in three stretches
 
@@ -58,7 +58,7 @@ Each concrete capability below was raised by someone on the team. Statuses link 
 
 - **Full provenance** — the question-to-answer path reproducible end to end from a tag.
 - **Managed calibration** — submit, observe, stop, resume; results land as versioned releases.
-- **An ecosystem others can build on** — jheem2 as a documented, tested package usable beyond the lab; agents doing verified engineering and analysis work inside the ecosystem, at whatever pace the team chooses.
+- **An ecosystem others can build on** — jheem2 as a documented, tested package usable beyond the lab, with a supported contribution path grounded in executable evidence.
 
 ## How the work runs
 

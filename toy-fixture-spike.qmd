@@ -20,7 +20,7 @@ Discovered by error-driven iteration (jheem2's validation messages are genuinely
 9. Population as a gettable outcome follows the EHE pattern: a `track.point.outcome` over `expression(uninfected + infected)` (built-in state quantities), wrapped in a `track.integrated.outcome`.
 10. `engine$run()` requires a **named** numeric parameter vector; an empty named vector works when the spec defines no sampleable parameters. Any real location code works (`C.12580` used) since nothing pulls location data.
 
-## Engine bugs found (degenerate cases no real spec ever hit)
+## Engine bugs found in empty and minimal cases
 
 | # | Symptom | Cause | Status |
 |---|---------|-------|--------|
