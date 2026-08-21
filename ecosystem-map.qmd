@@ -11,8 +11,8 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 
 | Repo | What it is |
 |------|-----------|
-| `jheem2` | The simulation engine R package (~64k lines R + ~10k lines C++ via Rcpp, R6-based). Model specification → compiled specification → ODE engine → simulations → likelihoods → calibration, plus the data-manager class, ontology mapping, interventions, and plotting. Working branch is `dev`. |
-| `jheem_analyses` | Applications repo: ~18 model applications (EHE, SHIELD, Ryan White, CDC testing, …), the data-manager build pipelines (`data_processing/`, `input_managers/`), shared glue (`commoncode/`, `source_code.R`), and the **syphilis-manager CI workflows** (`.github/workflows/`). |
+| `jheem2` | The simulation engine R package (~64k lines R + ~10k lines C++ via Rcpp, R6-based; largest file 11,243 lines). Model specification → compiled specification → ODE engine → simulations → likelihoods → calibration, plus the data-manager class, ontology mapping, interventions, and plotting. Working branch is `dev`. It has 100 recursive manual test/reprex/profiling artifacts but no automated test gate, CI, or README yet — see the [practice baseline](roadmap.qmd#where-we-stand-august-2026). |
+| `jheem_analyses` | Applications repo: **15 model applications** (EHE, SHIELD, Ryan White, CDC testing, …), each ~10–15k lines of standalone scripts (see [Anatomy of a Model Application](application-anatomy.qmd)), the data-manager build pipelines (`data_processing/`, `input_managers/`), shared glue (`commoncode/`, `source_code.R`), and the **syphilis-manager CI workflows** (`.github/workflows/`) — the only CI in the modeling core. |
 | `jheem2_interactive`, `jheem_interactive` | Earlier Shiny-based interactive apps, superseded by the portal. Historical. |
 
 ### Support packages
@@ -40,7 +40,7 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 
 ```{mermaid}
 flowchart LR
-    RAW["Raw data<br/>(NAS / data-raw releases)"] --> DM["Data managers<br/>(.rdata artifacts)<br/>built by syphilis CI or locally"]
+    RAW["Raw data<br/>(NAS / data-raw releases)"] --> DM["Data managers<br/>(.rdata artifacts)<br/>syphilis assembled/promoted in CI;<br/>raw stages and other managers local"]
     DM --> CAL["Calibration<br/>(bayesian.simulations MCMC,<br/>per-city cache dirs)"]
     CAL --> SIM["Simsets<br/>(.rdata per city/state)"]
     SIM --> REL["GitHub Releases<br/>(jheem-simulations)"]
@@ -50,7 +50,7 @@ flowchart LR
 ```
 
 1. **Raw data** comes from surveillance sources (CDC Atlas, BRFSS, census, …), historically on the NAS / Q: drive, now also snapshotted as immutable `data-raw-v*` GitHub Releases.
-2. **Data managers** are serialized R6 objects (`surveillance.manager.rdata`, `census.manager.rdata`, `syphilis.manager.rdata`, …) built by scripts in `jheem_analyses/data_processing/`. The **syphilis manager builds via CI**: release-pinned inputs, regression-gated merge, promotion workflow. Other managers are still built locally and ride along as pre-built dependencies. Analyses load managers into well-known globals (`SURVEILLANCE.MANAGER`, …) via `source_code.R`.
+2. **Data managers** are serialized R6 objects (`surveillance.manager.rdata`, `census.manager.rdata`, `syphilis.manager.rdata`, …) built by scripts in `jheem_analyses/data_processing/`. The **syphilis manager is assembled, validated, and promoted via CI** from release-pinned inputs (regression-gated merge, separate promotion); its raw-data→section stage still runs locally, so raw-to-final automation remains a [roadmap](roadmap.qmd) item. Other managers are built locally end to end and ride along as pre-built dependencies. Analyses load managers into well-known globals (`SURVEILLANCE.MANAGER`, …) via `source_code.R`.
 3. **Calibration** runs MCMC per location against likelihoods defined in jheem2, producing calibrated parameter sets. Chains checkpoint to cache directories at a configurable frequency and are resumable.
 4. **Simsets** (simulation sets) are generated from calibrated parameters and stored as `.rdata`, then published as versioned **GitHub Releases** in `jheem-simulations`.
 5. **Containers** (orchestrated by `jheem-backend` workflows) download release data, run jheem2 code to extract/transform outcomes, and write JSON/plot data to **S3**, served via **CloudFront**.

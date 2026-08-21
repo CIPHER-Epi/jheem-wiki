@@ -1,0 +1,57 @@
+---
+title: "Anatomy of a Model Application"
+date: 2026-08-20
+---
+
+A **model application** is the unit of scientific work in this ecosystem: a model specification (a *version*, e.g. `ehe`, `rw`, `shield`) plus everything required to calibrate it against real data and turn it into publishable answers — parameters and priors, likelihoods, ontology mappings, calibration runners, simset generation, intervention scenarios, and extraction/plotting code. There are **15 applications** in `jheem_analyses/applications/` (EHE, SHIELD, Ryan White, CDC testing, ADAP cuts, …), most inheriting from the EHE base model. The applications repo as a whole is **716 R files, ~195,000 lines**.
+
+This page documents what an application consists of and what building one costs **today**. It is deliberately the "before" picture: the [program](program.qmd) exists to change this cost structure, and this page is the baseline it gets measured against. It spans several repos by nature — the specification framework lives in `jheem2`, the applications in `jheem_analyses`, calibration in `bayesian.simulations`, published outputs in `jheem-simulations` and the delivery platform.
+
+## The lifecycle
+
+| Stage | What happens | Where it lives today |
+|---|---|---|
+| **Specify** | A spec file builds the model via `register.*` calls, usually inheriting a parent spec (see [Spec Framework Notes](spec-framework-notes.qmd)) | `applications/<name>/<name>_specification.R`; framework in `jheem2` |
+| **Parameterize** | Sampled parameters, prior distributions, parameter→model mappings | Per-application `*_parameters.R`, `*_sampled_parameters.R`; `distributions` package |
+| **Prepare data** | Data managers (serialized R6) supply calibration targets; per-application ontology mappings align data to model strata | `data_processing/`, `input_managers/`; managers loaded as globals via `source_code.R` |
+| **Define likelihoods** | Per-outcome likelihood instructions against manager data | Per-application `*_likelihoods.R`; machinery in `jheem2` |
+| **Calibrate** | Adaptive MCMC per location (typically ~30+ cities/states), on the cluster, chains checkpointed to cache directories | `bayesian.simulations`; launchers in `cluster_scripts/` (`do_multiphase_calibration.R`, generated batch/master scripts) |
+| **Assemble simsets** | Calibrated parameter sets become simulation sets (`.rdata` per location), assembled and released | `cluster_scripts/assemble_*`; releases in `jheem-simulations` |
+| **Transmute & intervene** | A child application re-reads a parent's calibrated simsets under its own spec, then runs intervention scenarios ([constraints](spec-framework-notes.qmd#transmutability-constraints-on-extension-specs)) | Per-application `*_transmute_*.R`, `*_interventions.R` |
+| **Extract & publish** | Outcomes extracted to JSON/plot data for the portal, or figures/tables for manuscripts | Per-application `extract_*.R`, `plot_*.R`; then `jheem-containers` → S3 → [jheem.org](https://jheem.org) |
+
+Only the last stage is industrialized (containers, digest promotion, golden tests). Everything above it runs as hand-executed scripts.
+
+## A worked example: Ryan White
+
+The Ryan White application — an extension of EHE for Ryan White funding scenarios, published at jheem.org and in papers — is **~50 files and ~10,300 lines** of R in `applications/ryan_white/`, on top of the EHE base (itself **~14,400 lines**). By role, roughly:
+
+- specification + helpers (`ryan_white_specification.R`, `*_specification_helpers.R`)
+- parameters and priors (`ryan_white_parameters.R`, `build_rw_priors.R`, `process_rw_data_for_priors.R`)
+- likelihoods and ontology mappings (`ryan_white_likelihoods.R`, `*_ontology_mappings.R`)
+- data cleanup and costing inputs (`ryan_white_data_cleanup.R`, `read_rw_costs.R`, survey processing)
+- calibration runners and MCMC review (`ryan_white_mcmc.R`, `*_mcmc_review.R`, fit review)
+- transmutation and intervention runners, per scenario family (`rw_transmute_intervene.R`, `transmute_to_rw_en_mass.R`, `ryan_white_*_interventions.R` × ~8 scenario variants)
+- extraction for the web and for manuscripts (`extract_from_ryan_white_*.R`, `prep_rw_web_simsets.R`, `for_manuscript/`)
+- plotting and results (`plot_rw_figures_and_results.R`, `partb_results.R`)
+- one-off analyses, sensitivity checks, and scratch scripts
+
+The inventory also includes backup copies (`*.bk.R`, `*_bk.R`) and numbered test scripts kept alongside the load-bearing code — a structural symptom, not a personal one: nothing in the workflow separates durable code from scratch work, so both accumulate together and only tribal knowledge distinguishes them.
+
+## What a new application costs today
+
+Starting application #16 currently means:
+
+1. **Copy the nearest relative and adapt.** There is no scaffold; the parent application's files are the template, carried-over quirks included.
+2. **Learn the framework by osmosis.** The specification framework's real behavior (inheritance, subset dispatch, the transmutability checks) is documented only in the [Spec Framework Notes](spec-framework-notes.qmd) — knowledge recovered by reading `jheem2` source and asking.
+3. **Run in source mode, from a machine-shaped environment.** Team specs call non-exported jheem2 functions, so the ~40-file `source()` path with per-session C++ recompilation is required ([details](ecosystem-map.qmd#how-jheem2-is-loaded-by-consumers)) — making each machine's toolchain part of the effective dependency set. Across the repo, 363 R files call `source()`, 23 call `setwd()`, and over a hundred contain machine-specific absolute paths (counts verified 2026-08-20); there is no repo-level dependency lock.
+4. **Build or borrow data managers locally.** The syphilis manager is assembled, validated, and promoted in CI from release-pinned intermediate sections, but its raw-data→section stage remains local; other managers are constructed locally end to end and shared as pre-built `.rdata`.
+5. **Calibrate blind.** Cluster runs take days per batch of cities with no in-flight visibility; diagnosing a non-mixing city means waiting for it to finish.
+6. **Stay in lockstep with the parent.** A child that transmutes a parent's simsets is silently coupled to the spec vintage that produced them; a single renamed parameter in the parent breaks the pipeline with no local fix ([transmutability constraints](spec-framework-notes.qmd#transmutability-constraints-on-extension-specs)).
+7. **Verify nothing automatically.** No test anywhere confirms an application still works except running it end to end.
+
+None of this is a judgment of the people doing it — it is what a workflow looks like when a sophisticated modeling practice grows faster than its engineering substrate. It is also, stage for stage, the program's worklist: the [toy model](toy-fixture-spike.qmd) is the first scaffold-shaped application, CI attacks stage-level verification, the calibration monitor attacks blind calibration, manager graduation attacks local data builds, and the NAMESPACE sweep attacks source-mode loading (see [The Program](program.qmd)).
+
+## Extension patterns
+
+Three patterns for building on a parent spec are documented, with worked examples and verified framework behavior, in the [Spec Framework Notes](spec-framework-notes.qmd#architectural-patterns-for-extending-a-parent-spec): quantity-only modification (ADAP cuts, CDC testing), outcome stratification, and compartment structure extension. Read that page before writing a new spec; it encodes the traps (inheritance, `multiply.by`, transmutability) that otherwise cost days.

@@ -7,9 +7,28 @@ This page is the **working tracker**: what's in flight, in what order, with tech
 
 ## Where we stand (August 2026)
 
-The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated tests, no CI, and several very large files. The other end: delivery infrastructure that is above industry standard (digest-promoted containers with golden tests, release-versioned data, the portal). The missing middle is the work. Two existing proofs — the syphilis-manager CI and the container platform — show modern practice already succeeds in this ecosystem.
+The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated test gate, no CI, and several very large files. The other end contains a mature artifact-promotion subsystem: digest-promoted containers with golden and perturbation tests, feeding release-versioned data and the portal. The missing middle is the work. One complete exemplar — the container platform — and one partial upstream exemplar — the syphilis manager's gated assembly-and-promotion path — show modern practice already succeeds in this ecosystem.
 
 The sequencing is also informed by earlier exploratory refactoring analysis (archived [here](archive/index.qmd)), and shaped by the team's requested payoffs: real documentation with runnable examples, and calibration observability.
+
+### Practice baseline (snapshot 2026-08-20)
+
+Per-repo engineering practice, as verifiable facts. This table is the program's "before" picture and its progress tracker — cells flip as work lands ([D-014](decisions.qmd)).
+
+| Repo | README | Tests | CI | Release discipline |
+|---|---|---|---|---|
+| `jheem2` | — | 100 recursive test/reprex/profiling artifacts; 0 automated gate | — | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
+| `jheem_analyses` | — | syphilis regression only | syphilis manager only (3 workflows) | n/a (scripts) |
+| `bayesian.simulations` | — | — | — | — |
+| `distributions` | — | — | — | — |
+| `locations` | ✅ | ✅ | ✅ | — |
+| `jheem-containers` | ✅ | smoke + golden + perturbation | build → test-by-digest → promote | fail-closed digest promotion, semver |
+| `jheem-base` | ✅ | via container cascade | ✅ | semver tags |
+| `jheem-backend` | ✅ | — | 8 workflows | — |
+| `jheem-portal` | ✅ | — | hosted deploys | — |
+| `jheem-simulations` | ✅ | n/a | n/a | semver GitHub Releases with documented deprecations |
+
+The barbell in one table: every delivery-platform repo has a README and most have real gates; the modeling core — where the science lives — has almost none of either.
 
 ## Sequence
 
@@ -27,13 +46,16 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 ### Next
 
-- **NAMESPACE export sweep** — team specs call non-exported jheem2 functions unqualified (e.g. `create.solver.metadata`, verified non-exported in the [Spec Framework Notes](spec-framework-notes.qmd)), which is what actually blocks `library(jheem2)` for spec sourcing. The sweep unblocks package-mode as the default workflow and shrinks the per-session C++ recompile / toolchain-sensitivity surface.
+- **Select the reference application** whose complete path — raw data → data manager → calibration → simset → container extraction → portal/manuscript artifact — becomes the paved road other applications later migrate through ([D-015](decisions.qmd)). Leading candidate: Ryan White (active, published, portal-facing, already the worked example in [Application Anatomy](application-anatomy.qmd)).
+- **NAMESPACE export sweep** — team specs call non-exported jheem2 functions unqualified. At `jheem_analyses@426f03d1`, the EHE spec calls `create.logistic.taper.functional.form`; at `jheem2@90b68ad`, that function is defined but not exported. This blocks `library(jheem2)` for spec sourcing. The sweep unblocks package mode as the default workflow and shrinks the per-session C++ recompile / toolchain-sensitivity surface. (The originally cited example, `create.solver.metadata`, had become exported by `jheem2@90b68ad` — caught by an external re-audit; a reminder that unpinned claims rot, per [D-014](decisions.qmd).)
+- **Fix the `populate_outcomes_array` C++ undefined behavior** — no longer merely latent: at `jheem-containers@9c846bf`, the container runtime hot-patches this function in production via `assignInNamespace` (`base/common/custom_simulation.R:122`), so the platform already carries a live workaround for a bug filed as deferred. Fix on `dev` once item 4's net exists, gate with the container golden suite, then retire the patch. A sanitizer pass (ASan/UBSan) over the C++ follows once CI exists.
+- **Provenance manifest** — a generated, validated JSON receipt per released artifact recording engine/analyses commits, support-package versions, raw-data and data-manager release identifiers, environment or container digest, calibration configuration and seeds, and simset/extraction digests. First emitted for the reference application ([D-015](decisions.qmd)).
 - **Gate the unguarded `browser()` calls** at `JHEEM_engine.R` ~4597/~4647 — they fire during *normal* intervention runs under `Rscript` (harmless but noisy; outputs verified bit-identical). The correct `if (debug)` pattern already exists at line ~1739.
 - **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.
 - **`@examples` on the top ~50 exports**, chosen by usage-grep of `jheem_analyses`/`jheem2_interactive` — doubles as API curation (public vs. `@keywords internal`).
 - **pkgdown site** for jheem2, linked from this wiki.
 - **Graceful-stop hook** for calibration (sentinel checked at cache writes) — only after the test net exists.
-- **Graduate census + surveillance managers** into the syphilis CI pattern ([D-004](decisions.qmd)).
+- **Complete syphilis raw-to-final automation, then graduate census + surveillance managers** into the finished pattern ([D-004](decisions.qmd), refined by [D-015](decisions.qmd): the raw-data→section stage still runs locally; CI currently assembles, validates, and promotes from partly manual intermediates).
 - **Custom domain for this site** (`docs.jheem.org`) once the team is using it.
 
 ### Later / deferred
@@ -43,7 +65,6 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 - Retire source-mode loading of jheem2 in favor of `library()` + `devtools::load_all()`.
 - Format-versioned data-manager representation (reduce serialized-R6 fragility).
 - Release hygiene for jheem2: git tags on master version bumps, a NEWS.md, and (once CI exists) a version-monotonicity check ([D-012](decisions.qmd)).
-- Fix the latent C++ undefined behavior in `populate_outcomes_array` (segfaults under the R 4.5 toolchain; tolerated by R 4.4 — see [Spec Framework Notes](spec-framework-notes.qmd)). A sanitizer pass (ASan/UBSan) over the C++ once CI exists.
 - Hygiene sweep: `browser()` calls behind a debug flag, condition-object error capture replacing `.GlobalEnv` writes, `R/tests` and `R/beta_code` moved out of `R/`.
 
 ## Success criteria

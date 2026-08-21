@@ -14,6 +14,8 @@ website:
         text: The Program
       - href: ecosystem-map.qmd
         text: Ecosystem Map
+      - href: application-anatomy.qmd
+        text: Application Anatomy
       - href: roadmap.qmd
         text: Modernization Roadmap
       - href: decisions.qmd
