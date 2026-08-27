@@ -1,6 +1,6 @@
 ---
 title: "Decision Log"
-date: 2026-08-17
+date: 2026-08-26
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -8,6 +8,37 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-018 · Evidence-backed investigations may temporarily live in the wiki — refines D-006
+
+*2026-08-26.* The normal documentation boundary remains: commit-coupled API
+documentation, examples, and implementation instructions belong in the owning
+repository; durable cross-repository knowledge belongs here. When an investigation
+is needed before that durable home is settled or available, the wiki may
+temporarily hold its evidence-backed findings. Such a page must identify itself as
+an investigation, record its verification date and source refs, separate observed
+facts from inference and proposals, list open questions, and name both a candidate
+durable home and a graduation or retirement condition. Session analysis, tentative
+strategy, and cross-session correspondence remain in ignored working notes. This
+exception preserves useful technical evidence without turning the public wiki into
+a session log or a substitute for repository documentation.
+
+## D-017 · Near-term work follows bounded team interests; the broader program remains a working proposal — refines D-001 and D-007
+
+*2026-08-26.* An initial discussion did not adopt the modernization program as a
+whole. It did establish near-term interest in calibration observability,
+functional-form documentation, and reproducibility work, initially framed around
+cache setup. General testing and CI were not selected as standalone priorities.
+The working sequence therefore begins with detailed investigation and bounded
+outputs in those areas; package-mode loading, testing, and CI remain engineering
+hypotheses to evaluate where they enable the requested work, not team commitments.
+D-001 still governs behavior-changing structural or engine work: an appropriate
+verification net precedes it. D-007's read-only-first direction also stands as the
+preferred goal, but its claim that a monitor touches no science path and can ship
+immediately was premature: checkpoint behavior, concurrent-read safety, and the
+division of responsibility across the analysis, engine, and Bayesian simulation
+packages must first be established from code. Its proposed analysis-layer
+placement is therefore a hypothesis to test, not a settled boundary.
 
 ## D-016 · Wiki is public and deploys from `main` — supersedes the publication state in D-011
 

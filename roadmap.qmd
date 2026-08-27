@@ -1,6 +1,6 @@
 ---
 title: "Modernization Roadmap"
-date: 2026-08-17
+date: 2026-08-26
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -9,7 +9,11 @@ This page is the **working tracker**: what's in flight, in what order, with tech
 
 The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated test gate, no CI, and several very large files. The other end contains a mature artifact-promotion subsystem: digest-promoted containers with golden and perturbation tests, feeding release-versioned data and the portal. The missing middle is the work. One complete exemplar — the container platform — and one partial upstream exemplar — the syphilis manager's gated assembly-and-promotion path — show modern practice already succeeds in this ecosystem.
 
-The sequencing is also informed by earlier exploratory refactoring analysis (archived [here](archive/index.qmd)), and shaped by the team's requested payoffs: real documentation with runnable examples, and calibration observability.
+The sequencing is also informed by earlier exploratory refactoring analysis
+(archived [here](archive/index.qmd)). Following an initial team discussion, the
+near-term discovery work is calibration observability, functional-form
+documentation, and reproducibility. The broader program remains a working
+engineering proposal rather than a team-adopted plan ([D-017](decisions.qmd)).
 
 ### Practice baseline (snapshot 2026-08-20)
 
@@ -40,15 +44,22 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 |---|------|--------|-------|
 | 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); public since 2026-08-19 at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) ([D-016](decisions.qmd)) |
 | 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`474abc3`. Dispatch verified under `Rscript`; man pages regenerated. Version set per [D-012](decisions.qmd) (an initial 1.11.2 bump was corrected to 1.12.3.9000). Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
-| 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap script as package fixture + first testthat file (feeds item 4); data-manager half comes with the likelihood demo |
-| 4 | **CI skeleton on jheem2** — `R CMD check` (baseline allowed-to-fail, then ratchet) + container-suite gate for engine changes | Not started | First durable regression net ([D-001](decisions.qmd)) |
-| 5 | **Calibration monitor (read-only)** — traces, acceptance, R-hat/ESS per city over existing MCMC caches | Not started | Team ask; zero science-path risk ([D-007](decisions.qmd)) |
+| 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap the script as a package fixture when package/CI feasibility is evaluated; the data-manager half comes with the likelihood demo |
+| 4 | **Calibration architecture investigation** — trace launch, checkpoint, resume, diagnostic, and failure behavior across `jheem_analyses`, `jheem2`, and `bayesian.simulations` | **Next up** | Team interest is established; read-only observation is the preferred first slice, but concurrent-read safety and component ownership are findings to establish, not assumptions ([D-017](decisions.qmd)) |
+| 5 | **Functional-form documentation** — inventory and explain the forms used by model specifications, with runnable examples where practical | Queued | Requested bounded documentation work; final API and examples belong in `jheem2`, while an evidence-backed investigation may be staged here ([D-018](decisions.qmd)) |
+| 6 | **Reproducibility investigation** — map the executable path from code and cache inputs through run configuration to identified outputs | Queued | Begin with the requested cache setup, but assess code refs, package/environment identity, input lineage, seeds/configuration, and output provenance as one chain |
 
 ### Next
 
+- **Package-mode and CI feasibility** — use the toy fixture and the actual
+  `jheem_analyses` loading path to measure what prevents `library(jheem2)`, what a
+  minimal automated check would catch, and what it costs to maintain. General CI
+  is not a current standalone team priority; it remains a conditional prerequisite
+  before behavior-changing engine or sampler work ([D-001](decisions.qmd),
+  [D-017](decisions.qmd)).
 - **Select the reference application** whose complete path — raw data → data manager → calibration → simset → container extraction → portal/manuscript artifact — becomes the paved road other applications later migrate through ([D-015](decisions.qmd)). Leading candidate: Ryan White (active, published, portal-facing, already the worked example in [Application Anatomy](application-anatomy.qmd)).
 - **NAMESPACE export sweep** — team specs call non-exported jheem2 functions unqualified. At `jheem_analyses@426f03d1`, the EHE spec calls `create.logistic.taper.functional.form`; at `jheem2@90b68ad`, that function is defined but not exported. This blocks `library(jheem2)` for spec sourcing. The sweep unblocks package mode as the default workflow and shrinks the per-session C++ recompile / toolchain-sensitivity surface. (The originally cited example, `create.solver.metadata`, had become exported by `jheem2@90b68ad` — caught by an external re-audit; a reminder that unpinned claims rot, per [D-014](decisions.qmd).)
-- **Fix the `populate_outcomes_array` C++ undefined behavior** — no longer merely latent: at `jheem-containers@9c846bf`, the container runtime hot-patches this function in production via `assignInNamespace` (`base/common/custom_simulation.R:122`), so the platform already carries a live workaround for a bug filed as deferred. Fix on `dev` once item 4's net exists, gate with the container golden suite, then retire the patch. A sanitizer pass (ASan/UBSan) over the C++ follows once CI exists.
+- **Fix the `populate_outcomes_array` C++ undefined behavior** — no longer merely latent: at `jheem-containers@9c846bf`, the container runtime hot-patches this function in production via `assignInNamespace` (`base/common/custom_simulation.R:122`), so the platform already carries a live workaround for a bug filed as deferred. Fix on `dev` once the package/CI verification net exists, gate with the container golden suite, then retire the patch. A sanitizer pass (ASan/UBSan) over the C++ follows once CI exists.
 - **Provenance manifest** — a generated, validated JSON receipt per released artifact recording engine/analyses commits, support-package versions, raw-data and data-manager release identifiers, environment or container digest, calibration configuration and seeds, and simset/extraction digests. First emitted for the reference application ([D-015](decisions.qmd)).
 - **Gate the unguarded `browser()` calls** at `JHEEM_engine.R` ~4597/~4647 — they fire during *normal* intervention runs under `Rscript` (harmless but noisy; outputs verified bit-identical). The correct `if (debug)` pattern already exists at line ~1739.
 - **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.

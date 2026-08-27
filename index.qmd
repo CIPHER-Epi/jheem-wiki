@@ -11,7 +11,14 @@ One routing rule keeps documentation close to the evidence it describes:
 - **Knowledge that changes with a commit lives in the repo it changes with.** Function documentation, runnable examples, vignettes, and build instructions for a single repo.
 - **Knowledge that spans repos or outlives commits lives here.** The ecosystem map, data-flow narratives, runbooks, the modernization roadmap, and the decision log.
 
-If a page here starts describing one repo's internals, it probably belongs in that repo.
+An evidence-backed investigation may live here temporarily while its durable home
+is unsettled or unavailable. It must identify its status, verification date and
+source refs, findings and open questions, and the condition for moving to an
+owning repository or being retired. Session analysis and tentative strategy stay
+outside the public wiki.
+
+Outside that explicit investigation stage, if a page here starts describing one
+repo's internals, it probably belongs in that repo.
 
 ## Start here
 
@@ -29,4 +36,4 @@ If a page here starts describing one repo's internals, it probably belongs in th
 
 Canonical content is Markdown in this git repository; the rendered site is a view of it. Use the page's **Edit this page** link or work in the repository directly; [README](https://github.com/CIPHER-Epi/jheem-wiki#readme) has the local preview and contribution workflow.
 
-Before making or reviewing cross-repository claims, consult the ecosystem map and decision log. When work establishes durable knowledge that spans repositories or changes a documented decision, update the appropriate page through the normal review process and date-stamp substantive additions. Keep exploratory or session-specific notes outside the public wiki until their conclusions are evidence-backed and ready to share.
+Before making or reviewing cross-repository claims, consult the ecosystem map and decision log. When work establishes durable knowledge that spans repositories or changes a documented decision, update the appropriate page through the normal review process and date-stamp substantive additions. Keep exploratory or session-specific notes outside the public wiki; publish an investigation only when its evidence, status, open questions, and exit condition are clear.

@@ -11,6 +11,13 @@ knowledge that spans repositories belongs here. Verify changeable claims against
 the relevant source repositories and distinguish observed behavior, inference,
 proposals, and adopted decisions.
 
+An evidence-backed technical investigation may live here temporarily when its
+durable home is not yet settled or available. Mark it as an investigation, include
+the verification date and source refs, separate findings from proposals and open
+questions, and name the condition under which it will graduate to an owning repo
+or be retired. Session analysis and tentative strategy remain private working
+notes.
+
 When changing the wiki:
 
 - Write for any reader, without machine- or person-specific instructions.

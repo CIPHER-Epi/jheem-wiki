@@ -18,6 +18,10 @@ ignored.
   and single-repository build instructions—in the repository it changes with.
 - Put durable cross-repository material—maps, flows, runbooks, practice baselines,
   and decisions—in this wiki.
+- Evidence-backed technical investigations may temporarily live in this wiki when
+  their durable home is unsettled or unavailable. Mark their status, verification
+  date and source refs, findings and open questions, candidate durable home, and
+  graduation or retirement condition.
 - Keep session analysis, tentative strategy, and cross-session correspondence in
   ignored working notes such as `_reviews/`, not in the public wiki.
 
@@ -35,10 +39,10 @@ a task, assess whether the work:
 - produced a reusable cross-repository runbook;
 - adopted, reversed, or refined a recorded decision.
 
-If so, update the appropriate page once the finding is evidence-backed and durable.
-Do not force a wiki change when the result is local, tentative, or already belongs
-in an owning repository. The goal is capture without reconstruction, not page-count
-growth.
+If so, update the appropriate page once the finding is evidence-backed and either
+durable or explicitly framed as an investigation. Do not force a wiki change when
+the result is tentative or already has an available owning repository. The goal is
+capture without reconstruction, not page-count growth.
 
 ## Evidence and status
 

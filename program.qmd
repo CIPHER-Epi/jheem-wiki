@@ -1,11 +1,15 @@
 ---
 title: "The Program"
-date: 2026-08-20
+date: 2026-08-26
 ---
 
 A continuous engineering investment in the JHEEM ecosystem, with one destination:
 
-**Status:** Working program vision for team review; the destination and priorities will be refined with the team.
+**Status:** Working engineering vision, not yet a team-adopted program. An initial
+team discussion identified near-term work on calibration observability,
+functional-form documentation, and reproducibility; general testing and CI were
+not selected as near-term standalone work. The destination and sequence remain
+open to evidence from those efforts and further team review.
 
 > **The path from a new policy question to a published, reproducible answer on jheem.org becomes weeks of pipeline instead of months of hand work.**
 
@@ -31,21 +35,30 @@ Because the strongest pattern already exists here. The container platform's buil
 
 ## Why now: verification compounds
 
-Automated verification is a prerequisite for faster onboarding, safer maintenance, and credible AI-assisted work. A plausible change to a large engine file still requires the same evidence regardless of who or what drafted it. Without an automated gate, an expert must re-derive that evidence by hand exactly where the code is hardest.
+Automated verification is a prerequisite for faster onboarding and safer
+maintenance. A plausible change to a large engine file still requires evidence
+that it preserves the intended behavior. Without an automated gate, an expert must
+re-derive that evidence by hand exactly where the code is hardest.
 
-The toy model, CI, executable documentation, ecosystem map, and runbooks all reduce that re-derivation cost. Their primary value is safer, more legible engineering; they also allow AI-assisted contributions to be evaluated through the same tests and review standards as any other contribution. Verification is what turns additional implementation capacity into useful capacity rather than additional review burden.
+The toy model, CI, executable documentation, ecosystem map, and runbooks all reduce
+that re-derivation cost. Their primary value is safer, more legible engineering:
+verification lets implementation capacity increase without increasing review
+burden at the same rate.
 
 ## The line, in three stretches
 
 The line gets built along **one production path first**: a single reference application taken end to end — raw data to published artifact — then extracted as the paved road the other fourteen follow. This guards against the failure mode of a cleaner engine package while the actual scientific workflow stays artisanal.
 
-Each concrete capability below was raised by someone on the team. Statuses link to the [roadmap](roadmap.qmd), which is the working tracker; on this page, **shipped** is reserved for capabilities installed in their durable home, used through the supported path, and guarded against regression.
+The capabilities below form a working engineering hypothesis, not an adopted
+commitment. Statuses link to the [roadmap](roadmap.qmd), which is the working
+tracker; on this page, **shipped** is reserved for capabilities installed in their
+durable home, used through the supported path, and guarded against regression.
 
 ### 1 — Make it verifiable *(in progress)*
 
 - **The toy model** — a complete, self-contained JHEEM model that runs in 0.37 seconds ([details](toy-fixture-spike.qmd)). **Spiked and verified (GO)**; it ships when it lands in jheem2 as a package fixture executed on every change, which is the first step of CI. It is the first application built the way all of them eventually will be: minimal, self-contained, executable anywhere — the seed of the test suite, the runnable documentation, and the application scaffold.
-- **Changes to shared code, proven safe** — CI on jheem2: package build plus the toy model producing *exactly* the same numbers, on every proposed change. **Next up.** This flips the economics of small fixes: the unfinished corners everyone notices become safe to fix in passing.
-- **Watch calibrations while they run** — a read-only monitor over the checkpoint files the MCMC machinery already writes: per-city likelihood behavior, chain mixing, which cities are struggling, while the run is going. **Next up.** (Automatic stopping of non-mixing runs comes later, once the test net exists to touch the sampling loop safely.)
+- **Changes to shared code, proven safe** — CI on jheem2: package build plus the toy model producing *exactly* the same numbers, on every proposed change. **Not currently prioritized as standalone work.** It remains an enabling hypothesis for deeper engine changes, to be tested against the actual package workflow and cost rather than assumed as a team commitment.
+- **Watch calibrations while they run** — expose per-city likelihood behavior, chain mixing, and failure state while a run is in progress. **Discovery next.** Read-only observation is the preferred first slice, but the checkpoint contract, concurrent-read safety, and division of responsibility among `jheem_analyses`, `jheem2`, and `bayesian.simulations` must be established from code before a design is selected ([D-017](decisions.qmd)).
 
 ### 2 — Make it fast
 
