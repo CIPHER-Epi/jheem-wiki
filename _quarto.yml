@@ -20,6 +20,8 @@ website:
         text: Application Anatomy
       - href: roadmap.qmd
         text: Modernization Roadmap
+      - href: investigations/calibration-observability.qmd
+        text: Calibration Observability Investigation
       - href: decisions.qmd
         text: Decision Log
       - href: toy-fixture-spike.qmd

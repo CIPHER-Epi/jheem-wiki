@@ -1,0 +1,343 @@
+---
+title: "Calibration Observability Investigation"
+date: 2026-08-26
+---
+
+**Status:** Evidence-backed investigation; recommendation proposed, not adopted or
+implemented.
+
+**Verified against:** `jheem_analyses@426f03d125ab8a2a24c9b2b3230fbf4304894761`,
+`jheem2@90b68ad500c12bdfe8f9dc6616e9a846fb4ae3d1`, and
+`bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75`.
+
+## Assessment
+
+The existing cache is sufficient for a useful first observability feature, but it
+is not itself a job-monitoring contract.
+
+A completed checkpoint exposes per-chain progress, cumulative acceptance, runtime,
+current parameter state, and—in post-burn chunk files—parameter samples and total
+log likelihoods. That can support a low-I/O status report immediately and richer
+diagnostics later. It cannot establish whether a process is currently running,
+queued, sleeping between retries, or dead. It also publishes mutable control files
+with direct `save()` calls, so a concurrent reader must expect transient load
+failures.
+
+The recommended first slice is therefore **not a dashboard and not a sampler
+change**. It is a defensive, read-only cache-inspection API in
+`bayesian.simulations`, surfaced as an operator-facing status command in
+`jheem_analyses`. The default path reads only chain controls. Exact iteration
+metadata, likelihood traces, and convergence diagnostics follow only after
+measuring production global-control and chunk sizes and their read cost on the
+shared storage used for live runs.
+
+## What was traced
+
+The standard calibration path is:
+
+1. An application specification and calibration registry are sourced from
+   `jheem_analyses`.
+2. `jheem2::set.up.calibration()` builds the JHEEM engine, likelihood, adaptive
+   Metropolis control, initial states, and cache
+   (`jheem2:R/CALIBRATION_main.R:13-653`).
+3. Setup creates one cache per
+   `root/mcmc_runs/<version>/<location>/<calibration-code>` and one mutable control
+   file per chain (`jheem2:R/FILE_MANAGER_file_manager.R:381-391`).
+4. `jheem2::run.calibration()` delegates selected chains to
+   `bayesian.simulations::run.mcmc.from.cache()` and attempts to cache a summary
+   after the run (`jheem2:R/CALIBRATION_main.R:715-775`).
+5. Each chain runs independently in cache-sized chunks. At a chunk boundary the
+   sampler writes a post-burn MCMC chunk, updates its in-memory chain state, marks
+   the chunk done, and overwrites the chain-control file
+   (`bayesian.simulations:R/cache.R:350-419`).
+6. Assembly reads completed chunks into an MCMC or JHEEM simulation set; application
+   scripts save the resulting simset separately.
+
+For Rockfish, `jheem_analyses` generates distinct setup, per-location/per-chain
+run, and assembly jobs. The batch scripts write scheduler output files, but the
+cache does not record Slurm job IDs or lifecycle state
+(`jheem_analyses:cluster_scripts/batch_script_helpers.R:61-207`). SHIELD also has a
+server-oriented modular runner that retries every caught run error up to 99 times,
+describing each as a probable interrupted write and sleeping five minutes before
+retrying (`jheem_analyses:applications/SHIELD/shield_calib_setup_and_run_modular.R:46-78`).
+The cache alone cannot distinguish any of those states.
+
+Ryan White parameter fitting is a second execution pattern, not a thin wrapper over
+the standard cache. It runs short uncached MCMCs while transmuting an existing EHE
+simset and publishes application-specific `rw_cache/chunk*.Rdata` files
+(`jheem_analyses:applications/ryan_white/ryan_white_mcmc.R:221-386`). The proposed
+first slice deliberately covers the standard EHE/SHIELD cache path; Ryan White
+needs a separate adapter if it is in scope.
+
+## The observed checkpoint contract
+
+`bayesian.simulations` owns the serialized classes and file layout
+(`R/cache.R:8-55`):
+
+```text
+<calibration-dir>/
+└── cache/
+    ├── global_control.Rdata
+    ├── chain1_control.Rdata
+    ├── chain2_control.Rdata
+    ├── chain_1/
+    │   ├── chain1_chunk<N>.Rdata
+    │   └── ...
+    └── chain_2/
+        └── ...
+```
+
+The global control is created during setup and describes the sampler, chains,
+chunk sizes, burn boundary, and chain-control filenames. It also serializes the
+MCMC control, whose JHEEM simulation and likelihood closures can capture an engine
+and data manager; its production size must not be assumed small. A chain control
+is overwritten at each completed chunk and contains its chunk filenames plus:
+
+- the cache and chain IDs;
+- a `chunk.done` bitmap;
+- cumulative accepted proposals and completed runtime;
+- the resumable adaptive chain state;
+- one seed per chunk in the current source tree.
+
+Post-burn chunk files contain an `mcmcsim` object with parameter samples, total log
+likelihoods and log priors, acceptance counts, run times, and retained JHEEM
+simulations (`bayesian.simulations:R/mcmc_class.R:36-60`). Chunks wholly before burn
+are not retained, though their completion is recorded in the chain control.
+
+### Publication and resume semantics
+
+The write order provides a useful implicit commit marker:
+
+1. run a complete chunk in memory;
+2. save its retained MCMC, if any;
+3. update and save the chain control with `chunk.done[chunk] = TRUE`.
+
+A successfully loaded chain control that marks a chunk done therefore refers to a
+chunk whose save call returned. If computation fails before the control update, a
+later run starts from the prior completed chunk. If a chunk file exists but the
+control still says it is incomplete, the runner recomputes and overwrites it.
+
+This supports resumption at chunk boundaries. It does not make concurrent reads
+atomic: both chunk and control files are written directly to their final paths,
+without a temporary-file-plus-rename publication step. Cache deletion or recreation
+can also race a reader.
+
+### Existing observability
+
+There are already three partial interfaces:
+
+- `jheem2::get.calibration.progress()` loads every chain control and returns the
+  fraction of chunks marked done (`CALIBRATION_main.R:787-841`). It has no retry,
+  freshness, runtime, acceptance, or process state.
+- `jheem2::percentage.cache.complete()` duplicates that calculation with a
+  hard-coded relative root (`CALIBRATION_main.R:1955-1976`).
+- `bayesian.simulations::cache.progress()` is exported but stops with “not
+  implemented yet” (`R/run_interface.R:435-443`).
+
+The support package already implements plots for samples, total likelihood, and
+acceptance plus an R-hat calculation (`R/postprocessing.R`). It does not implement
+effective sample size, and its R-hat is not the current split, rank-normalized
+diagnostic by default. These functions require assembled post-burn chunks; they do
+not expose the chain currently computing inside an unfinished chunk.
+
+## Operator questions and available evidence
+
+| Operator question | Available now | Limitation |
+|---|---|---|
+| Was the cache set up? | Global and chain controls | Setup can race inspection or later be deleted |
+| How far has each location/chain progressed? | Chain `chunk.done`; global `chunk.size` for exact iterations | Updates only at chunk boundaries; global control may be expensive to load |
+| Is it still alive? | Last control mtime; scheduler/process and log state outside cache | A long active chunk and a dead job look identical in the cache |
+| How long has it run; rough ETA? | Completed runtime and iterations | No timing until the first chunk completes; future chunks may differ |
+| Is it accepting proposals? | Cumulative accepted count | Aggregate only; no live value inside the current chunk |
+| What is the likelihood trajectory? | Total log likelihood in retained chunks | Only post-burn, thinned samples; requires loading potentially large chunks |
+| Are chains mixing? | Parameter samples after multiple chains retain a common prefix | Requires enough post-burn draws and statistically current diagnostics |
+| Why did it fail? | Scheduler/process state and output logs | No structured failure record or exception in the cache |
+| Can it resume? | Chain state and per-chunk seeds | Resume is chunk-granular; run identity and package/code refs are not recorded |
+
+## Verification experiments
+
+These experiments test the source-level contract; they are not production I/O
+benchmarks.
+
+### Synthetic cache
+
+At `bayesian.simulations@4e0d13e`, a two-chain synthetic Metropolis cache used 50
+iterations per chain, burn 10, thin 2, and cache frequency 10. Running only chain 1
+produced an inspectable state of 5/5 chunks for chain 1 and 0/5 for chain 2.
+Incomplete assembly of chain 1 returned 20 retained draws with parameter samples
+and total log likelihoods. This verifies that a status-only reader can avoid chunk
+loads, while a later diagnostics reader can use published post-burn chunks.
+
+### Concurrent direct-save read
+
+The cache overwrites R serialization files using direct `save()`. In a stress test
+that repeatedly overwrote an uncompressed 16 MB R object while another process
+attempted 1,000 loads, 31 reads failed and 969 succeeded. The failure fraction is
+specific to that test and must not be projected onto production. The result
+establishes the failure mode: a read-only observer can encounter a partially
+written serialization and must treat it as transient rather than cache corruption.
+
+### Seed propagation
+
+The current API accepts a `seed`, but `create.mcmc.cache()` does not pass it to
+`do.create.cache()`, and `do.create.chain.cache.controls()` generates chunk seeds
+without first applying the supplied value (`R/run_interface.R:181-218`,
+`R/cache.R:184-262`). Two synthetic caches created in one process with the same
+`seed = 123` stored different chunk-seed vectors. The cache remains repeatable when
+resumed because it stores the generated per-chunk seeds, but the public seed does
+not currently reproduce cache creation. A run manifest must not claim seed-level
+reproducibility until this is fixed and regression-tested.
+
+No representative production MCMC cache was available in the inspected workspace.
+Production chunk size, NAS latency, permissions, and behavior during a real live
+write remain explicit validation questions.
+
+## Architecture options
+
+### 1. JHEEM-only cache reader
+
+Expand `jheem2::get.calibration.progress()` or add application utilities that load
+the serialized controls and chunks directly.
+
+**Advantages:** smallest apparent diff; immediately understands JHEEM's
+version/location/calibration directory convention.
+
+**Costs:** duplicates knowledge of private support-package classes, leaves the
+exported support-package interface unfinished, and couples every observer to an
+unversioned serialization layout. It also cannot solve job state without analysis
+or scheduler context.
+
+**Assessment:** useful as a disposable prototype, not the durable boundary.
+
+### 2. Support-package snapshot plus analysis-layer report — recommended
+
+Add a defensive `inspect.mcmc.cache()` API to `bayesian.simulations`. It returns
+plain, schema-versioned status data and optionally reads only completed immutable
+chunks for diagnostics. Add a separate command in `jheem_analyses` that discovers
+JHEEM calibration directories, supplies location/application context, and renders
+the snapshot for operators.
+
+**Advantages:** the package that owns the cache owns its read contract; the
+analysis layer owns workflow discovery and presentation; other applications can
+reuse the inspector. The initial status path reads only per-chain controls and does
+not modify sampling behavior.
+
+**Costs:** requires coordinated changes in two repositories and a supported way to
+install a matching `bayesian.simulations` version. Job state still needs optional
+scheduler/process integration or an explicit run manifest.
+
+**Assessment:** best balance of immediate utility and a boundary that can survive
+the next cache-format change.
+
+### 3. Structured run-event sidecar
+
+Instrument launchers and the sampler to publish a format-versioned manifest,
+heartbeat, checkpoint events, and terminal success/failure records atomically. A
+monitor consumes those small files and loads MCMC chunks only on demand.
+
+**Advantages:** distinguishes queued/running/stale/failed/completed states, records
+code and environment identity, and avoids polling large serialized science
+objects.
+
+**Costs:** changes the run path, requires regression coverage and migration rules,
+and must accommodate both Slurm and server-launched processes plus the custom Ryan
+White workflow.
+
+**Assessment:** likely destination, but unnecessary for proving the first operator
+value.
+
+## Recommended first slice
+
+### Support-package contract
+
+Implement a status-only `inspect.mcmc.cache(dir)` in `bayesian.simulations` that:
+
+- copies each chain-control file to a temporary path before loading it;
+- retries transient copy/load failures with a bounded backoff;
+- validates the agreement of cache IDs across readable chains, dimensions, and
+  referenced completed chunks;
+- returns plain data rather than serialized S4 objects;
+- reports per chain: completed/total chunks, whether retained sampling has begun,
+  cumulative acceptance, completed runtime, chunk-based estimated remaining time,
+  last checkpoint time, completeness, and a `readable`/`unknown` status;
+- labels checkpoint freshness without claiming that stale means failed; and
+- versions the returned snapshot schema. A cache-format version belongs in a later
+  writer change.
+
+The first implementation should not load the global control or MCMC chunks by
+default, parse human-readable logs, or change any sampler write. Exact iteration
+counts and configuration can be an opt-in detail if production measurement shows
+the global-control read is acceptably cheap.
+
+### Operator command
+
+Add a thin command in `jheem_analyses` that accepts a root, version, calibration
+code, and locations; discovers the standard JHEEM cache directories; calls the
+support-package inspector; and prints a location-by-chain table. A machine-readable
+JSON or CSV mode makes the same contract usable by a future web view without
+choosing a dashboard framework now.
+
+Its states should be deliberately conservative: `not set up`, `checkpointing`,
+`complete`, `unreadable/unknown`, and `no recent checkpoint`. `running`, `queued`,
+and `failed` require corroborating process/scheduler or manifest evidence.
+
+### Validation gate
+
+Before calling the slice complete:
+
+1. Test synthetic caches before setup, during burn, after one and multiple chunks,
+   with uneven chains, complete, resumed, deleted, and deliberately truncated
+   controls.
+2. Verify that the inspector never writes inside the observed calibration tree.
+3. Run repeated status reads against a live test calibration while it checkpoints;
+   transient states must become `unknown`, not crash or report corruption.
+4. Measure chain-control, global-control, and chunk sizes plus scan time and bytes
+   read on a representative production cache and the actual shared filesystem.
+5. Confirm output with the people who operate Rockfish and the JHU servers.
+
+### Follow-on diagnostics
+
+After the status slice proves safe and cheap, add opt-in loading of the common
+completed post-burn prefix across chains. That can support parameter and total
+log-likelihood traces, windowed acceptance, split rank-normalized R-hat, and
+bulk/tail ESS. Diagnostics should state when there are too few chains or draws to
+interpret. Piecewise likelihood behavior is not stored in the current chunks and
+would require either recomputation from retained simulations or new
+instrumentation.
+
+Structured run manifests, scheduler linkage, graceful stop, and custom Ryan White
+status are separate increments.
+
+## Open questions
+
+- Which execution path is the first target: Rockfish standard calibration, the
+  shared JHU servers, or both?
+- Where is the representative live cache, and what are its chunk-size and read-time
+  distributions?
+- How long can a healthy chunk run for each active calibration before a freshness
+  warning becomes useful?
+- Do operators primarily need location/chain completion, likelihood behavior,
+  failure notification, or all three in that order?
+- Can a matching `bayesian.simulations` ref be installed reproducibly alongside the
+  application code? Current Rockfish setup installs GitHub package heads without
+  recorded refs (`jheem_analyses:cluster_scripts/rockfish_install_packages.R:4-23`).
+- Should scheduler job IDs be recorded by generated batch scripts, or should a
+  monitor query Slurm separately?
+- Is the custom Ryan White fitting path part of the requested calibration feature?
+
+## Durable home and exit condition
+
+This page remains the cross-repository investigation record while the proposal is
+being evaluated. If adopted:
+
+- the cache schema, inspector API, atomicity guarantees, and package tests belong
+  in `bayesian.simulations`;
+- the command, scheduler integration, and operator runbook belong in
+  `jheem_analyses`; and
+- this wiki retains only the cross-repository execution map, supported workflow,
+  and decision rationale.
+
+The investigation graduates when the supported status path is documented in those
+repositories and its cross-repository contract is recorded here. It should instead
+be retired if a different architecture is selected or the relevant calibration
+workflow is replaced.
