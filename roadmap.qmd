@@ -1,6 +1,6 @@
 ---
 title: "Modernization Roadmap"
-date: 2026-08-26
+date: 2026-09-02
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -45,7 +45,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); public since 2026-08-19 at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) ([D-016](decisions.qmd)) |
 | 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`474abc3`. Dispatch verified under `Rscript`; man pages regenerated. Version set per [D-012](decisions.qmd) (an initial 1.11.2 bump was corrected to 1.12.3.9000). Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
 | 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap the script as a package fixture when package/CI feasibility is evaluated; the data-manager half comes with the likelihood demo |
-| 4 | **Calibration observability** — establish the architecture, then implement the bounded status slice | **Investigation complete; proposal ready** (2026-08-26) | The [code-grounded investigation](investigations/calibration-observability.qmd) recommends a defensive cache inspector in `bayesian.simulations` plus an operator command in `jheem_analyses`; production-cache validation and domain review precede implementation |
+| 4 | **Calibration observability and online stopping** — establish the architecture, then implement one bounded vertical slice | **Production cache measured; live shadow and policy definition pending** (2026-09-02) | Routine runs target the shared servers. The [code-grounded investigation](investigations/calibration-observability.qmd) measured 1.89 GB SHIELD and 17.89 GB EHE caches and recommends small parameter-only checkpoint sidecars rather than repeated science-chunk reads. A defensive inspector and hook belong in `bayesian.simulations`; one explicitly defined mixing policy and operator report belong in `jheem_analyses` |
 | 5 | **Functional-form documentation** — inventory and explain the forms used by model specifications, with runnable examples where practical | Queued | Requested bounded documentation work; final API and examples belong in `jheem2`, while an evidence-backed investigation may be staged here ([D-018](decisions.qmd)) |
 | 6 | **Reproducibility investigation** — map the executable path from code and cache inputs through run configuration to identified outputs | Queued | Begin with the requested cache setup, but assess code refs, package/environment identity, input lineage, seeds/configuration, and output provenance as one chain |
 
@@ -65,7 +65,10 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 - **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.
 - **`@examples` on the top ~50 exports**, chosen by usage-grep of `jheem_analyses`/`jheem2_interactive` — doubles as API curation (public vs. `@keywords internal`).
 - **pkgdown site** for jheem2, linked from this wiki.
-- **Graceful-stop hook** for calibration (sentinel checked at cache writes) — only after the test net exists.
+- **Focused regression coverage for the calibration hook** — prove unchanged
+  sampling when no policy is configured, resumable checkpoint-boundary stopping,
+  and deterministic policy decisions before enabling early termination on routine
+  runs.
 - **Complete syphilis raw-to-final automation, then graduate census + surveillance managers** into the finished pattern ([D-004](decisions.qmd), refined by [D-015](decisions.qmd): the raw-data→section stage still runs locally; CI currently assembles, validates, and promotes from partly manual intermediates).
 - **Custom domain for this site** (`docs.jheem.org`) once the team is using it.
 

@@ -1,6 +1,7 @@
 ---
 title: "Calibration Observability Investigation"
 date: 2026-08-26
+date-modified: 2026-09-02
 ---
 
 **Status:** Evidence-backed investigation; recommendation proposed, not adopted or
@@ -9,11 +10,21 @@ implemented.
 **Verified against:** `jheem_analyses@426f03d125ab8a2a24c9b2b3230fbf4304894761`,
 `jheem2@90b68ad500c12bdfe8f9dc6616e9a846fb4ae3d1`, and
 `bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75`.
+Production-cache measurements were taken read-only from the shared calibration
+store on 2026-09-02.
+
+**Operational clarification (2026-08-26):** Routine calibrations run on the
+team's shared servers. Rockfish support exists in the source tree, but it is not
+the normal execution target. The requested feature is periodic evaluation of
+mixing while MCMC is running, followed by an explainable early stop when a
+configured number of parameters exceed a threshold. The initial design discussion
+was exploratory; the diagnostic, thresholds, cadence, and stop semantics remain to
+be specified.
 
 ## Assessment
 
 The existing cache is sufficient for a useful first observability feature, but it
-is not itself a job-monitoring contract.
+is not itself a job-monitoring or online-diagnostic contract.
 
 A completed checkpoint exposes per-chain progress, cumulative acceptance, runtime,
 current parameter state, and—in post-burn chunk files—parameter samples and total
@@ -23,13 +34,28 @@ queued, sleeping between retries, or dead. It also publishes mutable control fil
 with direct `save()` calls, so a concurrent reader must expect transient load
 failures.
 
-The recommended first slice is therefore **not a dashboard and not a sampler
-change**. It is a defensive, read-only cache-inspection API in
-`bayesian.simulations`, surfaced as an operator-facing status command in
-`jheem_analyses`. The default path reads only chain controls. Exact iteration
-metadata, likelihood traces, and convergence diagnostics follow only after
-measuring production global-control and chunk sizes and their read cost on the
-shared storage used for live runs.
+The operational clarification changes the target, but not the package boundary.
+A defensive, read-only cache snapshot in `bayesian.simulations` remains the
+foundation. The first operator-valued vertical slice should now pair that snapshot
+with one explicitly defined mixing policy and a graceful stop request evaluated at
+completed checkpoint boundaries. The policy and operator-facing report belong in
+`jheem_analyses`; generic cache publication, hook invocation, and stop mechanics
+belong in `bayesian.simulations`.
+
+Production measurements rule out repeatedly loading science chunks as the online
+diagnostic transport. A recent SHIELD checkpoint serialized 44.2 MB to retain ten
+draws for 174 parameters; the parameter, likelihood, and acceptance payload needed
+by a diagnostic serialized to 5.0 KB. The sampler already holds that payload in
+memory before clearing the completed chunk. It should publish a small atomic
+diagnostic sidecar at that point, while the full chunk remains the scientific
+record.
+
+An unrestricted callback inside the per-iteration loop is not yet a sound design.
+The current server workflows commonly run chains independently, and each worker
+holds only its own in-progress draws. A multi-chain diagnostic requires a common
+published prefix across chains. Checkpoint boundaries already provide that durable
+exchange point and limit a stop to a resumable state. Sub-checkpoint evaluation
+would require explicit partial-checkpoint and recovery semantics.
 
 ## What was traced
 
@@ -53,9 +79,16 @@ The standard calibration path is:
 6. Assembly reads completed chunks into an MCMC or JHEEM simulation set; application
    scripts save the resulting simset separately.
 
-For Rockfish, `jheem_analyses` generates distinct setup, per-location/per-chain
-run, and assembly jobs. The batch scripts write scheduler output files, but the
-cache does not record Slurm job IDs or lifecycle state
+Routine operation uses the shared JHU servers. The checked-in server-oriented EHE
+and SHIELD runners commonly invoke one selected chain at a time. The package can
+also run selected chains in parallel, but `parallel.lapply()` gives each worker an
+independent process and memory space (`bayesian.simulations:R/parallelization.R:3-58`).
+Therefore no chain-local callback can inspect the live, uncommitted state of its
+siblings.
+
+For the alternative Rockfish path, `jheem_analyses` generates distinct setup,
+per-location/per-chain run, and assembly jobs. The batch scripts write scheduler
+output files, but the cache does not record Slurm job IDs or lifecycle state
 (`jheem_analyses:cluster_scripts/batch_script_helpers.R:61-207`). SHIELD also has a
 server-oriented modular runner that retries every caught run error up to 99 times,
 describing each as a probable interrupted write and sleeping five minutes before
@@ -97,7 +130,8 @@ is overwritten at each completed chunk and contains its chunk filenames plus:
 - a `chunk.done` bitmap;
 - cumulative accepted proposals and completed runtime;
 - the resumable adaptive chain state;
-- one seed per chunk in the current source tree.
+- one seed per chunk in the current source tree. Older production caches use a
+  pre-seed schema and do not contain this slot.
 
 Post-burn chunk files contain an `mcmcsim` object with parameter samples, total log
 likelihoods and log priors, acceptance counts, run times, and retained JHEEM
@@ -112,15 +146,26 @@ The write order provides a useful implicit commit marker:
 2. save its retained MCMC, if any;
 3. update and save the chain control with `chunk.done[chunk] = TRUE`.
 
-A successfully loaded chain control that marks a chunk done therefore refers to a
-chunk whose save call returned. If computation fails before the control update, a
-later run starts from the prior completed chunk. If a chunk file exists but the
+A successfully loaded chain control that marks a retained chunk done therefore
+refers to a chunk whose save call returned; a non-retained chunk records completed
+computation without a chunk file. If computation fails before the control update,
+a later run starts from the prior completed chunk. If a chunk file exists but the
 control still says it is incomplete, the runner recomputes and overwrites it.
 
 This supports resumption at chunk boundaries. It does not make concurrent reads
 atomic: both chunk and control files are written directly to their final paths,
 without a temporary-file-plus-rename publication step. Cache deletion or recreation
 can also race a reader.
+
+Those guarantees describe package-controlled writes, not the provenance of a
+directory after manual copying or reuse. In one production EHE cache, a chain
+control created on July 9 marked all 1,000 chunks complete with zero recorded
+runtime and zero accepted proposals, while that chain's chunk files were dated
+July 1–6. The other inspected chain shared the same global ID and recorded 121.9
+hours and 34,021 accepted proposals. The format contains no chunk-level run ID to
+explain or validate the discrepancy. An inspector must report such inconsistencies
+rather than inferring that every completed chunk was generated by the current
+global control.
 
 ### Existing observability
 
@@ -140,6 +185,51 @@ effective sample size, and its R-hat is not the current split, rank-normalized
 diagnostic by default. These functions require assembled post-burn chunks; they do
 not expose the chain currently computing inside an unfinished chunk.
 
+`jheem2` also exposes `simset$get.mcmc.mixing.statistic()` after assembly
+(`JHEEM_simulation.R:2133-2189`). For one chain it returns the ratio of parameter
+variance in the first and last quarters. For multiple chains it implements a
+custom R-hat-like calculation. The multi-chain code uses the total simulation
+count where a per-chain count is required and collapses the between-chain
+calculation across parameters, so it must be checked against a reference
+implementation before it is used to terminate runs. The single-chain variance
+ratio may encode established team practice, but it is not interchangeable with
+multi-chain R-hat or effective sample size. “Mixing statistic” must name a specific
+calculation before a threshold has operational meaning.
+
+## Interpreting the requested callback
+
+The exploratory request can be stated as a policy contract:
+
+1. After at least a configured number of retained post-burn draws, evaluate every
+   configured number of checkpoints.
+2. Present the evaluator with a plain parameter table: one retained draw per row,
+   parameter names as columns, plus explicit chain and iteration columns.
+3. Return a structured decision containing `continue` or `request_stop`, the
+   diagnostic name and configuration, and the parameters that crossed the
+   threshold.
+4. Persist that decision separately from the scientific cache. A stop request is
+   checked by every chain after publishing a checkpoint, so all chains stop at a
+   resumable boundary.
+5. Record early termination as its own state, not as successful completion or an
+   unexplained failure. Incomplete assembly remains an explicit downstream choice.
+
+This separates mechanism from policy. `bayesian.simulations` need not know what a
+JHEEM parameter means, while an analysis can supply a calibrated policy without
+embedding application rules in the sampler. The hook should accept and return a
+narrow, validated structure rather than an unconstrained function with access to
+the sampler's mutable internals. Hook failures, repeated decisions, concurrent
+writers, and the scope of a stop—one chain, one location, or a larger run—must have
+defined behavior.
+
+The proposed direction is also a **poor-run termination policy**, not ordinary
+convergence stopping. A high R-hat-like value at one checkpoint means the chains
+have not demonstrated convergence; it does not establish that additional sampling
+cannot help. If the objective is to abandon runs unlikely to recover, the policy
+needs evidence appropriate to that claim—for example persistence across several
+checks, lack of improvement, or a separately validated pathological-state rule.
+By contrast, conventional early completion would stop when all required
+diagnostics are good. These two policies should not share an ambiguous threshold.
+
 ## Operator questions and available evidence
 
 | Operator question | Available now | Limitation |
@@ -150,9 +240,9 @@ not expose the chain currently computing inside an unfinished chunk.
 | How long has it run; rough ETA? | Completed runtime and iterations | No timing until the first chunk completes; future chunks may differ |
 | Is it accepting proposals? | Cumulative accepted count | Aggregate only; no live value inside the current chunk |
 | What is the likelihood trajectory? | Total log likelihood in retained chunks | Only post-burn, thinned samples; requires loading potentially large chunks |
-| Are chains mixing? | Parameter samples after multiple chains retain a common prefix | Requires enough post-burn draws and statistically current diagnostics |
+| Are chains mixing? | Parameter samples after multiple chains retain a common prefix | Full chunks bundle large simulations; frequent checks need parameter-only sidecars and a statistically defined diagnostic |
 | Why did it fail? | Scheduler/process state and output logs | No structured failure record or exception in the cache |
-| Can it resume? | Chain state and per-chunk seeds | Resume is chunk-granular; run identity and package/code refs are not recorded |
+| Can it resume? | Chain state; per-chunk seeds only in the newer schema | Resume is chunk-granular; old caches do not fix checkpoint seeds, and run identity and package/code refs are not recorded |
 
 ## Verification experiments
 
@@ -188,9 +278,55 @@ resumed because it stores the generated per-chunk seeds, but the public seed doe
 not currently reproduce cache creation. A run manifest must not claim seed-level
 reproducibility until this is fixed and regression-tested.
 
-No representative production MCMC cache was available in the inspected workspace.
-Production chunk size, NAS latency, permissions, and behavior during a real live
-write remain explicit validation questions.
+### Production caches
+
+Two completed caches on the shared calibration store were inspected read-only on
+2026-09-02. These measurements establish scale and schema variation; they do not
+substitute for observing a live write from a server process.
+
+| Measurement | Recent SHIELD cache | EHE state cache |
+|---|---:|---:|
+| Chains | 4 | 4 |
+| Parameters | 174 | 382 |
+| Iterations per chain | 10,000 | 250,000 |
+| Checkpoints per chain | 20 | 1,000 |
+| Retained draws per chain | 100 | 500 |
+| Global control | 134.9 MB | 98.0 MB |
+| Chain control | about 224 KB | about 1.14 MB |
+| Chunk files, all chains | 40 | 4,000 |
+| Allocated cache size | 1.89 GB (1.76 GiB) | 17.89 GB (16.66 GiB) |
+
+The SHIELD run used 500-iteration checkpoints, burned 5,000 iterations, and
+thinned by 50. Each chain recorded 9.4–9.7 hours, so a checkpoint took about 28–29
+minutes. A representative post-burn chunk was 44,190,434 bytes and held ten draws.
+A compressed sidecar containing its samples, likelihoods, acceptance counts, chain
+and iteration metadata was 5,049 bytes—about 8,750 times smaller. Loading the full
+chunk from local temporary storage took about one second. Copying a different 44.2
+MB chunk through one VPN-mounted-share measurement took 105 seconds; that timing
+describes the measurement path, not server-local throughput.
+
+The EHE cache had no burn, 250-iteration checkpoints, and thinning by 500. It
+therefore wrote alternating empty and one-draw MCMC chunks: an inspected empty
+chunk was 1.14 MB, while a one-draw chunk was 7.74 MB. The corresponding diagnostic
+payload was 6.7 KB. This confirms that the large serialization cost comes from
+captured model/simulation state and fixed object structure, not the parameter table
+needed for mixing checks.
+
+Both caches used the older chain-control schema without per-chunk seeds. The cache
+format carries neither a schema version nor a package ref. The compatible package
+commit available in the repository history is `bayesian.simulations@1da1851`; the
+per-chunk seed schema was added later in `b170ce7`. The serialized objects alone do
+not identify the exact server installation, but they establish that the newer
+schema was not used for these runs.
+
+This is not transparently forward-compatible. Loading an inspected old control
+after loading the current `bayesian.simulations@4e0d13e` class definition succeeds
+only as an invalid S4 object: `validObject()` reports the missing `seeds` slot, and
+accessing that slot fails. The current resume loop requires `chain.control@seeds`.
+Upgrading the package can therefore strand an incomplete pre-seed cache unless an
+explicit compatibility or migration path is provided. A migration cannot recreate
+the random stream that the old cache never recorded; at most it can record new
+future seeds and disclose that boundary.
 
 ## Architecture options
 
@@ -209,25 +345,31 @@ or scheduler context.
 
 **Assessment:** useful as a disposable prototype, not the durable boundary.
 
-### 2. Support-package snapshot plus analysis-layer report — recommended
+### 2. Support-package snapshot plus analysis-layer policy and report — recommended
 
 Add a defensive `inspect.mcmc.cache()` API to `bayesian.simulations`. It returns
-plain, schema-versioned status data and optionally reads only completed immutable
-chunks for diagnostics. Add a separate command in `jheem_analyses` that discovers
-JHEEM calibration directories, supplies location/application context, and renders
-the snapshot for operators.
+plain, schema-versioned status data across old and new chain controls. When a chunk
+finishes, publish its small parameter/likelihood/acceptance payload atomically from
+the in-memory MCMC object. Add a checkpoint hook that can consume a common prefix
+of those sidecars and publish a structured stop request. Add the diagnostic policy
+and a separate command in `jheem_analyses` that discovers JHEEM calibration
+directories, supplies location/application context, and renders the snapshot and
+decisions for operators. Full science-chunk reads remain an explicit legacy
+fallback, not the routine online path.
 
 **Advantages:** the package that owns the cache owns its read contract; the
 analysis layer owns workflow discovery and presentation; other applications can
-reuse the inspector. The initial status path reads only per-chain controls and does
-not modify sampling behavior.
+reuse the inspector. The status path reads only per-chain controls, while the
+diagnostic path avoids repeatedly deserializing gigabytes of simulation state.
 
-**Costs:** requires coordinated changes in two repositories and a supported way to
-install a matching `bayesian.simulations` version. Job state still needs optional
-scheduler/process integration or an explicit run manifest.
+**Costs:** requires a bounded write-path change, coordinated changes in two
+repositories, backward-compatible handling of the pre-seed schema, and a supported
+way to install a matching `bayesian.simulations` version. Job state still needs
+optional process integration or an explicit run manifest.
 
 **Assessment:** best balance of immediate utility and a boundary that can survive
-the next cache-format change.
+the next cache-format change. It supports the requested early-stop behavior
+without pretending that a chain-local parameter table contains cross-chain state.
 
 ### 3. Structured run-event sidecar
 
@@ -255,7 +397,9 @@ Implement a status-only `inspect.mcmc.cache(dir)` in `bayesian.simulations` that
 - copies each chain-control file to a temporary path before loading it;
 - retries transient copy/load failures with a bounded backoff;
 - validates the agreement of cache IDs across readable chains, dimensions, and
-  referenced completed chunks;
+  referenced completed chunks, while reporting timestamp and metadata anomalies;
+- recognizes the observed pre-seed and current chain-control schemas without
+  silently upgrading either;
 - returns plain data rather than serialized S4 objects;
 - reports per chain: completed/total chunks, whether retained sampling has begun,
   cumulative acceptance, completed runtime, chunk-based estimated remaining time,
@@ -264,10 +408,38 @@ Implement a status-only `inspect.mcmc.cache(dir)` in `bayesian.simulations` that
 - versions the returned snapshot schema. A cache-format version belongs in a later
   writer change.
 
-The first implementation should not load the global control or MCMC chunks by
-default, parse human-readable logs, or change any sampler write. Exact iteration
-counts and configuration can be an opt-in detail if production measurement shows
-the global-control read is acceptably cheap.
+The default status path should not load the global control or MCMC chunks or parse
+human-readable logs. A representative global control was 134.9 MB and took 9.8
+seconds merely to deserialize from local temporary storage, while chain controls
+were about 224 KB. Exact iteration counts and configuration can be cached at setup
+in the new small manifest rather than repeatedly loading the global control.
+
+### Checkpoint-policy contract
+
+At each post-burn checkpoint, extract samples, likelihoods, acceptance counts,
+chain, and iteration metadata from the in-memory MCMC object and publish a
+chunk-specific, schema-versioned sidecar using temporary-file-plus-rename. Define
+a narrow hook in `bayesian.simulations` that runs only after the science chunk,
+diagnostic sidecar, and chain control have been durably published. Its input is a
+plain snapshot over the common available sidecar prefix plus immutable context;
+its output is a validated decision. Use another small atomic sidecar for diagnostic
+results and stop requests rather than changing the meaning of `chunk.done`.
+
+Pass the hook at run time rather than serializing an application closure into the
+already large global control. The no-hook path must produce the same science cache
+and MCMC results as before. Legacy caches can be inspected for status and analyzed
+offline by loading full chunks, but they cannot gain the efficient online path
+retroactively. Resume of an incomplete pre-seed cache must use its compatible
+package or an explicit, provenance-recorded migration; the new code must not
+fabricate compatibility silently.
+
+For the first policy, agree on and name exactly one diagnostic. Configure its
+minimum post-burn draws per chain, evaluation cadence, threshold, and number or
+fraction of flagged parameters required to stop, including whether the condition
+must persist or fail to improve across checks. Save the flagged parameter names,
+values, and recent diagnostic history. Do not label a threshold crossing
+“non-mixing” or “hopeless” unless the chosen diagnostic supports that
+interpretation.
 
 ### Operator command
 
@@ -291,38 +463,54 @@ Before calling the slice complete:
 2. Verify that the inspector never writes inside the observed calibration tree.
 3. Run repeated status reads against a live test calibration while it checkpoints;
    transient states must become `unknown`, not crash or report corruption.
-4. Measure chain-control, global-control, and chunk sizes plus scan time and bytes
-   read on a representative production cache and the actual shared filesystem.
-5. Confirm output with the people who operate Rockfish and the JHU servers.
+4. Verify both observed cache schemas, including inconsistent metadata and a
+   deliberately truncated control, without rewriting legacy artifacts. Test
+   current-source loading and the explicit refusal or migration behavior for an
+   incomplete pre-seed cache.
+5. Prove byte-for-byte or field-level equivalence of the science outputs with no
+   hook configured, and deterministic policy decisions over fixed sidecar fixtures.
+6. Shadow a live server calibration without permission to stop it; measure
+   checkpoint publication, sidecar overhead, server-local read time, concurrent
+   chains, and recovery after an interrupted write.
+7. Confirm output and stop behavior against the normal shared-server workflow;
+   verify the Rockfish path separately if it remains supported.
 
 ### Follow-on diagnostics
 
-After the status slice proves safe and cheap, add opt-in loading of the common
-completed post-burn prefix across chains. That can support parameter and total
-log-likelihood traces, windowed acceptance, split rank-normalized R-hat, and
-bulk/tail ESS. Diagnostics should state when there are too few chains or draws to
-interpret. Piecewise likelihood behavior is not stored in the current chunks and
-would require either recomputation from retained simulations or new
-instrumentation.
+After the first policy proves safe and cheap, use the parameter sidecars for
+additional parameter and total-log-likelihood traces, windowed acceptance, split
+rank-normalized R-hat, and bulk/tail ESS. Diagnostics should state when there are
+too few chains or draws to interpret. Full-chunk loading remains available for
+offline legacy analysis, not routine polling. Piecewise likelihood behavior is not
+stored in the current chunks and would require either recomputation from retained
+simulations or new instrumentation.
 
-Structured run manifests, scheduler linkage, graceful stop, and custom Ryan White
-status are separate increments.
+Structured run manifests, scheduler linkage, sub-checkpoint callbacks, and custom
+Ryan White status are separate increments.
 
 ## Open questions
 
-- Which execution path is the first target: Rockfish standard calibration, the
-  shared JHU servers, or both?
-- Where is the representative live cache, and what are its chunk-size and read-time
-  distributions?
+- On the shared servers, is each chain always a separate operating-system job, or
+  are some active workflows multi-chain parent processes? What scope should an
+  early stop have: one chain, all chains for one location, or a larger run?
+- Which upcoming calibration can be observed in shadow mode, and which exact
+  launcher, package library, server-local cache path, and process layout will it
+  use?
 - How long can a healthy chunk run for each active calibration before a freshness
   warning becomes useful?
 - Do operators primarily need location/chain completion, likelihood behavior,
   failure notification, or all three in that order?
-- Can a matching `bayesian.simulations` ref be installed reproducibly alongside the
-  application code? Current Rockfish setup installs GitHub package heads without
-  recorded refs (`jheem_analyses:cluster_scripts/rockfish_install_packages.R:4-23`).
-- Should scheduler job IDs be recorded by generated batch scripts, or should a
-  monitor query Slurm separately?
+- Which calculation does “mixing statistic” mean for this feature? What minimum
+  post-burn sample size, cadence, threshold, and flagged-parameter count are
+  scientifically defensible?
+- Should a policy-hook error allow sampling to continue while recording the error,
+  or fail the calibration? Who may resume or override a policy stop?
+- Can `bayesian.simulations` be pinned and upgraded reproducibly on the shared
+  servers? Which cache migration or compatibility policy is required for the
+  observed pre-seed schema?
+- Which process identifiers and terminal states can the server launchers publish?
+  Should the alternative Rockfish path record scheduler IDs or query Slurm
+  separately?
 - Is the custom Ryan White fitting path part of the requested calibration feature?
 
 ## Durable home and exit condition

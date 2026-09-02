@@ -1,6 +1,6 @@
 ---
 title: "The Program"
-date: 2026-08-26
+date: 2026-09-02
 ---
 
 A continuous engineering investment in the JHEEM ecosystem, with one destination:
@@ -58,7 +58,17 @@ durable home, used through the supported path, and guarded against regression.
 
 - **The toy model** — a complete, self-contained JHEEM model that runs in 0.37 seconds ([details](toy-fixture-spike.qmd)). **Spiked and verified (GO)**; it ships when it lands in jheem2 as a package fixture executed on every change, which is the first step of CI. It is the first application built the way all of them eventually will be: minimal, self-contained, executable anywhere — the seed of the test suite, the runnable documentation, and the application scaffold.
 - **Changes to shared code, proven safe** — CI on jheem2: package build plus the toy model producing *exactly* the same numbers, on every proposed change. **Not currently prioritized as standalone work.** It remains an enabling hypothesis for deeper engine changes, to be tested against the actual package workflow and cost rather than assumed as a team commitment.
-- **Watch calibrations while they run** — expose per-city likelihood behavior, chain mixing, and failure state while a run is in progress. **Discovery next.** Read-only observation is the preferred first slice, but the checkpoint contract, concurrent-read safety, and division of responsibility among `jheem_analyses`, `jheem2`, and `bayesian.simulations` must be established from code before a design is selected ([D-017](decisions.qmd)).
+- **Manage calibrations while they run** — expose per-city progress and mixing,
+  periodically evaluate an agreed diagnostic, and gracefully stop a location when
+  its configured policy fires. **Investigation refined; policy definition
+  pending.** Production-cache measurements show that full MCMC chunks are too
+  large for routine polling; the running sampler should publish a small
+  parameter-only diagnostic sidecar at each retained checkpoint. The cache
+  inspector and checkpoint hook belong in `bayesian.simulations`; application
+  policy and operator output belong in `jheem_analyses`. The first implementation
+  waits on a live shadow run and an explicit definition of the diagnostic,
+  threshold, cadence, minimum draws, persistence rule, and stop scope
+  ([investigation](investigations/calibration-observability.qmd)).
 
 ### 2 — Make it fast
 
