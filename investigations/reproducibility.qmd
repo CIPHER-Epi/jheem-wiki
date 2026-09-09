@@ -4,8 +4,9 @@ date: 2026-09-02
 date-modified: 2026-09-09
 ---
 
-**Status:** Evidence-backed investigation; target contract and first slice proposed,
-not adopted or implemented.
+**Status:** Evidence-backed investigation; target contract and first slice proposed.
+The current SHIELD/manager incompatibility has been reproduced, but the mitigation
+and promotion gate are not yet implemented.
 
 **Verified against:** `jheem_analyses@9cb781991dbf1e337a12110456b31516b600f8b1`,
 `jheem2@90b68ad500c12bdfe8f9dc6616e9a846fb4ae3d1`,
@@ -98,10 +99,17 @@ the pinned `jheem_analyses` commit. The implementation claims are grounded in:
 - workspace restore/save settings: `jheem_analyses:jheem_analyses.Rproj:3-5`;
 - SHIELD's Git synchronization and model bootstrap:
   `jheem_analyses:applications/SHIELD/shield_source_code.R:19-183`;
+- SHIELD's runtime manager selection, population-year constant, and MSM data
+  contract: `jheem_analyses:applications/SHIELD/shield_source_code.R:144-201` and
+  `applications/SHIELD/R/shield_specification_helpers.R:88-200`;
 - the syphilis source registry and build inputs:
   `jheem_analyses:commoncode/data_manager_sources.json:1-8` and
   `.github/workflows/build-syphilis-manager.yml:5-144,200-274`; the stale optional
   workflow handoff is at `.github/workflows/build-syphilis-sections.yml:110-124`;
+- forced structural-baseline updates and unchecked alias promotion:
+  `jheem_analyses:.github/workflows/build-syphilis-manager.yml:146-223` and
+  `.github/workflows/promote-syphilis-manager.yml:15-65`, plus the attached reports
+  on the August 26 and July 27 syphilis-manager releases;
 - versioned surveillance/census snapshot publication:
   `jheem_analyses:scripts/upload_manager_deps.R:1-69` and the
   `data-managers-v2026.08.26` release;
@@ -193,12 +201,16 @@ The ecosystem already contains most of the patterns needed:
   versions.
 - The syphilis-manager workflow declares major inputs, builds in CI, performs
   structural validation, and publishes a versioned release. It is the closest
-  upstream exemplar. Its current defaults are still floating aliases
+  upstream exemplar, but its approval boundary is incomplete. A manual override
+  can convert structural regressions into a new baseline, and the separate
+  promotion workflow verifies only that the requested release exists. The current
+  approved alias consequently points to a build whose attached report says
+  `FAIL (17 failures, 10 warnings)`. Its defaults are also floating aliases
   (`*-latest`, `jheem2_ref=dev`), and its release notes record the requested
   `jheem2` ref rather than the resolved engine commit. The optional handoff from
-  the section-build workflow also still dispatches the filename of a workflow now
-  stored under `.github/workflows-archived/`, so that path needs repair and an
-  end-to-end verification before it is treated as automatic.
+  the section-build workflow still dispatches the filename of a workflow now
+  stored under `.github/workflows-archived/`, so that path also needs repair and
+  an end-to-end verification before it is treated as automatic.
 - The delivery platform pins package refs and promotes tested container digests.
 - The calibration cache already has an identity and checkpoint structure, and the
   proposed observability sidecar can share a run identity rather than invent a
@@ -215,6 +227,44 @@ consumes it. Changing an outcome's dimensions, source labels, ontology, location
 coverage, or available years can leave the manager structurally valid but break a
 specification, likelihood, or functional form. Manager validation and
 model-manager compatibility are therefore separate gates.
+
+### Reproduced SHIELD incompatibility (2026-09-09)
+
+SHIELD names its runtime syphilis artifact `SURVEILLANCE.MANAGER`. The bootstrap
+loads `syphilis.manager.rdata`, not `surveillance.manager.rdata`, into that global.
+The model's MSM initialization then makes two `proportion.msm` requests that
+include `sex = "male"`: an Emory county request and a BRFSS state/race request.
+
+The approved `syphilis-manager-latest` artifact resolves to
+[`syphilis-manager-v2026.08.26`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.08.26),
+SHA-256
+`45446020e779f67ad58a0238ba8c505973dd9c8258d25caf84dd863033e2ace9`.
+Its attached structural report already identifies the relevant regression:
+Emory `proportion.msm` lost `year__location__sex`, while totals-level
+`year__location` was added. Three sex-stratified BRFSS shapes also lost most state
+locations. The build used the explicit force-update path and was subsequently
+promoted to the approved alias.
+
+A read-only probe against the exact release artifact reproduced the application
+failure. For Baltimore, the current SHIELD Emory request returns `NULL`, which
+triggers `Cannot get best-guess msm proportions`. The same request against
+[`syphilis-manager-v2026.07.27`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.07.27),
+SHA-256
+`0d9bf7e02d58554a52844bdce85e0506c99aec27ac578d052f6b4d2eb89339eb`,
+returns the expected seven-county array. That earlier artifact's structural
+report records 687 checks passed and no failures.
+
+A temporary code-only adjustment that removes `sex` from both MSM manager
+requests completed the full `get.best.guess.msm.proportions()` calculation for
+all ten routine SHIELD MSAs against the current artifact. The census population
+request for 2010 also succeeded against the published August 26 census manager.
+The reported 2010 issue is therefore not an independently reproduced missing-data
+failure in this code path: `DEFAULT.POPULATION.YEARS` selects the census year,
+while the two `proportion.msm` requests average their available years. This probe
+supports the totals-level adjustment, but it is not yet a scientific equivalence
+check or a complete specification/likelihood/calibration smoke. The resulting MSM
+estimates differ from the July artifact and need domain review as intended data
+changes, not automatic regression acceptance.
 
 The immediate rollback contract should allow an operator or run configuration to
 select a dated manager release and asset. A convenient alias may identify the
@@ -233,13 +283,16 @@ The corresponding promotion path is:
 4. publish a readable compatibility result; and
 5. move the approved alias only when the required checks pass.
 
-The first model check can be deliberately narrow: load one candidate surveillance
-manager, build the SHIELD specification and likelihoods, and evaluate a small
-calibration path for a representative location in a temporary output root. As
-failures are found, add faster assertions for required outcomes, dimensions,
-sources, ontologies, locations, and year coverage ahead of the end-to-end smoke.
-This gates promotion of a manager artifact, not ordinary source commits or the
-creation of candidates.
+The first model check can be deliberately narrow: resolve the candidate syphilis
+manager and its surveillance/census dependencies by immutable tag and digest,
+build the SHIELD specification and likelihoods, and evaluate a small calibration
+path for a representative location in a temporary output root. Fast assertions
+should first exercise the two MSM pulls, their ontology mappings, 2010 census
+coverage, and all supported SHIELD locations. The end-to-end Baltimore smoke then
+catches assumptions not visible in the schema contract. This gates promotion of
+an approved manager alias, not ordinary source commits or the creation of
+candidates. A forced structural-baseline update may still publish a review
+candidate, but it must not by itself make that candidate eligible for promotion.
 
 ## Proposed target contract
 
