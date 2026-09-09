@@ -29,6 +29,7 @@ repo's internals, it probably belongs in that repo.
 | [Application Anatomy](application-anatomy.qmd) | What is a model application made of, and what does building one cost today? |
 | [Modernization Roadmap](roadmap.qmd) | What's in flight, in what order — the working tracker. |
 | [Calibration Observability Investigation](investigations/calibration-observability.qmd) | What does the running calibration cache expose, what is safe to observe, and what should the first slice be? |
+| [Analysis Reproducibility Investigation](investigations/reproducibility.qmd) | What determines a run, how outputs and paths behave today, and how automatic receipts could survive unavailable shared storage? |
 | [Spec Framework Notes](spec-framework-notes.qmd) | How does the jheem2 specification framework actually behave? |
 | [Decision Log](decisions.qmd) | Why is it done this way? What was already decided (and what's still open)? |
 | [Archive](archive/index.qmd) | Historical planning docs, preserved with provenance notes. |

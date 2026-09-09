@@ -1,0 +1,493 @@
+---
+title: "Analysis Reproducibility Investigation"
+date: 2026-09-02
+date-modified: 2026-09-09
+---
+
+**Status:** Evidence-backed investigation; target contract and first slice proposed,
+not adopted or implemented.
+
+**Verified against:** `jheem_analyses@9cb781991dbf1e337a12110456b31516b600f8b1`,
+`jheem2@90b68ad500c12bdfe8f9dc6616e9a846fb4ae3d1`,
+`bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75`,
+`distributions@4d71d9644b4439a59210e804520ac8717ae8f079`, and
+`locations@5af29ec2a2de3d5bb90a133de1353a53d1067e5f`. The ignored
+working cache in one clean `jheem_analyses` checkout was inventoried read-only on
+2026-09-02 as a sample of current local state, not as a canonical manifest.
+Manager-distribution behavior was additionally reverified at
+`jheem_analyses@53f6e5d3073433888e1a63bbb00a8522f4c0f033` and against the
+repository's published releases on 2026-09-09.
+
+## Assessment
+
+The reproducibility problem is broader than the `cached/` directory. That
+directory is where several missing contracts have accumulated.
+
+`jheem_analyses` currently serves at least five roles: application source tree,
+environment bootstrap, data-processing workspace, artifact catalog, and runbook.
+A run is assembled dynamically from a checkout, a sibling `jheem2` checkout or an
+installed package, globally installed support packages, host-dependent paths,
+ignored and tracked serialized objects, mutable remote aliases, script constants,
+and pre-existing R-session state. Each part is understandable in isolation, but
+there is no single record of the resolved combination.
+
+The practical result is that a successful analysis may be repeatable on the
+machine where it was run without being reconstructable later or elsewhere. Git
+records much of the code, and serialized outputs preserve a substantial model
+object, but neither records the complete computation.
+
+The first move should not be a cache-folder reorganization or a wholesale rewrite.
+It should be an automatic **run record**: capture what the existing entry point
+actually used, report clearly when an identity cannot be established, and make
+that record recoverable from every material output. Existing callers should not
+need to learn a new API. Resolution into an immutable run lock and clean-workspace
+reconstruction can become stricter as the underlying inputs are made identifiable.
+
+## What “reproducible” should mean here
+
+There are several useful levels, and they should not be conflated:
+
+| Level | Question answered | Current state |
+|---|---|---|
+| Discoverable | What command and inputs are intended? | Partial; knowledge is spread across scripts and a few application-specific notes |
+| Repeatable | Can the same operator rerun it in the current workspace? | Often, when the same cache, package library, paths, and session assumptions remain available |
+| Reconstructable | Can a clean workspace resolve the same code, data, configuration, and environment? | Not generally |
+| Auditable | Can an output state exactly what produced it? | Partial for release-driven delivery workflows; absent for ordinary calibration and simset outputs |
+| Scientifically verifiable | Can a rerun be compared under an agreed numerical or statistical tolerance? | Available in a few downstream golden tests and the syphilis manager validation, not end to end |
+
+Bit-for-bit identity across operating systems is not a necessary first standard for
+stochastic, compiled numerical work. The useful initial promise is stronger than
+“it runs on my machine” and narrower than universal bitwise identity: the same
+declared inputs can be reconstructed, randomness is controlled at the supported
+boundary, and outputs can be checked against an explicit scientific tolerance.
+
+## The effective runtime contract today
+
+| Contract element | Observed behavior | Consequence |
+|---|---|---|
+| Entry point | The repository has 15 application directories, 726 R files and 197,347 lines of R. It has no root README; three application trees contain a README/readme, and 22 R scripts parse command-line arguments. | A reader cannot determine the supported command for most applications from the repository root. |
+| Source assembly | 366 R files call `source()`. The shared EHE bootstrap loads managers into globals and sources EHE-specific code; application scripts layer more source calls on top. | The loaded program depends on call order, working directory, and existing global state, not only imported interfaces. |
+| Engine identity | The committed switch selects source mode. The shared bootstrap sources the sibling `../jheem2`; the SHIELD bootstrap first pulls `jheem_analyses`, then synchronizes the sibling engine to the moving `dev` branch and can hard-reset it before sourcing. Package setup installs GitHub repositories without refs when packages are missing. | The code that executes can change at launch time. A script commit alone does not identify the engine or support-package source. |
+| R environment | No repository `DESCRIPTION`, `renv.lock`, or equivalent dependency lock declares the analysis environment. The RStudio project leaves workspace restore, workspace save, and history at their defaults. | Package versions and restored objects can vary between machines and sessions. |
+| Paths | The local workspace convention is a `jheem/` directory with sibling repositories under `code/` and scientific storage under `files/`. From the expected `code/jheem_analyses` working directory, the default storage root is `../../files`; on other machines it is inferred as `Q:`, `/Volumes/jheem$`, or `/mnt/jheem_nas_share` from path existence and a short hostname list. Many scripts bypass this root with working-directory-relative or platform-specific paths; 147 R, R Markdown, or Markdown files contain an absolute platform path. | The same source expression can resolve to different inputs or output roots, and changing the launch directory can change the meaning of a relative path. |
+| Data managers | Six manager names are cataloged in a tracked serialized metadata file. Five currently fall through to mutable OneDrive links validated by object creation/modified timestamps; syphilis is overridden by a GitHub `latest` release alias and local version sidecar. Separate `data-managers-v*` releases already preserve surveillance and census manager snapshots with published SHA-256 digests, but the runtime loader neither routes those managers to the releases nor accepts a requested release tag. | Prior manager artifacts exist, but ordinary runs cannot select or record them through the supported loading path. A friendly manager name resolves to “current enough,” not to a content-addressed input that a run can later re-resolve. |
+| Smaller derived inputs | Twenty-five serialized objects are tracked under `commoncode/object_for_version_cache/`. Lookup is by model-version label and silently falls back through registered ancestor versions. | Git versions the files, but a run does not state which fallback object it resolved. |
+| Local `cached/` | One sampled checkout contained 17 files totaling 483.6 MiB: shared managers, application-specific managers, a mobility extract, merge intermediates, analysis results, and `.bak` copies. The entire directory is ignored. | “Copy the cached folder” transfers an opaque workspace snapshot, not a declared dependency set. |
+| Tracked session/artifact state | The repository tracks 58 R serialization files totaling 65.3 MiB, including `.RDataTmp` (67.2 MB compressed; its gzip header reports about 1.46 GB uncompressed) and a saved `.Random.seed` in `first_time_setup/.RData`. | Source history contains runtime/session artifacts whose role and regeneration path are not declared. |
+| Run configuration | Calibration stages, locations, iteration counts, thinning, cache frequency, and similar choices are distributed between registries, inline constants, command arguments, and host-derived branches. The current calibration cache constructor also does not honor its public seed argument ([calibration investigation](calibration-observability.qmd#seed-propagation)). | The effective configuration must be reconstructed from code paths, and a recorded top-level seed is not yet sufficient for checkpoint-level replay. |
+| Outputs | `save.simulation.set()` names an output by model version/sub-version, calibration code, sample count, location, and intervention. The simset contains model and performance metadata, but not repository commits, package versions, data-manager identities, environment identity, or an output digest. | A filename describes scientific intent but is not a provenance receipt. |
+
+These are not independent defects. They are consequences of one missing
+abstraction: there is no resolved, immutable description of an analysis run.
+
+### Source references
+
+The repository-wide counts above were taken from tracked and working-tree files at
+the pinned `jheem_analyses` commit. The implementation claims are grounded in:
+
+- shared source, manager, and global-state assembly:
+  `jheem_analyses:source_code.R:2-90`;
+- package installation, manager routing, floating release resolution, and legacy
+  timestamp validation: `jheem_analyses:commoncode/cache_manager.R:1-124` and
+  `:213-430`;
+- host/path inference: `jheem_analyses:commoncode/file_paths.R:3-36`;
+- tracked derived-object lookup and ancestor fallback:
+  `jheem_analyses:commoncode/cache_object_for_version_functions.R:1-56`;
+- first-time package installation from unpinned GitHub repositories:
+  `jheem_analyses:first_time_setup/install_packages.R:3-34`;
+- workspace restore/save settings: `jheem_analyses:jheem_analyses.Rproj:3-5`;
+- SHIELD's Git synchronization and model bootstrap:
+  `jheem_analyses:applications/SHIELD/shield_source_code.R:19-183`;
+- the syphilis source registry and build inputs:
+  `jheem_analyses:commoncode/data_manager_sources.json:1-8` and
+  `.github/workflows/build-syphilis-manager.yml:5-144,200-274`; the stale optional
+  workflow handoff is at `.github/workflows/build-syphilis-sections.yml:110-124`;
+- versioned surveillance/census snapshot publication:
+  `jheem_analyses:scripts/upload_manager_deps.R:1-69` and the
+  `data-managers-v2026.08.26` release;
+- source-mode engine assembly:
+  `jheem2:R/tests/source_jheem2_package.R:2-93`;
+- simset naming and serialization:
+  `jheem2:R/FILE_MANAGER_file_manager.R:64-323`; and
+- performance-oriented run metadata: `jheem2:R/JHEEM_run_metadata.R:3-153`.
+
+## The current filesystem contract
+
+The common local checkout is organized as:
+
+```text
+jheem/
+|-- code/
+|   |-- jheem2/
+|   |-- jheem_analyses/
+|   |-- bayesian.simulations/
+|   `-- ...
+`-- files/
+    |-- mcmc_runs/
+    |-- mcmc_summaries/
+    `-- simulations/
+```
+
+This is partly a convention and partly an implemented API. `source_code.R` assumes
+that `jheem2` and `jheem_analyses` are sibling repositories, sources
+`commoncode/file_paths.R`, and places the selected storage root into jheem2's
+process-global root-directory setting. On a local checkout that root is
+`../../files`, relative to the expected `code/jheem_analyses` working directory.
+On a shared desktop, macOS NAS mount, or modeling server, the equivalent storage
+root is instead `Q:`, `/Volumes/jheem$`, or `/mnt/jheem_nas_share`; these roots
+contain the scientific subdirectories directly rather than a second `files/`
+level.
+
+jheem2 defines three standard locations beneath that root:
+
+- `mcmc_runs/<version>/<location>/<calibration-code>/` for calibration state;
+- `mcmc_summaries/<version>/<calibration-code>/` for assembled summaries; and
+- `simulations/<version[-subversion]>/<calibration-code>-<n>/<location>/` for
+  simsets.
+
+The convention is not comprehensive. The analysis repository's ignored
+`cached/` directory is inside the code checkout, not the scientific storage root,
+and application scripts also write to paths such as `results/`, `run_results/`,
+and application-specific directories. Consequently, “JHEEM root” currently means
+a jheem2 scientific-output root, not an unambiguous workspace, source, input, or
+archive root.
+
+Provenance should preserve a logical artifact role and stable identity separately
+from its physical location. The existing directory tree can remain a compatibility
+adapter, but a relative path or NAS mount point is not an artifact identity. A run
+record should capture both the logical reference and the resolved location used
+for that attempt.
+
+## The cache is three different things
+
+The name `cached/` currently hides distinct lifecycles:
+
+1. **Published inputs** — data managers that analyses depend on and that should
+   have stable versions, checksums, lineage, and compatibility metadata.
+2. **Local materializations** — downloaded copies that should be disposable and
+   safely reconstructable from a registry or manifest.
+3. **Working products** — merge intermediates, exploratory results, backups, and
+   other outputs whose retention policy belongs to the producing workflow.
+
+There is also a fourth cache outside that directory: small, tracked
+model-version-keyed serialized objects in `commoncode/object_for_version_cache/`.
+Those behave more like versioned application inputs than disposable caches.
+
+Renaming these directories would improve legibility but would not make a run
+reproducible. The same ambiguity would persist under better names until acquisition,
+identity, ownership, and output rules are explicit.
+
+## Existing foundations
+
+The ecosystem already contains most of the patterns needed:
+
+- Git can identify application and package source exactly.
+- Versioned `data-managers-v*` releases already provide rollback material for
+  surveillance and census managers. Nine dated snapshots were published between
+  2026-03-10 and 2026-08-26; the
+  [`data-managers-v2026.08.26`](https://github.com/tfojo1/jheem_analyses/releases/tag/data-managers-v2026.08.26)
+  release contains a 44.4 MB surveillance manager and 108 MB census manager with
+  published SHA-256 digests. These are currently uploaded snapshots used as build
+  dependencies, not manager builds protected by active-model compatibility
+  checks, and the ordinary runtime loader does not expose them as selectable
+  versions.
+- The syphilis-manager workflow declares major inputs, builds in CI, performs
+  structural validation, and publishes a versioned release. It is the closest
+  upstream exemplar. Its current defaults are still floating aliases
+  (`*-latest`, `jheem2_ref=dev`), and its release notes record the requested
+  `jheem2` ref rather than the resolved engine commit. The optional handoff from
+  the section-build workflow also still dispatches the filename of a workflow now
+  stored under `.github/workflows-archived/`, so that path needs repair and an
+  end-to-end verification before it is treated as automatic.
+- The delivery platform pins package refs and promotes tested container digests.
+- The calibration cache already has an identity and checkpoint structure, and the
+  proposed observability sidecar can share a run identity rather than invent a
+  second identity system.
+- Simset filenames already capture a useful subset of the scientific
+  configuration.
+
+This is therefore a consolidation problem, not a greenfield platform project.
+
+## Manager compatibility and rollback
+
+A manager can be internally consistent while being incompatible with a model that
+consumes it. Changing an outcome's dimensions, source labels, ontology, location
+coverage, or available years can leave the manager structurally valid but break a
+specification, likelihood, or functional form. Manager validation and
+model-manager compatibility are therefore separate gates.
+
+The immediate rollback contract should allow an operator or run configuration to
+select a dated manager release and asset. A convenient alias may identify the
+currently approved manager, but it must resolve to a dated tag and digest before
+execution and that resolved identity must enter the run record. Failure of a new
+candidate should not silently substitute an older manager: either the approved
+alias remains on the prior version or the operator explicitly selects a known
+version.
+
+The corresponding promotion path is:
+
+1. publish an immutable candidate manager with its digest;
+2. run manager-internal structural validation;
+3. run compatibility checks for the supported active models against pinned code
+   revisions;
+4. publish a readable compatibility result; and
+5. move the approved alias only when the required checks pass.
+
+The first model check can be deliberately narrow: load one candidate surveillance
+manager, build the SHIELD specification and likelihoods, and evaluate a small
+calibration path for a representative location in a temporary output root. As
+failures are found, add faster assertions for required outcomes, dimensions,
+sources, ontologies, locations, and year coverage ahead of the end-to-end smoke.
+This gates promotion of a manager artifact, not ordinary source commits or the
+creation of candidates.
+
+## Proposed target contract
+
+Every supported run should begin from a small declarative request and produce a
+resolved lock plus a receipt. Existing public entry points such as
+`set.up.calibration()`, `run.calibration()`, intervention runners, and
+`save.simulation.set()` should call the provenance layer internally. The exact
+syntax and package ownership are implementation choices; automatic capture with
+no new caller ceremony is part of the contract.
+
+### Before execution: resolve and preflight
+
+A resolver should turn a request such as an application, operation, location, and
+calibration stage into immutable identities:
+
+- `jheem_analyses`, `jheem2`, `bayesian.simulations`, `distributions`, and
+  `locations` commits or release versions;
+- R version plus an environment lock or container digest;
+- every data-manager and auxiliary-input release, asset name, and SHA-256 digest;
+- the complete run configuration, including calibration settings and the seed
+  contract supported by that software version;
+- the output root and a unique run ID.
+
+Preflight should report missing or incompatible inputs without installing packages,
+pulling branches, resetting checkouts, or starting an expensive model run. A
+separate, explicit materialization command may download verified assets into a
+local cache.
+
+### During and after execution: run history and receipt
+
+The resolved lock should be written when the run is created and remain immutable.
+Each attempt or chain should write append-only status events that refer to its run
+ID. Completion should add an output receipt with artifact paths, sizes and
+digests, terminal status, timestamps, and the verification performed. This gives
+an operator a readable answer to “what ran, where did it finish, and can its
+inputs be identified?”; JSON is the machine-readable implementation, not the
+user-facing milestone.
+
+The provenance record should be a small sidecar, not another field embedded only
+inside an R6 serialization. It must remain readable without loading the exact
+package version that created the science object.
+
+### Artifact-led discovery
+
+The forensic starting point will often be an output rather than a run directory.
+Given a new simset or other promoted artifact, it should be possible to recover
+the run record without knowing which server or directory produced it. Three links
+serve different failure modes:
+
+1. the science object carries a minimal run ID, schema version, and immutable
+   pre-run lock hash;
+2. a readable provenance sidecar is written adjacent to the artifact; and
+3. the durable archive maps the artifact's SHA-256 digest back to its run ID.
+
+The full receipt should not exist only inside a version-sensitive R serialization.
+Conversely, embedding the entire environment record in every large artifact would
+create unnecessary duplication and make later schema evolution harder. Legacy
+artifacts should be handled by a forensic inspector that reports recoverable facts
+and marks the rest as unknown rather than manufacturing certainty.
+
+### Capture and archive
+
+Capture must not depend on a mounted NAS or a live network connection. Each
+process should first write atomically to a machine-local spool and, when an
+artifact is produced, write its adjacent receipt. An asynchronous archiver then
+copies immutable records to a configured durable sink. The record's archive state
+should be explicit (`pending`, `archived`, or `failed`), with idempotent retry on a
+later run or by a lightweight background task.
+
+The storage backend remains an open implementation choice:
+
+| Candidate | Appropriate role | Constraint |
+|---|---|---|
+| Backed-up NAS directory | Initial shared archive when mounted | A mount is not guaranteed, and NAS placement is not durability until backup, snapshot, retention, and restore behavior are verified |
+| Dedicated Git repository | Potentially near-zero incremental-cost archive and human-readable history for small finalized receipts | Concurrent run processes should not push directly. A single archiver or bot should batch immutable per-run files; binaries and frequently changing status do not belong in the repository |
+| Versioned object storage | Natural long-term store for immutable records and digest-keyed lookup | Requires an approved account, credentials, retention configuration, and an acceptable ongoing cost |
+
+Git is therefore a credible first archive backend at the expected metadata scale,
+but it should implement a generic archive interface rather than define the run
+contract. The schema and capture code must work unchanged if the archive later
+moves to object storage. Per-run records should use distinct paths; shared indexes
+should be generated by one writer rather than updated by every worker.
+
+The science process should not fail merely because archival is temporarily
+unavailable. Enforcement can tighten by lifecycle: exploratory runs may complete
+with a visible pending archive; expensive routine runs should emit a prominent
+warning; an artifact must have a complete, archived receipt before it is promoted
+or published.
+
+### Storage roles
+
+The resulting layout can distinguish four roles without requiring an immediate
+physical migration:
+
+| Role | Contract |
+|---|---|
+| Source data | Immutable release or controlled snapshot with identity, checksum, and access rules |
+| Built scientific input | Versioned data-manager or auxiliary artifact with lineage and compatibility metadata |
+| Local cache | Disposable materialization keyed by artifact identity and verified on use |
+| Run workspace/output | Unique run directory containing resolved lock, status/logs, checkpoints, outputs, and receipt |
+
+An adapter can initially map the existing `cached/<friendly-name>` files into
+these roles. That makes current work visible without pretending that every legacy
+file already has provenance.
+
+## Recommended sequence
+
+### Immediate model-manager compatibility slice
+
+Before building the general provenance layer, use the current compatibility need
+to establish its first real input contract:
+
+1. reproduce the active-model failure against the candidate manager and verify a
+   dated prior release as a rollback candidate;
+2. extend the loader to select a dated release and verify its asset digest without
+   requiring manual file replacement;
+3. add the narrow SHIELD compatibility smoke in a temporary root; and
+4. require that smoke before moving the approved manager alias.
+
+This slice provides an immediate recovery path and produces the first concrete
+manager identity and compatibility result for the run record. Full build
+automation for surveillance and census managers can follow; it is not a
+prerequisite for making the existing snapshots selectable and testable.
+
+### 1. Define the minimal record and build a read-only collector
+
+For one active path, report the current analyses and sibling-package commits,
+dirty state, R and package versions, resolved roots, required manager names, local
+versions or timestamps, and whether each identity is exact, floating, or unknown.
+It should make no network, Git, package-library, or cache changes.
+
+The SHIELD calibration path is a strong first candidate because it exercises the
+current shared-server workflow, syphilis's release path, legacy census-manager
+resolution, source-mode loading, and the calibration work already under
+investigation. The doctor can first observe the current launcher without changing
+its scientific behavior. This bounded choice would not select SHIELD as the
+ecosystem's eventual reference application.
+
+### 2. Add an automatic run receipt to a shadow calibration
+
+Have calibration setup create a format-versioned run ID and initial record;
+`run.calibration()` should record attempts and terminal state; and assembly or
+`save.simulation.set()` should write the artifact receipt. Preserve the existing
+caller API. Initially, unresolved inputs should be recorded as `unknown` with a
+reason; that is more honest and more useful than blocking all legacy work. New
+runs should progressively require exact identities.
+
+The first visible deliverable should be a concise run summary, not a raw manifest:
+what was requested, which location and calibration ran, when and where it ran,
+whether it completed, which artifact it produced, and which dependencies are
+exact, floating, or unknown. Focused regression checks should prove that capture
+does not consume randomness or change calibration results, cache resumption, or
+simset serialization beyond the deliberately added reference.
+
+### 3. Separate resolution from mutation
+
+Move `git pull`, branch switching/resetting, package installation, and artifact
+download out of model sourcing. Bootstrap should validate a prepared workspace;
+an explicit setup command should make changes. This makes “load the model” a
+deterministic operation and prevents long runs from silently selecting newer code.
+
+### 4. Make the environment reconstructable
+
+Lock the environment used by the selected path. An `renv` lock may be appropriate
+for interactive and server R workflows; an image digest may be better for batch
+execution. The choice should follow a small feasibility test because source-mode
+C++ compilation makes the compiler and system libraries part of the environment.
+A repo-wide lock should not be imposed until it is clear that all 15 applications
+can share one dependency set.
+
+### 5. Graduate managers into an artifact registry
+
+Extend the syphilis release pattern to record resolved source commits, immutable
+input tags, checksums, and compatibility. Then graduate census and surveillance
+managers. A friendly `latest` alias can remain for convenience, but the resolver
+must translate it to an immutable release and digest before a run starts.
+
+### 6. Attach receipts to material outputs
+
+Teach the supported save/publish path to write a provenance sidecar and validate
+that it agrees with the resolved lock. Embed only the stable run reference and
+pre-run lock hash in the science object, then record and index the completed
+output's digest in the receipt and archive. This ordering avoids a circular hash
+dependency between an artifact and the receipt that identifies it. Begin with
+calibration/simset output for the reference path, then carry the same run identity
+through extraction and release.
+
+### 7. Expand by demonstrated workflows
+
+Add one supported command and one reconstruction check at a time. Each migrated
+application supplies evidence about which pieces are genuinely common. Only then
+should shared scaffolding replace copied scripts broadly.
+
+Before broad rollout, exercise the failure modes directly: run while the NAS and
+network are unavailable and archive later; interrupt a chain between checkpoints;
+copy a simset without its sidecar and recover the record by embedded run ID or
+artifact digest; compare two runs that differ in one declared input; and inspect a
+receipt on a machine without JHEEM loaded.
+
+## What not to do first
+
+- Do not make a cleaner `cached/` tree the deliverable. It would rearrange unknowns.
+- Do not require every historical artifact to acquire retroactive provenance.
+  Mark legacy identity as unknown and establish the rule for new artifacts.
+- Do not begin with a universal launcher for all 15 applications. Establish the
+  contract on one real workflow first.
+- Do not equate an `renv.lock` with end-to-end reproducibility. It does not identify
+  data, source-mode sibling checkouts, run configuration, randomness, or outputs.
+- Do not make ordinary model sourcing update Git or install software.
+- Do not have every chain commit and push operational state to a shared Git
+  branch. Local capture and archival are separate responsibilities, and a Git
+  backend needs a serialized writer.
+
+## Open questions
+
+- Which first outcome must be reconstructable: a data manager, calibration,
+  simset, manuscript result, or published portal artifact?
+- Which SHIELD or EHE run is suitable for a read-only preflight and shadow
+  receipt on the shared servers?
+- What is the accepted equivalence criterion for a reconstructed stochastic run:
+  identical parameters, deterministic replay from checkpoints, or agreement of
+  specified distributions/outcomes within tolerance?
+- Can all required scientific inputs be stored as release assets, or do some need
+  an access-controlled artifact registry with the same identity/checksum contract?
+- Which package and system dependencies differ across active applications enough
+  to require per-application environments?
+- Which current outputs are durable scientific artifacts, and which are disposable
+  intermediates or personal exploratory products?
+- What durable sink can every modeling server reach, at acceptable cost, and what
+  service identity should archive on behalf of runs? If the first sink is Git,
+  where will the single writer run and how will pending local spools be discovered?
+- Is the NAS independently backed up and routinely restorable, and what retention
+  applies to calibration state, simsets, and provenance records?
+- Which entry point should retry pending archives on machines without an always-on
+  archiver?
+- Should the tracked `.RDataTmp`, `.RData`, and saved setup workspace be removed
+  after their contents and any historical value are reviewed?
+
+## Durable home and exit condition
+
+This page remains the cross-repository investigation record while the contract is
+evaluated. If adopted, the collector, archive adapter, supported commands,
+application requirements, and environment setup belong in `jheem_analyses` or a
+small owning package; package-specific compatibility metadata belongs with the
+owning packages; and artifact receipts travel with their releases and outputs.
+The wiki retains the cross-repository contract and decision rationale.
+
+The investigation graduates when one production-representative path can be
+prepared from declared inputs in a clean workspace, emits a provenance receipt,
+and is documented in its owning repositories. It should be retired if the team
+selects a different reproducibility boundary.

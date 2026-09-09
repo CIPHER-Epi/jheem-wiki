@@ -1,6 +1,7 @@
 ---
 title: "Spec Framework Notes"
 date: 2026-08-19
+date-modified: 2026-09-09
 ---
 
 ::: {.callout-note}
@@ -355,6 +356,25 @@ A number of otherwise-puzzling behaviors:
 ## Framework quirks observed during use
 
 These aren't spec-design questions — they're observations about jheem2 runtime behavior that are useful to know when working with the framework. Recorded here so future Tech2Check or Pattern-C-like work has the heads-up.
+
+### Calibration dependency declarations are order-sensitive
+
+**Verified 2026-09-09 at `jheem2@90b68ad` and
+`jheem_analyses@53f6e5d3`.** `register.calibration.info()` accepts
+`preceding.calibration.codes`, but immediately looks each code up in the global
+calibration registry and rejects any predecessor that has not already been
+registered (`CALIBRATION_main.R:1666-1673`). Calibration files are ordinary R
+scripts whose registration calls execute sequentially, so a valid dependency
+declared later in the same file is treated as missing. The physical order of
+declarations must therefore match the dependency order today.
+
+Setup performs another predecessor lookup when it actually traverses the chain
+(`CALIBRATION_main.R:258-263`). A proposed order-independent design is to store
+symbolic predecessor names during registration, then validate the complete
+registry after the file is loaded or immediately before setup. That validation
+should report missing references, duplicate codes, and dependency cycles. This is
+a proposal, not current behavior; it would preserve the existing registration API
+without attempting to reorder other side effects in an R source file.
 
 ### Intervention API works on Pattern C specs (compartment extension)
 
