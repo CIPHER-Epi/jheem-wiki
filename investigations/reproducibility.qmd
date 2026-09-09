@@ -235,7 +235,7 @@ loads `syphilis.manager.rdata`, not `surveillance.manager.rdata`, into that glob
 The model's MSM initialization then makes two `proportion.msm` requests that
 include `sex = "male"`: an Emory county request and a BRFSS state/race request.
 
-The approved `syphilis-manager-latest` artifact resolves to
+At the time the failure was reported, `syphilis-manager-latest` resolved to
 [`syphilis-manager-v2026.08.26`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.08.26),
 SHA-256
 `45446020e779f67ad58a0238ba8c505973dd9c8258d25caf84dd863033e2ace9`.
@@ -254,20 +254,39 @@ SHA-256
 returns the expected seven-county array. That earlier artifact's structural
 report records 687 checks passed and no failures.
 
-A temporary code-only adjustment that removes `sex` from both MSM manager
-requests completed the full `get.best.guess.msm.proportions()` calculation for
-all ten routine SHIELD MSAs against the current artifact. A second prototype
-prefers that totals-level query but falls back to the earlier `sex = "male"`
-shape; it completed the same calculation against both the August 26 and July 27
-artifacts. The census population request for 2010 also succeeded against the
-published August 26 census manager.
+Later on September 9,
+[`jheem_analyses@cdd7ed7`](https://github.com/tfojo1/jheem_analyses/commit/cdd7ed7c84c045bba7ce9ffe9c5152e0debef8d9)
+deliberately removed `sex` from the remaining national BRFSS
+`proportion.msm` records and manager writes. The construction still calculates
+MSM numerators over male-only denominators; totals-level describes the stored
+dimensions, not an all-sex denominator. The resulting
+[`syphilis-manager-v2026.09.09`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.09.09),
+SHA-256
+`c3e3c983d6b4e9c961f735f9c59d45483bd63cfa715cf75c1fae874da2d129e6`,
+was promoted to `syphilis-manager-latest`. Its attached report records 698
+structural checks passed, 3 failed, and 3 warnings; the failures are the three
+removed BRFSS sex-stratified shapes. The structural baseline was force-updated
+after the report was generated.
+
+The September artifact returns `NULL` for both existing SHIELD MSM requests and
+returns the expected Emory and BRFSS arrays when `sex` is omitted. A code-only
+adjustment that removes `sex` completed `get.best.guess.msm.proportions()` for all
+ten routine SHIELD MSAs. A second prototype prefers that totals-level query but
+falls back to the earlier `sex = "male"` shape; it completed the same calculation
+against the July, August, and September artifacts. The census population request
+for 2010 also succeeded against the published August 26 census manager.
+
 The reported 2010 issue is therefore not an independently reproduced missing-data
 failure in this code path: `DEFAULT.POPULATION.YEARS` selects the census year,
 while the two `proportion.msm` requests average their available years. This probe
-supports the totals-level adjustment as an application-compatibility candidate.
-It does not establish scientific equivalence: the resulting MSM estimates differ
-from the July artifact and need domain review as intended data changes, not
-automatic regression acceptance.
+establishes the totals-level shape as the intended current manager contract. It
+does not establish numerical scientific equivalence: the derived SHIELD MSM
+proportions are identical between the August and September artifacts for all ten
+MSAs but differ materially from July. For Baltimore, the three race-level values
+change from approximately `0.0493`, `0.0431`, and `0.0518` in July to `0.0331`,
+`0.0316`, and `0.0366` in August and September. Those value changes remain a
+domain-review question rather than an automatic consequence of accepting the new
+storage dimensions.
 
 The full compatibility path was then exercised locally with `jheem2@90b68ad`
 installed as package version `1.12.3.9000`. For each manager version, a clean
@@ -275,9 +294,10 @@ runtime initializer loaded explicit manager artifacts into a temporary output
 root; a Baltimore engine compiled, one deterministic median-parameter simulation
 completed, and the stage-0 and stage-1 likelihood sets instantiated and returned
 6 and 12 finite values respectively. This establishes executable compatibility
-of both releases with the prototype adapter. It does not select the adapter as
-the application fix, certify changed estimates, or replace calibration-scale
-validation.
+of the July, August, and September releases with the prototype adapter. The exact
+September artifact also passed the ten-MSA contract and full Baltimore smoke. This
+does not select backward compatibility policy, certify changed estimates, or
+replace calibration-scale validation.
 
 The immediate rollback contract should allow an operator or run configuration to
 select a dated manager release and asset. A convenient alias may identify the
@@ -309,7 +329,8 @@ candidate, but it must not by itself make that candidate eligible for promotion.
 
 ### Implementation status (2026-09-09)
 
-An unmerged `jheem_analyses` proposal separates the work into two commits.
+An unmerged `jheem_analyses` proposal, now based four upstream commits behind
+`master`, separates the work into two commits.
 Commit
 [`2bac62bc`](https://github.com/tfojo1/jheem_analyses/commit/2bac62bcfcdeda516c92a45f1bf249c6a75d5505),
 published on the `codex/shield-manager-compatibility-gates` review branch,
@@ -323,14 +344,14 @@ SHIELD checks pass. With unchanged application behavior, that commit rejects the
 August 26 artifact in all ten MSAs and accepts July 27; July also passes the full
 Baltimore smoke.
 
-The review branch has not been merged or exercised in GitHub Actions, and no
-release alias has moved. A second, local-only commit (`42d5f1f5`) layers the
-dual-shape SHIELD adapter described above on top. It was deliberately not
-published: because it changes application behavior and the affected data update
-is being investigated by the model and data maintainers, it is a separate review
-candidate rather than an adopted fix. The published first commit can be reviewed
-independently to certify July 27 as the immediate rollback candidate. Exact
-per-run manager selection remains separate follow-up work.
+The review branch has not been merged or exercised in GitHub Actions. A second,
+local-only commit (`42d5f1f5`) layers the dual-shape SHIELD adapter described
+above on top. It was deliberately not published while the data and model changes
+were being coordinated. Upstream now establishes the totals-level current
+contract, but whether current SHIELD should also load July-era managers remains a
+separate compatibility-policy choice. Exact per-run manager selection has not yet
+been implemented; it is the next default-preserving slice in the shared manager
+loader.
 
 ## Proposed target contract
 
