@@ -1,6 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
+date-modified: 2026-09-17
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -8,6 +9,23 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-019 · SHIELD calibration is the first reproducibility reference workflow — **Working decision**
+
+*2026-09-17.* Reproducing an earlier successful calibration is now an explicit
+publication need, and a recent SHIELD stage-3 failure exposed three coupled gaps:
+the launcher obscured the underlying error, the sampler's explicit seed contract
+is incomplete, and the effective source, manager, environment, and output
+identities are not captured by the ordinary path. The first reproducibility slice
+therefore follows SHIELD calibration through truthful failure reporting, verified
+seed and checkpoint semantics, a same-image cross-server experiment, automatic
+provenance, and durable receipt recovery. A container is evaluated as one way to
+hold the execution environment constant; it is not itself the definition or proof
+of reproducibility. Engineering work may characterize likelihood edge cases and
+reject non-finite results, but it does not select new scientific formula behavior
+without domain approval. This is a working implementation boundary, not adoption
+of the broader modernization program, and it will be revised from the server
+experiment rather than generalized to every application in advance.
 
 ## D-018 · Evidence-backed investigations may temporarily live in the wiki — refines D-006
 

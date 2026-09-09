@@ -1,23 +1,31 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-09-09
+date-modified: 2026-09-17
 ---
 
-**Status:** Evidence-backed investigation; target contract and first slice proposed.
-The current SHIELD/manager incompatibility has been reproduced, but the mitigation
-and promotion gate are not yet implemented.
+**Status:** Evidence-backed investigation. SHIELD calibration is the first
+reference workflow for evaluating reproducibility. Exact per-run syphilis-manager
+selection is available on `master`; provenance, immutable runtime setup, and a
+container canary exist on review branches but have not entered the team's ordinary
+calibration path. A production-representative replay is blocked first on defining
+and verifying the sampler's seed and resume contract.
 
-**Verified against:** `jheem_analyses@9cb781991dbf1e337a12110456b31516b600f8b1`,
+**Verified against:** `jheem_analyses@c97c8af33447758a1c5c50416812d516092be867`
+and its `codex/shield-source-readiness` review branch at
+`accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
 `jheem2@90b68ad500c12bdfe8f9dc6616e9a846fb4ae3d1`,
 `bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75`,
 `distributions@4d71d9644b4439a59210e804520ac8717ae8f079`, and
-`locations@5af29ec2a2de3d5bb90a133de1353a53d1067e5f`. The ignored
+`locations@5af29ec2a2de3d5bb90a133de1353a53d1067e5f`, plus the SHIELD
+container proposal at
+`jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31`. The ignored
 working cache in one clean `jheem_analyses` checkout was inventoried read-only on
 2026-09-02 as a sample of current local state, not as a canonical manifest.
 Manager-distribution behavior was additionally reverified at
 `jheem_analyses@53f6e5d3073433888e1a63bbb00a8522f4c0f033` and against the
-repository's published releases on 2026-09-09.
+repository's published releases on 2026-09-09. The current calibration, staging,
+sampler, and container claims were reverified from source on 2026-09-17.
 
 ## Assessment
 
@@ -71,12 +79,12 @@ boundary, and outputs can be checked against an explicit scientific tolerance.
 | Engine identity | The committed switch selects source mode. The shared bootstrap sources the sibling `../jheem2`; the SHIELD bootstrap first pulls `jheem_analyses`, then synchronizes the sibling engine to the moving `dev` branch and can hard-reset it before sourcing. Package setup installs GitHub repositories without refs when packages are missing. | The code that executes can change at launch time. A script commit alone does not identify the engine or support-package source. |
 | R environment | No repository `DESCRIPTION`, `renv.lock`, or equivalent dependency lock declares the analysis environment. The RStudio project leaves workspace restore, workspace save, and history at their defaults. | Package versions and restored objects can vary between machines and sessions. |
 | Paths | The local workspace convention is a `jheem/` directory with sibling repositories under `code/` and scientific storage under `files/`. From the expected `code/jheem_analyses` working directory, the default storage root is `../../files`; on other machines it is inferred as `Q:`, `/Volumes/jheem$`, or `/mnt/jheem_nas_share` from path existence and a short hostname list. Many scripts bypass this root with working-directory-relative or platform-specific paths; 147 R, R Markdown, or Markdown files contain an absolute platform path. | The same source expression can resolve to different inputs or output roots, and changing the launch directory can change the meaning of a relative path. |
-| Data managers | Six manager names are cataloged in a tracked serialized metadata file. Five currently fall through to mutable OneDrive links validated by object creation/modified timestamps. Syphilis follows a GitHub `latest` release alias by default, but now also accepts an explicit release tag: the loader resolves the release asset and published SHA-256 digest, stores it separately by version, verifies it before loading, and exposes the resolution on the loaded manager. Separate `data-managers-v*` releases already preserve surveillance and census manager snapshots with published SHA-256 digests, but the runtime loader does not yet route those other managers to the releases. | Syphilis runs can now select and identify a known manager without changing the team default. Other manager inputs still resolve as “current enough,” and the resolved syphilis identity is not yet captured automatically in a durable run receipt. |
+| Data managers | Six manager names are cataloged in a tracked serialized metadata file. Five currently fall through to mutable OneDrive links validated by object creation/modified timestamps. Syphilis follows a GitHub `latest` release alias by default, but now also accepts an explicit release tag: the loader resolves the release asset and published SHA-256 digest, stores it separately by version, verifies it before loading, and exposes the resolution on the loaded manager. Separate `data-managers-v*` releases already preserve surveillance and census manager snapshots with published SHA-256 digests, but the runtime loader does not yet route those other managers to the releases. | Syphilis runs can select and identify a known manager without changing the team default. A staged provenance path captures that resolved identity; ordinary runs do not yet persist it in a durable receipt. Other manager inputs still resolve as “current enough.” |
 | Smaller derived inputs | Twenty-five serialized objects are tracked under `commoncode/object_for_version_cache/`. Lookup is by model-version label and silently falls back through registered ancestor versions. | Git versions the files, but a run does not state which fallback object it resolved. |
 | Local `cached/` | One sampled checkout contained 17 files totaling 483.6 MiB: shared managers, application-specific managers, a mobility extract, merge intermediates, analysis results, and `.bak` copies. The entire directory is ignored. | “Copy the cached folder” transfers an opaque workspace snapshot, not a declared dependency set. |
 | Tracked session/artifact state | The repository tracks 58 R serialization files totaling 65.3 MiB, including `.RDataTmp` (67.2 MB compressed; its gzip header reports about 1.46 GB uncompressed) and a saved `.Random.seed` in `first_time_setup/.RData`. | Source history contains runtime/session artifacts whose role and regeneration path are not declared. |
-| Run configuration | Calibration stages, locations, iteration counts, thinning, cache frequency, and similar choices are distributed between registries, inline constants, command arguments, and host-derived branches. The current calibration cache constructor also does not honor its public seed argument ([calibration investigation](calibration-observability.qmd#seed-propagation)). | The effective configuration must be reconstructed from code paths, and a recorded top-level seed is not yet sufficient for checkpoint-level replay. |
-| Outputs | `save.simulation.set()` names an output by model version/sub-version, calibration code, sample count, location, and intervention. The simset contains model and performance metadata, but not repository commits, package versions, data-manager identities, environment identity, or an output digest. | A filename describes scientific intent but is not a provenance receipt. |
+| Run configuration | Calibration stages, locations, iteration counts, thinning, cache frequency, and similar choices are distributed between registries, inline constants, command arguments, and host-derived branches. `bayesian.simulations@4e0d13e` accepts a public cache seed but does not forward it to the internal constructor; the downstream seed parameter is also not used when chunk seeds are generated. | The effective configuration must be reconstructed from code paths. A recorded top-level seed is not yet an implemented replay contract, and the current public cache setup path is internally inconsistent. |
+| Outputs | `save.simulation.set()` names an output by model version/sub-version, calibration code, sample count, location, and intervention. The simset contains model and performance metadata, but not repository commits, package versions, data-manager identities, environment identity, or an output digest. A review branch adds readable and JSON sidecars and indexes the artifact digest in a local spool; the serialized simset itself is unchanged. | Ordinary SHIELD runs do not yet produce these receipts. The staged sidecar establishes a candidate contract, but it still needs reconciliation with current `master`, a server trial, and durable archival. Other save paths and legacy outputs remain unidentified. |
 
 These are not independent defects. They are consequences of one missing
 abstraction: there is no resolved, immutable description of an analysis run.
@@ -118,6 +126,66 @@ the pinned `jheem_analyses` commit. The implementation claims are grounded in:
 - simset naming and serialization:
   `jheem2:R/FILE_MANAGER_file_manager.R:64-323`; and
 - performance-oriented run metadata: `jheem2:R/JHEEM_run_metadata.R:3-153`.
+
+## SHIELD reference-workflow checkpoint (2026-09-17)
+
+A failed SHIELD stage-3 calibration was initially presented as a shared-storage
+interruption because the launcher caught any `run.calibration()` error, replaced
+its message with a write-interruption explanation, and retried. Direct checks of
+the output roots and lower-level file operations did not reproduce a storage
+failure. The same calibration then failed against a local output root, and the
+failure was traced to a likelihood term with a zero denominator. This incident
+joins three reproducibility questions that were previously being treated
+separately: whether the real error remains observable, whether the scientific
+inputs and environment can be reconstructed, and whether an interrupted
+calibration follows the same stochastic path when resumed.
+
+Current `jheem_analyses` `master` changes the future-growth ratio denominator from
+`start` to `start + 1` in
+[`55bd55c6`](https://github.com/tfojo1/jheem_analyses/commit/55bd55c6975c09063c8c62828bf52f6a9da31eb3).
+That makes the immediate division finite but also defines scientific behavior for
+zero and small baselines. Engineering work may reproduce the edge cases, preserve
+the original error, and add characterization or non-finite-likelihood checks. A
+different formula, pseudocount, exclusion rule, or expected value should not be
+selected through an infrastructure change; the intended behavior needs explicit
+scientific review before it becomes a regression assertion.
+
+The sampler currently lacks a coherent explicit-seed contract. At
+[`bayesian.simulations@4e0d13e`](https://github.com/tfojo1/bayesian.simulations/commit/4e0d13e85857396bb0e6e2ac1d244775b2145f75):
+
+- `create.mcmc.cache(seed = ...)` validates `seed` but does not pass it to
+  `do.create.cache()`, whose signature requires it;
+- `do.create.chain.cache.controls(..., seed)` accepts the value but generates
+  per-chunk seeds with `runif()` from ambient R state rather than from that
+  argument; and
+- `jheem2::set.up.calibration()` exposes no seed argument, so current application
+  setup relies on prior global RNG state.
+
+Per-chunk seed storage was introduced in
+[`b170ce7`](https://github.com/tfojo1/bayesian.simulations/commit/b170ce7e5c265fa7540a2847a8bc894fa797dd2c),
+after the `34840866` revision currently installed by the container base lock.
+Consequently, the existing container canary proves that a partial cache can be
+continued to its remaining chunk; it does not prove that an explicit seed controls
+the schedule, that interrupted and uninterrupted traces are equal, or that the
+same request is reproducible across the team's servers.
+
+Two review branches establish useful but incomplete evidence:
+
+- [`jheem_analyses@accd7b64`](https://github.com/tfojo1/jheem_analyses/commit/accd7b64dd0ab1f38f5ccad993a643c3c7544de2)
+  stages automatic provenance, immutable source declarations, read-only manager
+  caches, truthful failure/resume behavior, and a bounded SHIELD canary. It split
+  from `master` at `ea111ea3` and must be reconciled with later application work,
+  including the likelihood change, before it can be proposed for ordinary use.
+- [`jheem-containers@262c733`](https://github.com/ncsizemore/jheem-containers/commit/262c733d5c71ec4aa480dde4131880002105dc31)
+  builds a pinned SHIELD image and has completed a real-engine preflight plus a
+  forced-interruption/resume canary in CI. The image still pins the older sampler,
+  the canary is a tiny stage-0 path rather than the failing stage-3 path, and no
+  uninterrupted-versus-resumed or cross-server equality comparison is made.
+
+These are validation assets, not yet evidence that SHIELD calibration is
+reproducible. The next proof should begin with the sampler boundary: a small,
+executable demonstration of the current seed behavior, followed by a focused fix
+and tests before the SHIELD branches are reconciled.
 
 ## The current filesystem contract
 
@@ -435,6 +503,14 @@ create unnecessary duplication and make later schema evolution harder. Legacy
 artifacts should be handled by a forensic inspector that reports recoverable facts
 and marks the rest as unknown rather than manufacturing certainty.
 
+The staged SHIELD slice implements links 2 and 3 without changing simset
+serialization. Its adjacent sidecar contains the context and completed receipt;
+the local spool indexes one or more originating run records under the artifact
+digest. Link 1 remains open. `load.simulation.set()` reconstructs a copy of the
+serialized R6 object, so an arbitrary object attribute would not by itself be a
+reliable embedded reference; any in-object run ID needs an explicit, supported
+field and compatibility policy in `jheem2`.
+
 ### Capture and archive
 
 Capture must not depend on a mounted NAS or a live network connection. Each
@@ -482,6 +558,40 @@ file already has provenance.
 
 ## Recommended sequence
 
+### Current SHIELD reproducibility slice
+
+Work should proceed in dependency order and produce a small, reviewable artifact
+at each boundary:
+
+1. **Make failures truthful without selecting science.** Preserve the original
+   calibration condition and add a diagnostic probe covering ordinary, zero, and
+   near-zero likelihood inputs. Do not alter likelihood formulas or encode the
+   `start + 1` policy as expected behavior until the scientific owners confirm it.
+2. **Establish the sampler seed contract.** Publish a short explanation and an
+   executable reproducer showing whether the same explicit setup seed yields the
+   same starting state and chunk-seed schedule. Correct the forwarding and local
+   RNG behavior in `bayesian.simulations`, with focused same-seed, different-seed,
+   uninterrupted/resumed, and changed-process-RNG tests.
+3. **Reconcile the SHIELD readiness branch.** Rebase or reconstruct its bounded
+   runtime, provenance, and canary commits on current `jheem_analyses` `master`.
+   Likelihood behavior changes remain outside this infrastructure slice.
+4. **Run the deterministic comparison.** Under one recorded Linux image digest,
+   compare a fresh uninterrupted run with an interrupted/resumed run, then repeat
+   one seed on each server. Compare the stored seed schedule, starting parameters,
+   initial likelihood, sample and likelihood traces, accept/reject decisions, and
+   final chain state; exclude timestamps and runtime measurements.
+5. **Pilot the supported path.** Run a bounded production-representative SHIELD
+   calibration against explicit managers and roots, inspect the human-readable
+   run summary, and verify that the artifact can lead back to its receipt.
+6. **Add durable archival.** Retain local-first capture and add one serialized,
+   retryable writer to the selected near-zero-cost shared sink. Promotion or
+   publication can eventually require an archived receipt; exploratory science
+   should not fail because the archive is temporarily unavailable.
+
+Calibration monitoring follows this slice. It uses the same checkpoint and seed
+boundary, so implementing stop decisions first would make both systems harder to
+reason about.
+
 ### Immediate model-manager compatibility slice
 
 Before building the general provenance layer, use the current compatibility need
@@ -527,7 +637,37 @@ what was requested, which location and calibration ran, when and where it ran,
 whether it completed, which artifact it produced, and which dependencies are
 exact, floating, or unknown. Focused regression checks should prove that capture
 does not consume randomness or change calibration results, cache resumption, or
-simset serialization beyond the deliberately added reference.
+simset serialization.
+
+**Staged baseline (2026-09-17).**
+[`jheem_analyses@da62c1ca`](https://github.com/tfojo1/jheem_analyses/commit/da62c1cab338fc63534641bd4831d04485ba4a5a)
+adds a read-only context collector, calibration run IDs, immutable setup records,
+per-process append-only attempt events, completed artifact receipts, readable
+summaries, adjacent simset sidecars, and digest-led lookup from a machine-local
+spool. It records the actual calibration cache configuration, per-chain starting
+parameters, and any chunk seeds exposed by the installed `bayesian.simulations`
+version. Identity is classified as exact, modified, version-only, floating, or
+unknown; repository URL userinfo is removed before persistence.
+
+[`jheem_analyses@acc8e416`](https://github.com/tfojo1/jheem_analyses/commit/acc8e416485fbbfaf5313e6d634ecbbb3d67eb67)
+wires that layer into both supported SHIELD calibration launchers without new
+arguments. Setup, chain execution, and assembly may occur in separate processes;
+they coordinate through the existing calibration directory, and parallel chains
+write separate event files. Provenance failures warn rather than terminating the
+scientific run, and capture can be disabled explicitly for troubleshooting. These
+commits are published on the `codex/shield-source-readiness` review branch, not
+ordinary `master`.
+
+The focused regression script verifies unchanged R random-number state, cache
+configuration and seed capture, split-process/concurrent event writes, adjacent
+receipts, digest-led recovery including multiple origins for byte-identical
+artifacts, no-op opt-out, and survival of the primary record when the local spool
+is unavailable. It also confirms that the artifact bytes are not modified. This
+is not yet a production observation. Before a server trial, the branch must be
+reconciled with current `master` and the sampler seed contract must be made
+testable; otherwise the receipt would faithfully record an environment whose
+stochastic replay semantics remain undefined. The local spool is an outbox; no
+automatic shared archiver exists yet.
 
 ### 3. Separate resolution from mutation
 
@@ -590,13 +730,13 @@ receipt on a machine without JHEEM loaded.
 
 ## Open questions
 
-- Which first outcome must be reconstructable: a data manager, calibration,
-  simset, manuscript result, or published portal artifact?
-- Which SHIELD or EHE run is suitable for a read-only preflight and shadow
-  receipt on the shared servers?
-- What is the accepted equivalence criterion for a reconstructed stochastic run:
-  identical parameters, deterministic replay from checkpoints, or agreement of
-  specified distributions/outcomes within tolerance?
+- Which bounded SHIELD run is representative enough for the first same-image,
+  cross-server comparison without incurring a full calibration cost?
+- After exact equality is tested within one Linux image and architecture, which
+  scientific outputs and tolerances define equivalence across materially different
+  numerical platforms?
+- What scientific behavior is intended for the future-growth penalty when its
+  baseline is zero or near zero?
 - Can all required scientific inputs be stored as release assets, or do some need
   an access-controlled artifact registry with the same identity/checksum contract?
 - Which package and system dependencies differ across active applications enough
