@@ -256,15 +256,28 @@ report records 687 checks passed and no failures.
 
 A temporary code-only adjustment that removes `sex` from both MSM manager
 requests completed the full `get.best.guess.msm.proportions()` calculation for
-all ten routine SHIELD MSAs against the current artifact. The census population
-request for 2010 also succeeded against the published August 26 census manager.
+all ten routine SHIELD MSAs against the current artifact. A second prototype
+prefers that totals-level query but falls back to the earlier `sex = "male"`
+shape; it completed the same calculation against both the August 26 and July 27
+artifacts. The census population request for 2010 also succeeded against the
+published August 26 census manager.
 The reported 2010 issue is therefore not an independently reproduced missing-data
 failure in this code path: `DEFAULT.POPULATION.YEARS` selects the census year,
 while the two `proportion.msm` requests average their available years. This probe
-supports the totals-level adjustment, but it is not yet a scientific equivalence
-check or a complete specification/likelihood/calibration smoke. The resulting MSM
-estimates differ from the July artifact and need domain review as intended data
-changes, not automatic regression acceptance.
+supports the totals-level adjustment as an application-compatibility candidate.
+It does not establish scientific equivalence: the resulting MSM estimates differ
+from the July artifact and need domain review as intended data changes, not
+automatic regression acceptance.
+
+The full compatibility path was then exercised locally with `jheem2@90b68ad`
+installed as package version `1.12.3.9000`. For each manager version, a clean
+runtime initializer loaded explicit manager artifacts into a temporary output
+root; a Baltimore engine compiled, one deterministic median-parameter simulation
+completed, and the stage-0 and stage-1 likelihood sets instantiated and returned
+6 and 12 finite values respectively. This establishes executable compatibility
+of both releases with the prototype adapter. It does not select the adapter as
+the application fix, certify changed estimates, or replace calibration-scale
+validation.
 
 The immediate rollback contract should allow an operator or run configuration to
 select a dated manager release and asset. A convenient alias may identify the
@@ -293,6 +306,31 @@ catches assumptions not visible in the schema contract. This gates promotion of
 an approved manager alias, not ordinary source commits or the creation of
 candidates. A forced structural-baseline update may still publish a review
 candidate, but it must not by itself make that candidate eligible for promotion.
+
+### Implementation status (2026-09-09)
+
+An unmerged `jheem_analyses` proposal separates the work into two commits.
+Commit
+[`2bac62bc`](https://github.com/tfojo1/jheem_analyses/commit/2bac62bcfcdeda516c92a45f1bf249c6a75d5505),
+published on the `codex/shield-manager-compatibility-gates` review branch,
+implements the non-mutating runtime initializer, ten-MSA
+contract, Baltimore smoke, and build/promotion gates described above without
+changing the two SHIELD manager queries. The tests use the installed package
+path; CI installs the exact requested `jheem2` revision. The promotion proposal
+also requires explicit immutable census-manager and `jheem2` inputs and refuses
+to move the approved alias unless the candidate's structural report and both
+SHIELD checks pass. With unchanged application behavior, that commit rejects the
+August 26 artifact in all ten MSAs and accepts July 27; July also passes the full
+Baltimore smoke.
+
+The review branch has not been merged or exercised in GitHub Actions, and no
+release alias has moved. A second, local-only commit (`42d5f1f5`) layers the
+dual-shape SHIELD adapter described above on top. It was deliberately not
+published: because it changes application behavior and the affected data update
+is being investigated by the model and data maintainers, it is a separate review
+candidate rather than an adopted fix. The published first commit can be reviewed
+independently to certify July 27 as the immediate rollback candidate. Exact
+per-run manager selection remains separate follow-up work.
 
 ## Proposed target contract
 
