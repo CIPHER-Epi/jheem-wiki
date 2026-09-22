@@ -1,0 +1,152 @@
+---
+title: "HIV Surveillance Manager CI Investigation"
+date: 2026-09-22
+---
+
+**Status:** Evidence-backed investigation. The HIV surveillance manager has no
+dedicated build-and-validation workflow at the verified revision. This page
+describes the existing build boundary and a candidate first CI increment; it is
+not an implementation decision or a claim that raw data can already be rebuilt
+in hosted CI.
+
+**Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
+on 2026-09-22. A read-only shared-storage inventory on the same date confirmed
+five section files and the current final manager. File sizes, timestamps,
+serialized object names, and SHA-256 digests were checked; this does not establish
+that these files were built as one coherent release or that they reproduce the
+current manager under the current code.
+
+## Current build boundary
+
+Five [section scripts](https://github.com/tfojo1/jheem_analyses/tree/16eff985372fd65be46871bf164acb6eff14beb3/data_processing/hiv.surveillance.manager/hiv.surveillance.processing.for.merging)
+produce `surveillance.manager_section1.rdata` through
+`surveillance.manager_section5.rdata`. They source data-processing scripts and
+write section files into a shared-drive merge directory. The scripts and their
+sourced processors read raw inputs from shared-drive paths, while section 1 also
+loads a census manager from the local `cached/` directory. These are not yet
+declared, immutable CI inputs; changing only the top-level section output paths
+would not make raw-to-section builds portable.
+
+The [merge script](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/data_processing/hiv.surveillance.manager/hiv.surveillance.processing.for.merging/hiv.surveillance.manager.merge.R#L11-L60)
+loads those five files, imports sections 2, 4, 3, and 5 into section 1, then
+sources aggregation, STI-ratio, HIV-testing, MSM-proportion, outlier-removal,
+and Oakland-specific processing. It saves a pre-outlier copy, a final local
+`surveillance.manager.rdata`, a shared-drive current copy, and a date-stamped
+archive copy. The sourced processing scripts include further census-manager
+loads from both `../../cached/` and `Q:/data_managers/`, repository-relative
+`source()` calls into `jheem2`, and an Oakland migration step that reads raw
+county-to-county flow files from `Q:/data_raw/`. The candidate build therefore
+needs to isolate *all* merge-time inputs and outputs, not only the five initial
+`load.data.manager()` calls. See the
+[aggregation script](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/data_processing/hiv.surveillance.manager/hiv.surveillance.processing.for.merging/updated.data.aggregation.jheem.R#L1-L7)
+and [migration input](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/data_processing/hiv.surveillance.manager/tga_migration.R#L38-L45).
+
+### Observed artifact set (2026-09-22)
+
+| Artifact | Size | Last file modification | Outcomes |
+|---|---:|---|---:|
+| Section 1 | 19.0 MiB | 2026-08-26 | 9 |
+| Section 2 | 9.1 MiB | 2026-08-26 | 15 |
+| Section 3 | 1.0 MiB | 2026-08-24 | 5 |
+| Section 4 | 9.5 MiB | 2026-08-26 | 5 |
+| Section 5 | 1.1 MiB | 2026-05-13 | 8 |
+| Current final manager | 42.4 MiB | 2026-08-31 | 42 |
+
+The five sections contain 39 distinct outcome names; merge-time processing
+produces three additional outcomes: `gonorrhea.ratio`, `ps.syphilis.ratio`, and
+`hiv.tests.per.population`. The dates differ, notably for section 5. That may be
+intentional reuse of unchanged inputs, but a directory listing is not an
+atomic-build manifest. The current manager has the same SHA-256 digest as its
+August 31 archive copy. Against the August 26 archive manager, the generic
+structural validator reports no missing structure in the August 31 manager and
+three additional locations (`C.29820`, `C.31080`, `C.41740`) for each of the
+`cocaine` and `heroin` NSDUH outcomes. This comparison does not check data values.
+
+The Oakland post-processing step reads 24 county-to-county migration workbooks
+covering 12 time windows. Together they occupy about 1.5 GiB on shared storage.
+The first CI design must either make those exact raw files available to a hosted
+runner or execute the candidate build on a suitably isolated runner with
+read-only access to them. The five small section files are not sufficient by
+themselves.
+
+An isolated local merge probe on 2026-09-22, using the observed sections,
+census manager, and migration inputs with shared writes disabled, completed a
+candidate build. It surfaced a runtime dependency: installed `locations`
+0.4.0 rejected the current code's `include.partial` argument, while
+[`locations` 0.5.0.9000 at `2481fc44`](https://github.com/tfojo1/locations/tree/2481fc440cf1d981bb1005dd903708a88a528d13)
+completed the merge. A comparison with the active August 31 manager found
+identical `data` content across all 408 nested arrays and no structural
+differences in either direction across 603 generic spec checks. The R6 outcome
+metadata compared equal by value; the `last.modified.date` differed, as did
+the serialized file digest. This is strong evidence that the current merge path
+can reproduce the active manager's data from these inputs, but it does not
+recover the original build's code and package identities or validate scientific
+fitness of the values. The R process used approximately 10 GiB of resident
+memory after 14 minutes; the pre-outlier and final artifacts were written more
+than 30 minutes apart. CI needs explicit package pins and a measured runner
+budget.
+
+The current
+[syphilis-manager hosted workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/build-syphilis-manager.yml)
+is a useful partial template: it downloads prebuilt section files and other
+dependencies, assembles and structurally validates a manager, and creates a
+versioned release. Its raw-data-to-section stage is not part of that hosted
+workflow. The separate syphilis section workflow has no recorded runs as of the
+earlier audit. The generic
+[manager-spec validation tools](https://github.com/tfojo1/jheem_analyses/tree/16eff985372fd65be46871bf164acb6eff14beb3/data_processing/validation)
+could support an HIV baseline, but the repository documents a surveillance
+validation directory as future work rather than an existing checked-in spec.
+Prebuilt surveillance and census managers are already distributed together as
+`data-managers-v*` dependency snapshots by
+[`scripts/upload_manager_deps.R`](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/scripts/upload_manager_deps.R);
+that snapshots an existing manager rather than building one in CI.
+
+## Candidate first increment
+
+The first CI claim should be narrow: **given an identified set of five section
+artifacts and identified auxiliary inputs, assemble an HIV surveillance manager
+in an isolated workspace, check it, and publish a versioned candidate**.
+Promotion to the active manager remains a separate action.
+
+1. Inventory and preserve the exact five section inputs and merge-time
+   dependencies, with sizes and digests. Use immutable release tags or another
+   stable artifact handoff; a mutable shared-drive path is not a build identity.
+2. Parameterize only input/output locations in the merge path and its sourced
+   scripts. Keep data transformations unchanged, and prevent a CI run from
+   overwriting the shared-drive current or archive copies.
+3. Build a reviewed structural baseline from a known-good surveillance manager.
+   Validate outcome/source/ontology/stratification shape and selected values or
+   queries used by active consumers. The syphilis build is one downstream
+   consumer of the HIV surveillance manager; a suitable compatibility probe
+   should cover that boundary as well as an active HIV-model use where feasible.
+4. Produce a candidate artifact, build log, input identities, validation report,
+   and output digest. Review the candidate before any `latest` alias or shared
+   current-file update.
+
+This would give contributors a repeatable verdict on changes to the merge and
+post-processing stages. It would **not** yet prove that each section can be
+recreated from raw surveillance files in CI. The raw-to-section stages can be
+made portable and automated incrementally after their inputs and runtime costs
+are known.
+
+## Open questions and destination
+
+- Were the five observed section files the inputs to the current August 31
+  manager, and are they preserved together outside the shared drive with their
+  digests and source identities?
+- Which merge-time `source()` calls read additional inputs or write intermediate
+  files? The top-level script audit is not a complete side-effect audit.
+- Which active HIV-model queries and syphilis-build dependencies constitute a
+  useful consumer compatibility check? Structural equality alone cannot answer
+  whether a changed value remains scientifically suitable.
+- What runner and storage are appropriate for later raw-to-section jobs, given
+  the current shared-drive paths and data volumes? If an existing team server
+  hosts a runner with NAS access, which trusted branches or manually approved
+  jobs may use it? A runner with shared-drive access should not execute
+  arbitrary, unreviewed changes from contributors.
+
+Build scripts, fixtures, validation specs, and runnable instructions should
+graduate into `jheem_analyses` with the workflow they protect. Retire this
+investigation when that repository documents the supported build boundary and
+its CI has completed a candidate build with identified inputs and a reviewed
+validation result.

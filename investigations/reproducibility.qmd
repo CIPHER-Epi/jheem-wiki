@@ -1,15 +1,16 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-09-17
+date-modified: 2026-09-22
 ---
 
 **Status:** Evidence-backed investigation. SHIELD calibration is the first
 reference workflow for evaluating reproducibility. Exact per-run syphilis-manager
 selection is available on `master`; provenance, immutable runtime setup, and a
 container canary exist on review branches but have not entered the team's ordinary
-calibration path. A production-representative replay is blocked first on defining
-and verifying the sampler's seed and resume contract.
+calibration path. A bounded container pilot can proceed before deterministic
+replay is established. A same-seed replay claim still depends on defining and
+verifying the sampler's seed and resume contract.
 
 **Verified against:** `jheem_analyses@c97c8af33447758a1c5c50416812d516092be867`
 and its `codex/shield-source-readiness` review branch at
@@ -26,6 +27,10 @@ Manager-distribution behavior was additionally reverified at
 `jheem_analyses@53f6e5d3073433888e1a63bbb00a8522f4c0f033` and against the
 repository's published releases on 2026-09-09. The current calibration, staging,
 sampler, and container claims were reverified from source on 2026-09-17.
+The SHIELD integration changes below were rechecked against
+`jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3` and
+`jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31` on
+2026-09-22; the older pinned analysis remains a dated snapshot.
 
 ## Assessment
 
@@ -183,9 +188,69 @@ Two review branches establish useful but incomplete evidence:
   uninterrupted-versus-resumed or cross-server equality comparison is made.
 
 These are validation assets, not yet evidence that SHIELD calibration is
-reproducible. The next proof should begin with the sampler boundary: a small,
-executable demonstration of the current seed behavior, followed by a focused fix
-and tests before the SHIELD branches are reconciled.
+reproducible. The 2026-09-17 sequence prioritized a small, executable sampler
+seed demonstration and focused correction before SHIELD branch reconciliation.
+The narrower container-pilot sequence is updated below; it does not remove the
+sampler prerequisite for a deterministic-replay claim.
+
+## SHIELD container-pilot update (2026-09-22)
+
+The team is evaluating containerization of SHIELD as an operational deliverable.
+That question is narrower than whether an earlier calibration can be reproduced
+exactly. The [existing container spike](https://github.com/ncsizemore/jheem-containers/blob/262c733d5c71ec4aa480dde4131880002105dc31/workloads/shield/README.md)
+builds a pinned image and exercises a small real-engine calibration through a
+forced interruption and checkpoint continuation in hosted CI. It has not yet
+run on a team server, completed production-sized simset assembly there, or
+compared uninterrupted and resumed scientific traces.
+
+The spike pins `jheem_analyses@accd7b64`, while the verified active branch is
+`master@16eff985`, 71 commits ahead of the common base with the staged
+`codex/shield-source-readiness` branch. The active SHIELD tree now has a
+[three-tier model-test workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml)
+and a [calibration launcher](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_calib_setup_and_run.R)
+that prints the original error and stops on many non-storage failures. Those
+changes supersede parts of the staged branch, but ordinary setup still defaults
+to clearing state and uses a fixed `set.seed(0)` before calibration. The
+[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R)
+still requires a sibling `jheem2` checkout on `dev` in source mode, and can pull
+when interactive. A recorded container run needs an explicit, non-mutating
+source and run-mode contract; the older branch supplies candidate pieces, not a
+merge-ready replacement for the current application.
+
+The new test workflow is useful characterization, not yet a dependable green
+gate: the [2026-09-22 run](https://github.com/tfojo1/jheem_analyses/actions/runs/35762822719)
+failed in the static tier and skipped the later tiers. Its
+[README](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md)
+says some tests intentionally fail to preserve open code-review findings. At
+least one static test asserts that the `+1` growth-penalty denominator should be
+removed and suggests alternatives; because that is a scientific formula choice,
+it should be resolved by the scientific owners, not silently changed as
+container-readiness work.
+
+A clean local checkout of the same pinned analyses commit reproduced 11 static
+assertion failures and 3 static skips. Running the unit-file subset independently
+returned 6 assertion failures, 4 errors, and 4 skips; missing test-bootstrap
+inputs account for some of those errors and skips, so these counts are not a
+model-defect count. The workflow chains static → unit → integration with `needs`,
+which means a persistently red static tier prevents the model tier from running.
+Conversely, the
+[test runner](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/run_tests.R#L94-L114)
+exits nonzero only for failed assertions or errors: if required bootstrap stages
+are unavailable and tests only skip, a tier can appear green without exercising
+its intended model path. Before using this workflow as a container acceptance
+gate, separate open diagnostic findings from must-pass checks and make missing
+required integration prerequisites fail explicitly. Text matching for a local
+`set.seed()` call and the growth-penalty formula test are examples that need a
+contract-level or domain-reviewed assertion rather than an automatic code edit.
+
+A bounded pilot should therefore establish, in order: a pinned image built
+against current SHIELD source; identified manager assets and source revisions;
+non-destructive fresh/resume behavior; successful real-engine preflight and a
+small checkpoint continuation; then a retained run on a team server that checks
+mounts, file ownership, error logs, runtime, and output inspection. Full assembly
+and repeated-run comparisons are separate acceptance steps. The sampler seed
+finding remains recorded and should be tested before claiming deterministic
+replay or equivalent results across servers.
 
 ## The current filesystem contract
 
@@ -443,6 +508,26 @@ contract, but whether current SHIELD should also load July-era managers remains 
 separate compatibility-policy choice. The shipped release selector supplies the
 rollback mechanism without making that choice automatically or changing the
 current MSM queries.
+
+### Current SHIELD adapter (2026-09-22)
+
+The preceding paragraphs describe the September 9 review state, not the current
+application. In
+[`8c3021ce`](https://github.com/tfojo1/jheem_analyses/commit/8c3021ce5e65dd3d6bcc8a8fbee44524f6da78f2),
+SHIELD's `get.best.guess.msm.proportions()` gained both query shapes: it omits
+`sex` for managers whose `last.modified.date` is on or after August 1, 2026,
+and keeps `sex = "male"` for earlier managers. The current
+[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R#L14-L20)
+explicitly selects `syphilis-manager-v2026.07.27` in source. The selector still
+provides the technical rollback mechanism, but SHIELD's active default is not
+the promoted alias at this revision.
+
+The date threshold is an implementation proxy for schema, not an explicit
+schema/version contract. This pass verified the code path, not the behavior of
+that current adapter against all three published manager artifacts or the
+ten-MSA/Baltimore probes. Those checks should be rerun before making the
+unmerged promotion gate authoritative. The earlier value differences remain a
+separate scientific interpretation question.
 
 ## Proposed target contract
 
