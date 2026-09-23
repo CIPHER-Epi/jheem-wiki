@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-09-22
+date-modified: 2026-09-23
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -64,7 +64,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 5 | **Functional-form documentation** — inventory and explain the forms used by model specifications, with runnable examples where practical | Queued | Requested bounded documentation work; final API and examples belong in `jheem2`, while an evidence-backed investigation may be staged here ([D-018](decisions.qmd)) |
 | 6 | **Model-manager compatibility and rollback** — select immutable manager versions and gate promotion against active consumers | **Exact selection shipped; compatibility gate pending** (2026-09-22) | The shared syphilis loader supports exact release selection with digest verification, versioned caching, and offline reload (`87fdd1d9`). Current SHIELD source pins the July 27 release and now selects old or totals-level MSM queries using the manager's modification date ([`8c3021ce`](https://github.com/tfojo1/jheem_analyses/commit/8c3021ce5e65dd3d6bcc8a8fbee44524f6da78f2)); this pass did not rerun the earlier ten-MSA and Baltimore compatibility smokes against that adapter. August and September artifacts produced identical derived MSM values in the earlier probe, while July differed and still needs domain interpretation. The unmerged promotion-gate proposal must be reconciled with current SHIELD and tested before enforcement. See [Manager compatibility and rollback](investigations/manager-compatibility.qmd). |
 | 7 | **SHIELD runtime and reproducibility** — establish a bounded container pilot, then test stronger replay claims | **Container pilot is the immediate deliverable; reproducibility remains an investigation** (2026-09-22) | The [cross-repository investigation](investigations/reproducibility.qmd) finds that `cached/` is only one part of the runtime contract. `jheem-containers@262c733` builds a pinned image and exercises a small forced-interruption/resume canary, but has not run on a team server. Its `jheem_analyses@accd7b64` source branch is 71 commits behind `master@16eff985`; current SHIELD has already changed the launcher and added model tests. Reconcile selected runtime/provenance pieces with current SHIELD before a server pilot. The sampler seed finding limits deterministic-replay claims, not the initial container pilot. See the [SHIELD pilot investigation](investigations/shield-container-pilot.qmd). |
-| 8 | **HIV surveillance-manager CI** — assemble and validate a versioned candidate from identified section artifacts | **Isolated local build reproduced active manager data; CI pending** (2026-09-22) | Five section files (~40 MiB combined) and the active final manager (~42 MiB) are present on shared storage, but their differing dates are not a release manifest. Merge-time Oakland processing also reads 24 raw migration workbooks (~1.5 GiB). A candidate built with NAS inputs and shared writes disabled had identical `data` across 408 arrays and passed 603 structural checks in each direction against the active manager. The run needed compatible `locations` source, substantial memory, and more than 30 minutes of post-processing. Released movement and census assets support a selective GitHub-hosted candidate build; the movement workbooks and runner margin still need verification, and the sections need an immutable release. Port the isolated path into the owning repo with a reviewed validation baseline, then publish a versioned candidate without automatically changing the active manager. See the [HIV CI investigation](investigations/hiv-surveillance-manager-ci.qmd). |
+| 8 | **HIV surveillance-manager CI** — assemble and validate a versioned candidate from identified section artifacts | **Path isolation on `master`; candidate CI pending** (2026-09-23) | A local candidate reproduced the active manager's `data` across 408 arrays and passed 603 structural checks in each direction. The published movement archive's 24 required workbooks now match the NAS copies byte-for-byte. [`0cd67c0`](https://github.com/tfojo1/jheem_analyses/commit/0cd67c0) adds explicit merge inputs/outputs and a focused path check without changing the default shared-drive path. The five sections still need an approved immutable handoff; the validation baseline and hosted-runner resource margin remain unproved. See the [HIV CI investigation](investigations/hiv-surveillance-manager-ci.qmd). |
 
 ### Next
 
@@ -73,11 +73,11 @@ against current application code, reuse only the still-applicable pieces, and
 demonstrate a pinned image on a team server with explicit inputs, storage mounts,
 failure reporting, checkpoint continuation, and inspectable outputs. This does
 not yet establish uninterrupted/resumed equality or production-scale assembly.
-For HIV surveillance, verify the released movement workbooks, identify a stable
-five-section release, and port the tested path isolation into `jheem_analyses`.
-Try a selective GitHub-hosted merge from those releases and the pinned census
-manager, measuring Linux memory and disk use. Validate future candidates against
-a reviewed baseline and a consuming workflow, then publish a versioned candidate
+For HIV surveillance, approve and identify an immutable five-section input set,
+then review a structural and active-consumer validation baseline. Try a
+selective GitHub-hosted merge from those sections, the verified movement
+archive, and the pinned census manager, measuring Linux memory and disk use.
+Publish a versioned candidate with its inputs, logs, and validation report
 before any promotion. The seed/resume evidence and
 scientific likelihood questions remain open, but neither should be silently
 resolved by container or manager-pipeline changes.

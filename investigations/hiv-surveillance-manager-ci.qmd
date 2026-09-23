@@ -1,14 +1,14 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-09-22
+date-modified: 2026-09-23
 ---
 
-**Status:** Evidence-backed investigation. The HIV surveillance manager has no
-dedicated build-and-validation workflow at the verified revision. Released
-auxiliary inputs make a GitHub-hosted section-to-final candidate build plausible,
-but it has not run there. This is not a raw-to-final automation claim or an
-implementation decision.
+**Status:** Evidence-backed investigation. Merge-path isolation and a focused
+path regression check are now on `jheem_analyses` `master`; a dedicated HIV
+build-and-validation workflow is not. Released auxiliary inputs make a
+GitHub-hosted section-to-final candidate build plausible, but it has not run
+there. This is not a raw-to-final automation claim.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
 on 2026-09-22. A read-only shared-storage inventory on the same date confirmed
@@ -16,6 +16,8 @@ five section files and the current final manager. File sizes, timestamps,
 serialized object names, and SHA-256 digests were checked; this does not establish
 that these files were built as one coherent release or that they reproduce the
 current manager under the current code.
+The input and path changes described below were rechecked on 2026-09-23;
+implementation is pinned to `jheem_analyses@0cd67c0`.
 
 ## Current build boundary
 
@@ -77,9 +79,9 @@ The existing
 has a `data-raw-movement.tar.gz` asset (1,230,758,289 bytes; published SHA-256
 `e5db3f70c21d95962a2d4a1725a8ee5e55aede975573ce3642fa36d8229acbfe`).
 The [uploader](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/scripts/upload_raw_data.R)
-archives the entire `data_raw/movement/` subdirectory. The NAS workbooks
-observed in the local merge predate that release, but their bytes have not yet
-been checked against the published archive. The
+archives the entire `data_raw/movement/` subdirectory. On 2026-09-23, all 24
+county-to-county workbooks read by the local merge matched the released archive
+byte-for-byte. The
 [`data-managers-v2026.08.26` release](https://github.com/tfojo1/jheem_analyses/releases/tag/data-managers-v2026.08.26)
 contains a 108,009,923-byte census manager whose published SHA-256
 (`f8c710684ccfdfb3a5c8e6f4b54caf0417ab67afb82b89ab3259c4b8151e1053`)
@@ -95,6 +97,21 @@ measurement cannot certify the Linux peak or disk footprint. A selective
 hosted-runner trial is therefore the first sizing check. Downloading every raw
 archive in the syphilis workflow would add unrelated data and should not be
 copied into this job.
+
+### Merge-path isolation (2026-09-23)
+
+[`jheem_analyses@0cd67c0`](https://github.com/tfojo1/jheem_analyses/commit/0cd67c0)
+lets the section-to-final merge take explicit section, two census-manager,
+county-to-county workbook, and candidate-output paths. With
+`WRITE_SHARED_OUTPUT=false`, it requires all five path settings and skips the
+legacy shared current and archive writes. Omitting the new settings preserves
+the existing `Q:`/`cached/` workflow. The
+[focused path check](https://github.com/tfojo1/jheem_analyses/blob/0cd67c0/data_processing/hiv.surveillance.manager/test_merge_paths.R)
+covers both modes and rejects incomplete candidate configuration without
+loading manager data. The earlier full local merge used the same path-routing
+changes, but the full data build was not rerun after this commit's added
+fail-closed configuration check. This is an enabling code change, not a CI build
+or a claim of a supported candidate path.
 
 An isolated local merge probe on 2026-09-22, using the observed sections,
 census manager, and migration inputs with shared writes disabled, completed a
@@ -135,15 +152,13 @@ artifacts and identified auxiliary inputs, assemble an HIV surveillance manager
 on a GitHub-hosted runner, check it, and publish a versioned candidate**.
 Promotion to the active manager remains a separate action.
 
-1. Verify the released movement archive against the 24 workbooks used in the
-   local build, then preserve the exact five section inputs with sizes, digests,
-   and an honest account of their known or unknown upstream lineage. Use
-   immutable release tags; a mutable shared-drive path or `latest` alias is
-   not a build identity.
-2. Parameterize only input/output locations in the merge path and its sourced
-   scripts. Keep data transformations unchanged, and prevent a CI run from
-   overwriting the shared-drive current or archive copies. Pin the analyses,
-   `jheem2`, `locations`, and runtime versions used by the job.
+1. Preserve the exact five section inputs together with sizes and digests,
+   subject to approval for their publication, and document known and unknown
+   upstream lineage. Use an immutable release or equally durable artifact
+   identity; a mutable shared-drive path or `latest` alias is not a build
+   identity.
+2. Pin the analyses, `jheem2`, `locations`, and runtime versions used by the
+   hosted job. Keep the now-isolated merge transformations unchanged.
 3. Build a reviewed structural baseline from a known-good surveillance manager.
    Validate outcome/source/ontology/stratification shape and selected values or
    queries used by active consumers. The syphilis build is one downstream
