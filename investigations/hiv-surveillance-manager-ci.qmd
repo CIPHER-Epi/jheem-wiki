@@ -171,6 +171,16 @@ have not been established in this review. The two structural warnings must not
 be used as a complete summary of baseline-to-candidate data differences;
 promotion still needs a reviewed value/consumer check.
 
+[`jheem_analyses@7c13479`](https://github.com/tfojo1/jheem_analyses/commit/7c13479)
+adds a report-only value-delta diagnostic on the isolated
+[`codex/hiv-value-delta` branch](https://github.com/tfojo1/jheem_analyses/tree/codex/hiv-value-delta).
+It is not on `master` and has not run in hosted CI. Applied locally to the
+downloaded trial candidate and the exact released August 26 baseline, it
+reported the 408/15/10,810 comparison above. Its focused tests and the
+existing merge-path check passed. The diagnostic does not turn these changes
+into an automated scientific acceptance rule or change the structural pass
+result.
+
 ### Merge-path isolation (2026-09-23)
 
 [`jheem_analyses@0cd67c0`](https://github.com/tfojo1/jheem_analyses/commit/0cd67c0)
