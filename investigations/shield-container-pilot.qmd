@@ -1,11 +1,14 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
+date-modified: 2026-09-23
 ---
 
 **Status:** Evidence-backed investigation. A bounded operational container pilot
-is proposed, not yet run on a team server. The staged container canary does not
-establish deterministic replay or production-scale assembly.
+is proposed, not yet run on a team server. An opt-in current-source recorded-run
+adapter is available on a review branch, but has not passed a current-source
+container canary or been merged into `master`. The staged container canary does
+not establish deterministic replay or production-scale assembly.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -139,14 +142,41 @@ and repeated-run comparisons are separate acceptance steps. The sampler seed
 finding remains recorded and should be tested before claiming deterministic
 replay or equivalent results across servers.
 
+## Recorded-run source checkpoint (2026-09-23)
+
+[`jheem_analyses@5b377e8`](https://github.com/tfojo1/jheem_analyses/commit/5b377e8)
+is on the isolated
+[`codex/shield-recorded-contract` branch](https://github.com/tfojo1/jheem_analyses/tree/codex/shield-recorded-contract),
+not `master`. It adds an opt-in `SHIELD_RECORDED_RUN=true` route through the
+current source bootstrap and calibration launcher. That route requires declared
+source commit identities, immutable dated manager releases, verified offline
+manager assets, separate input and output roots, and an explicit seed. Fresh
+mode refuses existing calibration state; resume requires a matching input
+receipt and readable checkpoint/progress before MCMC. A focused cache change
+allows verified offline assets to load from a read-only cache without a writer
+lock. The default ordinary route remains selected without the opt-in flag.
+The branch changes no likelihood formula or model parameter. Its
+[pilot contract and caveats](https://github.com/tfojo1/jheem_analyses/blob/5b377e8/applications/SHIELD/RECORDED-RUN-PILOT.md)
+remain review material, not supported production instructions.
+
+Focused runtime and cache tests passed locally; the existing SHIELD static
+suite still had 12 diagnostic failures and lacked local bootstrap data for its
+full path. The current modular launcher is deliberately rejected in recorded
+mode because it clears calibration state. The older container canary calls
+that modular launcher and expects an older runtime interface and stage-0
+fixture, so merely changing its analyses commit would neither run nor validate
+this branch. The next gate is to reconcile the container preflight and canary
+with the current recorded entrypoint, run a must-pass hosted smoke, and only
+then attempt a retained team-server pilot. No deterministic-replay or
+production-calibration claim follows from the source branch alone.
+
 ## Proposed next sequence
 
-1. Reconcile the staged SHIELD runtime with current `jheem_analyses` rather
-   than merging the old branch wholesale. Preserve the current launcher's error
-   reporting; establish explicit recorded inputs, non-mutating source loading,
-   and a non-destructive resume default. Do not change likelihood formulas as
-   container plumbing.
-2. Build a pinned image against that current source and run a small,
+1. Review the opt-in current-source recorded-run branch, including its
+   preflight, cache, and fresh/resume guards. Keep likelihood behavior outside
+   the container plumbing review.
+2. Reconcile the existing container interfaces with that branch, then build a
+   pinned image and run a small,
    must-pass operational smoke. Missing required bootstrap inputs should fail
    the smoke rather than count as skips. Keep the new model suite's open
    diagnostic and scientific findings visible but separate from this gate.

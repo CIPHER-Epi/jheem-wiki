@@ -7,10 +7,10 @@ date-modified: 2026-09-23
 **Status:** Evidence-backed investigation. Merge-path isolation, a focused path
 check, and a manual-only hosted section-to-final trial workflow are on
 `jheem_analyses` `master`. The five observed sections are preserved as a
-versioned release snapshot. The first hosted trial exposed a missing runtime
-package after a partial build; a corrected manual retry is in progress. No
-validated hosted candidate or runner-margin conclusion exists yet. This is not
-a raw-to-final automation or promotion claim.
+versioned release snapshot. A corrected hosted trial completed a candidate and
+passed a provisional structural comparison, with two additions requiring
+review. No active-consumer validation, candidate release, or promotion has
+occurred. This is not raw-to-final automation.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
 on 2026-09-22. A read-only shared-storage inventory on the same date confirmed
@@ -119,16 +119,28 @@ the merge step and reached 8,178,336 KiB peak resident memory; neither number
 is a completed-build benchmark. [`670dd92`](https://github.com/tfojo1/jheem_analyses/commit/670dd92)
 adds the direct runtime packages and checks that they load *before* the merge.
 The [manual retry](https://github.com/tfojo1/jheem_analyses/actions/runs/35854104948)
-must complete before drawing a runner-capacity or candidate-quality conclusion.
+completed on 2026-09-23 with `jheem_analyses@670dd92`,
+`jheem2@90b68ad`, `locations@2481fc44`, R 4.4.2, and checksummed release
+inputs. The merge took 22:51 and reached 8,173,140 KiB peak resident memory
+(about 7.8 GiB). The runner reported 82 GiB free disk after input download and
+after the build. This establishes that this *selective section-to-final trial*
+fit the observed hosted runner, not that all raw-to-section processing or a
+production schedule will fit it. Downloading every raw archive in the syphilis
+workflow would add unrelated data and should not be copied into this job.
 
-Because `jheem_analyses` is public, GitHub's current standard Ubuntu runner has
-16 GB RAM and 14 GB storage and is free for public-repository workflows
-([runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)).
-The observed local process reached about 10 GiB of resident memory, but a macOS
-measurement cannot certify the Linux peak or disk footprint. A selective
-hosted-runner trial is therefore the first sizing check. Downloading every raw
-archive in the syphilis workflow would add unrelated data and should not be
-copied into this job.
+The final candidate's SHA-256 is
+`c5fb7aaf119d0903e8e6415cc6e90f77e1af00a0c58c040ac44953743ee94afe`;
+the downloaded artifact matched that digest. The provisional comparison against
+the dated August 26 surveillance-manager baseline passed 603 structural checks
+with no failures and two warnings: `C.29820`, `C.31080`, and `C.41740` appear
+as new locations in the `cocaine` and `heroin` NSDUH outcomes. Those same
+additions were previously observed in the active August 31 manager relative to
+August 26. The hosted candidate's `data` object is identical to the earlier
+local merge candidate, whose 408 nested data arrays matched the active August
+31 manager. This is useful reproduction evidence, but the trial did not compare
+selected scientific values against an independently reviewed expectation or run
+an active-model consumer. The candidate remains a short-lived Actions artifact;
+no current manager or `latest` alias was changed.
 
 ### Merge-path isolation (2026-09-23)
 
@@ -218,14 +230,14 @@ are known.
 - Which active HIV-model queries and syphilis-build dependencies constitute a
   useful consumer compatibility check? Structural equality alone cannot answer
   whether a changed value remains scientifically suitable.
-- Does the selective section-to-final merge fit the public repository's standard
-  hosted runner with sufficient memory, disk, and time margin? If not, what
-  measured stage should be optimized or isolated before considering a larger or
-  self-hosted runner? A runner with NAS access must not execute arbitrary,
+- How much margin will the selective section-to-final merge retain as inputs
+  grow? The first successful hosted trial used about 7.8 GiB peak resident
+  memory and 23 minutes for the merge; repeat sizing after material input or
+  transformation changes. A runner with NAS access must not execute arbitrary,
   unreviewed changes from contributors.
 
 Build scripts, fixtures, validation specs, and runnable instructions should
 graduate into `jheem_analyses` with the workflow they protect. Retire this
 investigation when that repository documents the supported build boundary and
-its CI has completed a candidate build with identified inputs and a reviewed
-validation result.
+its CI has a reviewed structural and active-consumer validation result for a
+versioned candidate.
