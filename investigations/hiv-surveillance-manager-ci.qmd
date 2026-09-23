@@ -4,11 +4,13 @@ date: 2026-09-22
 date-modified: 2026-09-23
 ---
 
-**Status:** Evidence-backed investigation. Merge-path isolation and a focused
-path regression check are now on `jheem_analyses` `master`; a dedicated HIV
-build-and-validation workflow is not. Released auxiliary inputs make a
-GitHub-hosted section-to-final candidate build plausible, but it has not run
-there. This is not a raw-to-final automation claim.
+**Status:** Evidence-backed investigation. Merge-path isolation, a focused path
+check, and a manual-only hosted section-to-final trial workflow are on
+`jheem_analyses` `master`. The five observed sections are preserved as a
+versioned release snapshot. The first hosted trial exposed a missing runtime
+package after a partial build; a corrected manual retry is in progress. No
+validated hosted candidate or runner-margin conclusion exists yet. This is not
+a raw-to-final automation or promotion claim.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
 on 2026-09-22. A read-only shared-storage inventory on the same date confirmed
@@ -17,7 +19,9 @@ serialized object names, and SHA-256 digests were checked; this does not establi
 that these files were built as one coherent release or that they reproduce the
 current manager under the current code.
 The input and path changes described below were rechecked on 2026-09-23;
-implementation is pinned to `jheem_analyses@0cd67c0`.
+merge-path implementation is pinned to `jheem_analyses@0cd67c0`; the manual
+trial workflow began at `jheem_analyses@cc2b9e1` and its dependency correction
+is `jheem_analyses@670dd92`.
 
 ## Current build boundary
 
@@ -86,8 +90,36 @@ byte-for-byte. The
 contains a 108,009,923-byte census manager whose published SHA-256
 (`f8c710684ccfdfb3a5c8e6f4b54caf0417ab67afb82b89ab3259c4b8151e1053`)
 matches the NAS copy used in the successful local merge. The five observed HIV
-section files still need an identified, immutable release or equivalent artifact
-set; their different modification dates should not be presented as source lineage.
+section files were subsequently preserved together in a release snapshot. Their
+different modification dates are not source lineage.
+
+### Five-section snapshot and hosted trial (2026-09-23)
+
+The [HIV section snapshot release](https://github.com/tfojo1/jheem_analyses/releases/tag/hiv-sections-snapshot-2026.09.23)
+contains the five NAS-observed section files and a `SHA256SUMS.txt` manifest.
+The uploaded bytes and GitHub asset digests were verified against the observed
+files. The release records a *snapshot of merge inputs*, not evidence that the
+five sections came from one raw-data build, nor a rebuild from the release's
+target commit. It did not change the active manager or any `latest` alias.
+
+[`jheem_analyses@cc2b9e1`](https://github.com/tfojo1/jheem_analyses/commit/cc2b9e1)
+adds a [manual-only hosted trial](https://github.com/tfojo1/jheem_analyses/blob/cc2b9e1/.github/workflows/trial-hiv-surveillance-manager.yml).
+It checks out exact analyses, jheem2, and locations revisions; downloads the
+five-section snapshot, the movement archive, a dated census manager, and a
+dated surveillance baseline by digest; builds a candidate with shared writes
+disabled; measures Linux memory and disk use; and uploads the candidate and
+evidence as a short-lived Actions artifact. Its structural comparison is
+provisional: it does not constitute an active-model consumer or selected-value
+gate. The workflow neither publishes a candidate release nor promotes an active
+manager. The [first trial run](https://github.com/tfojo1/jheem_analyses/actions/runs/35851080701)
+completed input verification, then failed late in the merge because the workflow
+had not installed `tidyverse`, which a sourced processor loads. It produced a
+pre-outlier manager but no final candidate. The partial run took 24 minutes in
+the merge step and reached 8,178,336 KiB peak resident memory; neither number
+is a completed-build benchmark. [`670dd92`](https://github.com/tfojo1/jheem_analyses/commit/670dd92)
+adds the direct runtime packages and checks that they load *before* the merge.
+The [manual retry](https://github.com/tfojo1/jheem_analyses/actions/runs/35854104948)
+must complete before drawing a runner-capacity or candidate-quality conclusion.
 
 Because `jheem_analyses` is public, GitHub's current standard Ubuntu runner has
 16 GB RAM and 14 GB storage and is free for public-repository workflows
@@ -153,10 +185,9 @@ on a GitHub-hosted runner, check it, and publish a versioned candidate**.
 Promotion to the active manager remains a separate action.
 
 1. Preserve the exact five section inputs together with sizes and digests,
-   subject to approval for their publication, and document known and unknown
-   upstream lineage. Use an immutable release or equally durable artifact
-   identity; a mutable shared-drive path or `latest` alias is not a build
-   identity.
+   documenting known and unknown upstream lineage. The 2026-09-23 snapshot
+   completes this input handoff; its manifest digest, not a mutable shared-drive
+   path or `latest` alias, identifies the build input.
 2. Pin the analyses, `jheem2`, `locations`, and runtime versions used by the
    hosted job. Keep the now-isolated merge transformations unchanged.
 3. Build a reviewed structural baseline from a known-good surveillance manager.
@@ -179,9 +210,9 @@ are known.
 
 ## Open questions and destination
 
-- Were the five observed section files the inputs to the current August 31
-  manager, and are they preserved together outside the shared drive with their
-  digests and source identities?
+- Were the five snapshotted sections the inputs to the current August 31
+  manager? Their bytes are now preserved, but the original raw-to-section
+  source revisions and build lineage remain unproved.
 - Which merge-time `source()` calls read additional inputs or write intermediate
   files? The top-level script audit is not a complete side-effect audit.
 - Which active HIV-model queries and syphilis-build dependencies constitute a
