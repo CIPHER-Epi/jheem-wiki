@@ -159,6 +159,16 @@ The branch changes no likelihood formula or model parameter. Its
 [pilot contract and caveats](https://github.com/tfojo1/jheem_analyses/blob/5b377e8/applications/SHIELD/RECORDED-RUN-PILOT.md)
 remain review material, not supported production instructions.
 
+This branch addresses the **prepared-runtime and input-identity** portion of
+the broader [run-record contract](reproducibility.qmd#proposed-target-contract).
+Its local `inputs.json` is not the staged automatic attempt history, an
+output-linked simset receipt, or a durable archive. The container pilot should
+prove that this narrow route can execute and continue safely; it must not make
+the separate provenance and sampler work appear complete. A supported team
+workflow should eventually supply the technical declarations behind the
+existing calibration command rather than require operators to manage another
+set of identifiers by hand.
+
 Focused runtime and cache tests passed locally; the existing SHIELD static
 suite still had 12 diagnostic failures and lacked local bootstrap data for its
 full path. The current modular launcher is deliberately rejected in recorded

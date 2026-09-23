@@ -8,9 +8,10 @@ date-modified: 2026-09-23
 check, and a manual-only hosted section-to-final trial workflow are on
 `jheem_analyses` `master`. The five observed sections are preserved as a
 versioned release snapshot. A corrected hosted trial completed a candidate and
-passed a provisional structural comparison, with two additions requiring
-review. No active-consumer validation, candidate release, or promotion has
-occurred. This is not raw-to-final automation.
+passed a provisional structural comparison. Review traced its two reported
+additions and found value changes that the structural check does not report.
+No active-consumer validation, candidate release, or promotion has occurred.
+This is not raw-to-final automation.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
 on 2026-09-22. A read-only shared-storage inventory on the same date confirmed
@@ -142,6 +143,34 @@ selected scientific values against an independently reviewed expectation or run
 an active-model consumer. The candidate remains a short-lived Actions artifact;
 no current manager or `latest` alias was changed.
 
+### Baseline-delta review (2026-09-23)
+
+The two structural warnings are explained by the
+[merge-time NSDUH aggregation](https://github.com/tfojo1/jheem_analyses/blob/670dd92/data_processing/hiv.surveillance.manager/hiv.surveillance.processing.for.merging/updated.data.aggregation.jheem.R#L460-L545),
+which explicitly adds cocaine and heroin estimates for Los Angeles
+(`C.31080`), Las Vegas (`C.29820`), and San Diego (`C.41740`). Comparing the
+hosted candidate with the released August 26 baseline, the 3,164 existing
+cocaine and 904 existing heroin year/location cells are unchanged. Only those
+three location columns were added; some cocaine years have missing values.
+This establishes the technical source and shape of the warnings, not an
+independent judgment about the estimates.
+
+The structural validator checks names and dimensions, **not values**. A
+separate comparison of all 408 nested data arrays found 15 nonidentical
+arrays: the two NSDUH arrays above and 13 adult-population arrays with
+unchanged dimensions. The latter differ only at `MA.1`, `MA.4`, and `MA.5`
+across multiple years and stratifications (10,810 changed cells across
+overlapping representations). For example, the 2023 unstratified `MA.4`
+adult-population value is 692,751 in the August 26 baseline and 2,097,024
+in the candidate. These arrays are generated in the
+[county-to-NSDUH-region aggregation](https://github.com/tfojo1/jheem_analyses/blob/670dd92/data_processing/hiv.surveillance.manager/hiv.surveillance.processing.for.merging/updated.data.aggregation.jheem.R#L78-L111).
+An earlier local comparison found the candidate's `data` identical to the
+active August 31 manager, so this is not a divergence introduced uniquely by
+the hosted trial. The cause and scientific intent of the Massachusetts change
+have not been established in this review. The two structural warnings must not
+be used as a complete summary of baseline-to-candidate data differences;
+promotion still needs a reviewed value/consumer check.
+
 ### Merge-path isolation (2026-09-23)
 
 [`jheem_analyses@0cd67c0`](https://github.com/tfojo1/jheem_analyses/commit/0cd67c0)
@@ -230,6 +259,9 @@ are known.
 - Which active HIV-model queries and syphilis-build dependencies constitute a
   useful consumer compatibility check? Structural equality alone cannot answer
   whether a changed value remains scientifically suitable.
+- What explains the August 26 to August 31 adult-population changes for
+  `MA.1`, `MA.4`, and `MA.5`, and which snapshot should serve as the reviewed
+  value baseline for subsequent candidates?
 - How much margin will the selective section-to-final merge retain as inputs
   grow? The first successful hosted trial used about 7.8 GiB peak resident
   memory and 23 minutes for the merge; repeat sizing after material input or

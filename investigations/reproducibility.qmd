@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-09-22
+date-modified: 2026-09-23
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -138,7 +138,11 @@ The dated calibration failure, sampler seed boundary, staged runtime work, curre
 model-test workflow, and bounded operational pilot are documented in the
 [SHIELD Calibration and Container Pilot](shield-container-pilot.qmd) investigation.
 A container can be piloted for dependable execution before claiming
-same-seed deterministic replay.
+same-seed deterministic replay. The 2026-09-23 current-source recorded-run
+branch establishes only prepared-input preflight and a local input receipt;
+it does not yet port the earlier staged automatic run history, simset linkage,
+or archival path. The operational pilot and the broader provenance sequence
+therefore remain distinct increments.
 
 ## The current filesystem contract
 
