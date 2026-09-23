@@ -1,0 +1,240 @@
+---
+title: "Manager Selection and Compatibility"
+date: 2026-09-22
+---
+
+**Status:** Evidence-backed investigation. Exact syphilis-manager release
+selection and digest verification are implemented; a model-consumer check before
+promotion is proposed but not merged. The current SHIELD adapter's behavior
+against all published manager versions has not been rerun in this pass.
+
+**Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
+the July 27, August 26, and September 9 syphilis-manager releases, and the
+`codex/shield-manager-compatibility-gates` review branch at
+`2bac62bcfcdeda516c92a45f1bf249c6a75d5505`. Release and workflow status
+was rechecked on 2026-09-22. The dated probes below identify their own
+source and artifact revisions.
+
+The wider [reproducibility investigation](reproducibility.qmd) defines why
+resolved manager identities belong in a run record. The
+[HIV surveillance-manager CI investigation](hiv-surveillance-manager-ci.qmd)
+covers assembling a different manager from released sections and auxiliary
+inputs.
+
+## Manager compatibility and rollback
+
+A manager can be internally consistent while being incompatible with a model that
+consumes it. Changing an outcome's dimensions, source labels, ontology, location
+coverage, or available years can leave the manager structurally valid but break a
+specification, likelihood, or functional form. Manager validation and
+model-manager compatibility are therefore separate gates.
+
+### Reproduced SHIELD incompatibility (2026-09-09)
+
+SHIELD names its runtime syphilis artifact `SURVEILLANCE.MANAGER`. The bootstrap
+loads `syphilis.manager.rdata`, not `surveillance.manager.rdata`, into that global.
+The model's MSM initialization then makes two `proportion.msm` requests that
+include `sex = "male"`: an Emory county request and a BRFSS state/race request.
+
+At the time the failure was reported, `syphilis-manager-latest` resolved to
+[`syphilis-manager-v2026.08.26`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.08.26),
+SHA-256
+`45446020e779f67ad58a0238ba8c505973dd9c8258d25caf84dd863033e2ace9`.
+Its attached structural report already identifies the relevant regression:
+Emory `proportion.msm` lost `year__location__sex`, while totals-level
+`year__location` was added. Three sex-stratified BRFSS shapes also lost most state
+locations. The build used the explicit force-update path and was subsequently
+promoted to the approved alias.
+
+A read-only probe against the exact release artifact reproduced the application
+failure. For Baltimore, the current SHIELD Emory request returns `NULL`, which
+triggers `Cannot get best-guess msm proportions`. The same request against
+[`syphilis-manager-v2026.07.27`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.07.27),
+SHA-256
+`0d9bf7e02d58554a52844bdce85e0506c99aec27ac578d052f6b4d2eb89339eb`,
+returns the expected seven-county array. That earlier artifact's structural
+report records 687 checks passed and no failures.
+
+Later on September 9,
+[`jheem_analyses@cdd7ed7`](https://github.com/tfojo1/jheem_analyses/commit/cdd7ed7c84c045bba7ce9ffe9c5152e0debef8d9)
+deliberately removed `sex` from the remaining national BRFSS
+`proportion.msm` records and manager writes. The construction still calculates
+MSM numerators over male-only denominators; totals-level describes the stored
+dimensions, not an all-sex denominator. The resulting
+[`syphilis-manager-v2026.09.09`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.09.09),
+SHA-256
+`c3e3c983d6b4e9c961f735f9c59d45483bd63cfa715cf75c1fae874da2d129e6`,
+was promoted to `syphilis-manager-latest`. Its attached report records 698
+structural checks passed, 3 failed, and 3 warnings; the failures are the three
+removed BRFSS sex-stratified shapes. The structural baseline was force-updated
+after the report was generated.
+
+The September artifact returns `NULL` for both existing SHIELD MSM requests and
+returns the expected Emory and BRFSS arrays when `sex` is omitted. A code-only
+adjustment that removes `sex` completed `get.best.guess.msm.proportions()` for all
+ten routine SHIELD MSAs. A second prototype prefers that totals-level query but
+falls back to the earlier `sex = "male"` shape; it completed the same calculation
+against the July, August, and September artifacts. The census population request
+for 2010 also succeeded against the published August 26 census manager.
+
+The reported 2010 issue is therefore not an independently reproduced missing-data
+failure in this code path: `DEFAULT.POPULATION.YEARS` selects the census year,
+while the two `proportion.msm` requests average their available years. This probe
+establishes the totals-level shape as the intended current manager contract. It
+does not establish numerical scientific equivalence: the derived SHIELD MSM
+proportions are identical between the August and September artifacts for all ten
+MSAs but differ materially from July. For Baltimore, the three race-level values
+change from approximately `0.0493`, `0.0431`, and `0.0518` in July to `0.0331`,
+`0.0316`, and `0.0366` in August and September. Those value changes remain a
+domain-review question rather than an automatic consequence of accepting the new
+storage dimensions.
+
+The full compatibility path was then exercised locally with `jheem2@90b68ad`
+installed as package version `1.12.3.9000`. For each manager version, a clean
+runtime initializer loaded explicit manager artifacts into a temporary output
+root; a Baltimore engine compiled, one deterministic median-parameter simulation
+completed, and the stage-0 and stage-1 likelihood sets instantiated and returned
+6 and 12 finite values respectively. This establishes executable compatibility
+of the July, August, and September releases with the prototype adapter. The exact
+September artifact also passed the ten-MSA contract and full Baltimore smoke. This
+does not select backward compatibility policy, certify changed estimates, or
+replace calibration-scale validation.
+
+The immediate rollback contract should allow an operator or run configuration to
+select a dated manager release and asset. A convenient alias may identify the
+currently approved manager, but it must resolve to a dated tag and digest before
+execution and that resolved identity must enter the run record. Failure of a new
+candidate should not silently substitute an older manager: either the approved
+alias remains on the prior version or the operator explicitly selects a known
+version.
+
+The corresponding promotion path is:
+
+1. publish an immutable candidate manager with its digest;
+2. run manager-internal structural validation;
+3. run compatibility checks for the supported active models against pinned code
+   revisions;
+4. publish a readable compatibility result; and
+5. move the approved alias only when the required checks pass.
+
+The first model check can be deliberately narrow: resolve the candidate syphilis
+manager and its surveillance/census dependencies by immutable tag and digest,
+build the SHIELD specification and likelihoods, and evaluate a small calibration
+path for a representative location in a temporary output root. Fast assertions
+should first exercise the two MSM pulls, their ontology mappings, 2010 census
+coverage, and all supported SHIELD locations. The end-to-end Baltimore smoke then
+catches assumptions not visible in the schema contract. This gates promotion of
+an approved manager alias, not ordinary source commits or the creation of
+candidates. A forced structural-baseline update may still publish a review
+candidate, but it must not by itself make that candidate eligible for promotion.
+
+### Implementation status (2026-09-09)
+
+Exact per-run syphilis-manager selection is implemented on `jheem_analyses`
+`master` in
+[`87fdd1d9`](https://github.com/tfojo1/jheem_analyses/commit/87fdd1d9604915536f399b3152464fafb3a62732).
+Omitting the new final `release.tag` argument retains the existing promoted-manager
+path. Supplying an immutable tag resolves that exact GitHub Release asset and its
+published SHA-256 digest, materializes it under a version-specific cache path,
+verifies the digest before loading, and attaches the resolved identity to the
+loaded manager. Offline loading requires an already cached artifact whose metadata
+and digest both validate; it does not contact GitHub or substitute another version.
+The focused regression script covers legacy positional dispatch, exact and alias
+resolution, concurrent cache access, corruption detection and repair, and digest
+mismatch rejection. An end-to-end check also loaded the July 27 historical manager
+through the public entry point and reloaded it offline.
+
+SHIELD's bootstrap gained an opt-in selector in
+[`11b70172`](https://github.com/tfojo1/jheem_analyses/commit/11b701726d74608e3c5fc2c20c3c9cb6d1bc6ac1).
+A run can set `SYPHILIS.MANAGER.RELEASE.TAG` before sourcing the bootstrap or use
+`JHEEM_SYPHILIS_MANAGER_TAG` in a batch environment. With neither set, SHIELD
+continues to load the promoted manager. If a manager is already present, the
+bootstrap preserves it and warns rather than pretending the requested selector
+took effect. Repository-local usage documentation lives beside the loader in
+`commoncode/data-manager-releases.md`.
+
+At the September 9 review, an unmerged `jheem_analyses` proposal was four
+upstream commits behind `master` and separated the work into two commits.
+Commit
+[`2bac62bc`](https://github.com/tfojo1/jheem_analyses/commit/2bac62bcfcdeda516c92a45f1bf249c6a75d5505),
+published on the `codex/shield-manager-compatibility-gates` review branch,
+implements the non-mutating runtime initializer, ten-MSA
+contract, Baltimore smoke, and build/promotion gates described above without
+changing the two SHIELD manager queries. The tests use the installed package
+path; CI installs the exact requested `jheem2` revision. The promotion proposal
+also requires explicit immutable census-manager and `jheem2` inputs and refuses
+to move the approved alias unless the candidate's structural report and both
+SHIELD checks pass. With unchanged application behavior, that commit rejects the
+August 26 artifact in all ten MSAs and accepts July 27; July also passes the full
+Baltimore smoke.
+
+The review branch has not been merged or exercised in GitHub Actions. A second,
+local-only commit (`42d5f1f5`) layers the dual-shape SHIELD adapter described
+above on top. It was deliberately not published while the data and model changes
+were being coordinated. The data-side change establishes the totals-level current
+contract, but whether current SHIELD should also load July-era managers remains a
+separate compatibility-policy choice. The shipped release selector supplies the
+rollback mechanism without making that choice automatically or changing the
+current MSM queries.
+
+### Current SHIELD adapter (2026-09-22)
+
+The preceding paragraphs describe the September 9 review state, not the current
+application. In
+[`8c3021ce`](https://github.com/tfojo1/jheem_analyses/commit/8c3021ce5e65dd3d6bcc8a8fbee44524f6da78f2),
+SHIELD's `get.best.guess.msm.proportions()` gained both query shapes: it omits
+`sex` for managers whose `last.modified.date` is on or after August 1, 2026,
+and keeps `sex = "male"` for earlier managers. The current
+[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R#L14-L20)
+explicitly selects `syphilis-manager-v2026.07.27` in source. The selector still
+provides the technical rollback mechanism, but SHIELD's active default is not
+the promoted alias at this revision.
+
+The date threshold is an implementation proxy for schema, not an explicit
+schema/version contract. This pass verified the code path, not the behavior of
+that current adapter against all three published manager artifacts or the
+ten-MSA/Baltimore probes. Those checks should be rerun before making the
+unmerged promotion gate authoritative. The earlier value differences remain a
+separate scientific interpretation question.
+
+## Syphilis CI as a partial template
+
+The [hosted merge workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/build-syphilis-manager.yml)
+has completed builds from released section, raw-data, and dependency assets and
+publishes versioned candidates. The separate
+[promotion workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/promote-syphilis-manager.yml)
+moves the friendly `latest` alias after an operator selects a version.
+This build–candidate–promotion separation is useful for other managers.
+
+The present gate is narrower than model compatibility. Structural validation
+checks the manager's shape, while the computed data-quality report is
+informational. Additions can update the spec automatically, a manual override
+can regenerate it after failures, and promotion checks that the chosen release
+exists rather than running an active-model smoke. Default section, raw-data,
+and dependency tags are moving `latest` aliases; the `jheem2` default is
+`dev`. The [section workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/build-syphilis-sections.yml)
+had no recorded runs at this audit, and its optional handoff refers to a
+self-hosted workflow file absent from the verified revision. These are reasons
+to copy the boundary, not the workflow verbatim.
+
+For the requested HIV increment, raw-to-section automation of syphilis is not
+a prerequisite. A candidate assembled from identified prebuilt sections can
+have a valid, explicit section-to-final claim while upstream lineage remains
+a separately stated limitation. This refines the earlier sequencing in
+[D-015](../decisions.qmd); see the later working
+[decision](../decisions.qmd#d-020).
+
+## Next verification and destination
+
+Rerun the current SHIELD adapter against the July, August, and September
+manager artifacts, including the ten-MSA and Baltimore checks. Resolve the
+scientific interpretation of changed MSM values separately from accepting a
+storage shape. Then reconcile the promotion-gate proposal with current SHIELD
+before allowing it to move an approved alias. Keep an explicit older release
+available for rollback without silently changing an in-progress run's input.
+
+Loader code and tests, compatibility smokes, release metadata, and build or
+promotion workflows belong in `jheem_analyses`. This page remains a
+cross-repository investigation until the supported manager-consumer contract
+and promotion gate live beside that code, have run through CI, and have a
+documented operator path.

@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-09-17
+date-modified: 2026-09-22
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,26 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-020 · Bounded manager CI and container pilot — refines D-015 and D-019 {#d-020}
+
+*2026-09-22. Working decision; not a team-adopted program.* The requested HIV
+surveillance-manager CI and SHIELD container are two bounded operational
+deliverables. A section-to-final HIV build from identified, immutable released
+inputs may proceed before syphilis raw-to-section automation is complete; its
+claim must explicitly exclude raw-to-final provenance. This refines D-015's
+earlier sequencing while retaining syphilis's useful build → versioned candidate
+→ separate promotion boundary. GitHub-hosted execution is the first HIV merge
+target because relevant auxiliary inputs already have release assets, subject
+to verifying the exact workbooks and measuring Linux resource use. Promotion
+still requires reviewed manager and active-consumer checks.
+
+A SHIELD container may likewise be piloted for pinned execution, truthful
+failure reporting, and non-destructive checkpoint continuation before the
+sampler's explicit seed contract is corrected. D-019's seed and replay work
+remains necessary before claiming deterministic reproduction of a calibration.
+Neither bounded deliverable selects scientific likelihood behavior or adopts a
+universal workflow for the ecosystem.
 
 ## D-019 · SHIELD calibration is the first reproducibility reference workflow — **Working decision**
 

@@ -1,13 +1,14 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
+date-modified: 2026-09-22
 ---
 
 **Status:** Evidence-backed investigation. The HIV surveillance manager has no
-dedicated build-and-validation workflow at the verified revision. This page
-describes the existing build boundary and a candidate first CI increment; it is
-not an implementation decision or a claim that raw data can already be rebuilt
-in hosted CI.
+dedicated build-and-validation workflow at the verified revision. Released
+auxiliary inputs make a GitHub-hosted section-to-final candidate build plausible,
+but it has not run there. This is not a raw-to-final automation claim or an
+implementation decision.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
 on 2026-09-22. A read-only shared-storage inventory on the same date confirmed
@@ -69,6 +70,32 @@ runner or execute the candidate build on a suitably isolated runner with
 read-only access to them. The five small section files are not sufficient by
 themselves.
 
+### Release-backed input path (verified 2026-09-22)
+
+The existing
+[`data-raw-v2026.08.24` release](https://github.com/tfojo1/jheem_analyses/releases/tag/data-raw-v2026.08.24)
+has a `data-raw-movement.tar.gz` asset (1,230,758,289 bytes; published SHA-256
+`e5db3f70c21d95962a2d4a1725a8ee5e55aede975573ce3642fa36d8229acbfe`).
+The [uploader](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/scripts/upload_raw_data.R)
+archives the entire `data_raw/movement/` subdirectory. The NAS workbooks
+observed in the local merge predate that release, but their bytes have not yet
+been checked against the published archive. The
+[`data-managers-v2026.08.26` release](https://github.com/tfojo1/jheem_analyses/releases/tag/data-managers-v2026.08.26)
+contains a 108,009,923-byte census manager whose published SHA-256
+(`f8c710684ccfdfb3a5c8e6f4b54caf0417ab67afb82b89ab3259c4b8151e1053`)
+matches the NAS copy used in the successful local merge. The five observed HIV
+section files still need an identified, immutable release or equivalent artifact
+set; their different modification dates should not be presented as source lineage.
+
+Because `jheem_analyses` is public, GitHub's current standard Ubuntu runner has
+16 GB RAM and 14 GB storage and is free for public-repository workflows
+([runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)).
+The observed local process reached about 10 GiB of resident memory, but a macOS
+measurement cannot certify the Linux peak or disk footprint. A selective
+hosted-runner trial is therefore the first sizing check. Downloading every raw
+archive in the syphilis workflow would add unrelated data and should not be
+copied into this job.
+
 An isolated local merge probe on 2026-09-22, using the observed sections,
 census manager, and migration inputs with shared writes disabled, completed a
 candidate build. It surfaced a runtime dependency: installed `locations`
@@ -105,21 +132,27 @@ that snapshots an existing manager rather than building one in CI.
 
 The first CI claim should be narrow: **given an identified set of five section
 artifacts and identified auxiliary inputs, assemble an HIV surveillance manager
-in an isolated workspace, check it, and publish a versioned candidate**.
+on a GitHub-hosted runner, check it, and publish a versioned candidate**.
 Promotion to the active manager remains a separate action.
 
-1. Inventory and preserve the exact five section inputs and merge-time
-   dependencies, with sizes and digests. Use immutable release tags or another
-   stable artifact handoff; a mutable shared-drive path is not a build identity.
+1. Verify the released movement archive against the 24 workbooks used in the
+   local build, then preserve the exact five section inputs with sizes, digests,
+   and an honest account of their known or unknown upstream lineage. Use
+   immutable release tags; a mutable shared-drive path or `latest` alias is
+   not a build identity.
 2. Parameterize only input/output locations in the merge path and its sourced
    scripts. Keep data transformations unchanged, and prevent a CI run from
-   overwriting the shared-drive current or archive copies.
+   overwriting the shared-drive current or archive copies. Pin the analyses,
+   `jheem2`, `locations`, and runtime versions used by the job.
 3. Build a reviewed structural baseline from a known-good surveillance manager.
    Validate outcome/source/ontology/stratification shape and selected values or
    queries used by active consumers. The syphilis build is one downstream
    consumer of the HIV surveillance manager; a suitable compatibility probe
    should cover that boundary as well as an active HIV-model use where feasible.
-4. Produce a candidate artifact, build log, input identities, validation report,
+4. Download only the required release assets to a temporary workspace on a
+   hosted runner. Measure peak memory, disk, download/install time, and merge
+   duration on Linux before deciding that the standard runner is sufficient.
+   Produce a candidate artifact, build log, input identities, validation report,
    and output digest. Review the candidate before any `latest` alias or shared
    current-file update.
 
@@ -139,11 +172,11 @@ are known.
 - Which active HIV-model queries and syphilis-build dependencies constitute a
   useful consumer compatibility check? Structural equality alone cannot answer
   whether a changed value remains scientifically suitable.
-- What runner and storage are appropriate for later raw-to-section jobs, given
-  the current shared-drive paths and data volumes? If an existing team server
-  hosts a runner with NAS access, which trusted branches or manually approved
-  jobs may use it? A runner with shared-drive access should not execute
-  arbitrary, unreviewed changes from contributors.
+- Does the selective section-to-final merge fit the public repository's standard
+  hosted runner with sufficient memory, disk, and time margin? If not, what
+  measured stage should be optimized or isolated before considering a larger or
+  self-hosted runner? A runner with NAS access must not execute arbitrary,
+  unreviewed changes from contributors.
 
 Build scripts, fixtures, validation specs, and runnable instructions should
 graduate into `jheem_analyses` with the workflow they protect. Retire this

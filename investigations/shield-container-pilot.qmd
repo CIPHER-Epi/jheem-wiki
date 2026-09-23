@@ -1,0 +1,182 @@
+---
+title: "SHIELD Calibration and Container Pilot"
+date: 2026-09-22
+---
+
+**Status:** Evidence-backed investigation. A bounded operational container pilot
+is proposed, not yet run on a team server. The staged container canary does not
+establish deterministic replay or production-scale assembly.
+
+**Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
+the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
+`jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31`, and
+`bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75` on
+2026-09-22. The September 17 checkpoint below records the earlier source
+investigation; the September 22 update distinguishes newer application behavior.
+
+The cross-repository [reproducibility contract](reproducibility.qmd) describes
+source, data, environment, run records, and storage beyond SHIELD. Manager
+selection and promotion checks are detailed in
+[Manager Selection and Compatibility](manager-compatibility.qmd).
+
+## SHIELD reference-workflow checkpoint (2026-09-17)
+
+A failed SHIELD stage-3 calibration was initially presented as a shared-storage
+interruption because the launcher caught any `run.calibration()` error, replaced
+its message with a write-interruption explanation, and retried. Direct checks of
+the output roots and lower-level file operations did not reproduce a storage
+failure. The same calibration then failed against a local output root, and the
+failure was traced to a likelihood term with a zero denominator. This incident
+joins three reproducibility questions that were previously being treated
+separately: whether the real error remains observable, whether the scientific
+inputs and environment can be reconstructed, and whether an interrupted
+calibration follows the same stochastic path when resumed.
+
+Current `jheem_analyses` `master` changes the future-growth ratio denominator from
+`start` to `start + 1` in
+[`55bd55c6`](https://github.com/tfojo1/jheem_analyses/commit/55bd55c6975c09063c8c62828bf52f6a9da31eb3).
+That makes the immediate division finite but also defines scientific behavior for
+zero and small baselines. Engineering work may reproduce the edge cases, preserve
+the original error, and add characterization or non-finite-likelihood checks. A
+different formula, pseudocount, exclusion rule, or expected value should not be
+selected through an infrastructure change; the intended behavior needs explicit
+scientific review before it becomes a regression assertion.
+
+The sampler currently lacks a coherent explicit-seed contract. At
+[`bayesian.simulations@4e0d13e`](https://github.com/tfojo1/bayesian.simulations/commit/4e0d13e85857396bb0e6e2ac1d244775b2145f75):
+
+- `create.mcmc.cache(seed = ...)` validates `seed` but does not pass it to
+  `do.create.cache()`, whose signature requires it;
+- `do.create.chain.cache.controls(..., seed)` accepts the value but generates
+  per-chunk seeds with `runif()` from ambient R state rather than from that
+  argument; and
+- `jheem2::set.up.calibration()` exposes no seed argument, so current application
+  setup relies on prior global RNG state.
+
+Per-chunk seed storage was introduced in
+[`b170ce7`](https://github.com/tfojo1/bayesian.simulations/commit/b170ce7e5c265fa7540a2847a8bc894fa797dd2c),
+after the `34840866` revision currently installed by the container base lock.
+Consequently, the existing container canary proves that a partial cache can be
+continued to its remaining chunk; it does not prove that an explicit seed controls
+the schedule, that interrupted and uninterrupted traces are equal, or that the
+same request is reproducible across the team's servers.
+
+Two review branches establish useful but incomplete evidence:
+
+- [`jheem_analyses@accd7b64`](https://github.com/tfojo1/jheem_analyses/commit/accd7b64dd0ab1f38f5ccad993a643c3c7544de2)
+  stages automatic provenance, immutable source declarations, read-only manager
+  caches, truthful failure/resume behavior, and a bounded SHIELD canary. It split
+  from `master` at `ea111ea3` and must be reconciled with later application work,
+  including the likelihood change, before it can be proposed for ordinary use.
+- [`jheem-containers@262c733`](https://github.com/ncsizemore/jheem-containers/commit/262c733d5c71ec4aa480dde4131880002105dc31)
+  builds a pinned SHIELD image and has completed a real-engine preflight plus a
+  forced-interruption/resume canary in CI. The image still pins the older sampler,
+  the canary is a tiny stage-0 path rather than the failing stage-3 path, and no
+  uninterrupted-versus-resumed or cross-server equality comparison is made.
+
+These are validation assets, not yet evidence that SHIELD calibration is
+reproducible. The 2026-09-17 sequence prioritized a small, executable sampler
+seed demonstration and focused correction before SHIELD branch reconciliation.
+The narrower container-pilot sequence is updated below; it does not remove the
+sampler prerequisite for a deterministic-replay claim.
+
+## SHIELD container-pilot update (2026-09-22)
+
+The team is evaluating containerization of SHIELD as an operational deliverable.
+That question is narrower than whether an earlier calibration can be reproduced
+exactly. The [existing container spike](https://github.com/ncsizemore/jheem-containers/blob/262c733d5c71ec4aa480dde4131880002105dc31/workloads/shield/README.md)
+builds a pinned image and exercises a small real-engine calibration through a
+forced interruption and checkpoint continuation in hosted CI. It has not yet
+run on a team server, completed production-sized simset assembly there, or
+compared uninterrupted and resumed scientific traces.
+
+The spike pins `jheem_analyses@accd7b64`, while the verified active branch is
+`master@16eff985`, 71 commits ahead of the common base with the staged
+`codex/shield-source-readiness` branch. The active SHIELD tree now has a
+[three-tier model-test workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml)
+and a [calibration launcher](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_calib_setup_and_run.R)
+that prints the original error and stops on many non-storage failures. Those
+changes supersede parts of the staged branch, but ordinary setup still defaults
+to clearing state and uses a fixed `set.seed(0)` before calibration. The
+[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R)
+still requires a sibling `jheem2` checkout on `dev` in source mode, and can pull
+when interactive. A recorded container run needs an explicit, non-mutating
+source and run-mode contract; the older branch supplies candidate pieces, not a
+merge-ready replacement for the current application.
+
+The new test workflow is useful characterization, not yet a dependable green
+gate: the [2026-09-22 run](https://github.com/tfojo1/jheem_analyses/actions/runs/35762822719)
+failed in the static tier and skipped the later tiers. Its
+[README](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md)
+says some tests intentionally fail to preserve open code-review findings. At
+least one static test asserts that the `+1` growth-penalty denominator should be
+removed and suggests alternatives; because that is a scientific formula choice,
+it should be resolved by the scientific owners, not silently changed as
+container-readiness work.
+
+A clean local checkout of the same pinned analyses commit reproduced 11 static
+assertion failures and 3 static skips. Running the unit-file subset independently
+returned 6 assertion failures, 4 errors, and 4 skips; missing test-bootstrap
+inputs account for some of those errors and skips, so these counts are not a
+model-defect count. The workflow chains static → unit → integration with `needs`,
+which means a persistently red static tier prevents the model tier from running.
+Conversely, the
+[test runner](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/run_tests.R#L94-L114)
+exits nonzero only for failed assertions or errors: if required bootstrap stages
+are unavailable and tests only skip, a tier can appear green without exercising
+its intended model path. Before using this workflow as a container acceptance
+gate, separate open diagnostic findings from must-pass checks and make missing
+required integration prerequisites fail explicitly. Text matching for a local
+`set.seed()` call and the growth-penalty formula test are examples that need a
+contract-level or domain-reviewed assertion rather than an automatic code edit.
+
+A bounded pilot should therefore establish, in order: a pinned image built
+against current SHIELD source; identified manager assets and source revisions;
+non-destructive fresh/resume behavior; successful real-engine preflight and a
+small checkpoint continuation; then a retained run on a team server that checks
+mounts, file ownership, error logs, runtime, and output inspection. Full assembly
+and repeated-run comparisons are separate acceptance steps. The sampler seed
+finding remains recorded and should be tested before claiming deterministic
+replay or equivalent results across servers.
+
+## Proposed next sequence
+
+1. Reconcile the staged SHIELD runtime with current `jheem_analyses` rather
+   than merging the old branch wholesale. Preserve the current launcher's error
+   reporting; establish explicit recorded inputs, non-mutating source loading,
+   and a non-destructive resume default. Do not change likelihood formulas as
+   container plumbing.
+2. Build a pinned image against that current source and run a small,
+   must-pass operational smoke. Missing required bootstrap inputs should fail
+   the smoke rather than count as skips. Keep the new model suite's open
+   diagnostic and scientific findings visible but separate from this gate.
+3. Run the bounded image on one team server, retain its input identities,
+   logs, checkpoints, and output, and verify interruption/continuation, mounts,
+   file ownership, and operator recovery. Production-scale assembly is a
+   subsequent acceptance step.
+
+A stronger same-seed replay claim follows a separate sampler increment:
+demonstrate the present seed-forwarding behavior, correct it with focused
+same-seed/different-seed and uninterrupted/resumed tests in
+`bayesian.simulations`, then compare traces under one image digest and across
+the servers. The operational pilot need not wait for that claim, but must not
+imply it.
+
+## Open questions and destination
+
+- Which bounded SHIELD calibration is representative enough for the server
+  pilot without turning it into a full production run?
+- Which current model checks can become a reliable must-pass operational
+  subset, and which assertions require scientific review?
+- Which source, manager, image, and state/output identities should the pilot
+  retain for another operator to inspect?
+- After same-image equality is tested, which scientific outputs and tolerances
+  define equivalence across materially different numerical platforms?
+- What scientific behavior is intended for the future-growth penalty when its
+  baseline is zero or near zero?
+
+The runtime adapter, container build, tests, and server runbook belong in
+`jheem_analyses` and `jheem-containers`. This page remains the cross-repository
+investigation until a retained server pilot uses a current pinned image and the
+owning repositories document its supported path; then it can be reduced to
+the durable contract and result.

@@ -20,12 +20,18 @@ website:
         text: Application Anatomy
       - href: roadmap.qmd
         text: Modernization Roadmap
-      - href: investigations/calibration-observability.qmd
-        text: Calibration Observability Investigation
-      - href: investigations/reproducibility.qmd
-        text: Analysis Reproducibility Investigation
-      - href: investigations/hiv-surveillance-manager-ci.qmd
-        text: HIV Surveillance Manager CI Investigation
+      - section: Investigations
+        contents:
+          - href: investigations/reproducibility.qmd
+            text: Analysis Reproducibility
+          - href: investigations/shield-container-pilot.qmd
+            text: SHIELD Container Pilot
+          - href: investigations/manager-compatibility.qmd
+            text: Manager Compatibility
+          - href: investigations/hiv-surveillance-manager-ci.qmd
+            text: HIV Surveillance Manager CI
+          - href: investigations/calibration-observability.qmd
+            text: Calibration Observability
       - href: decisions.qmd
         text: Decision Log
       - href: toy-fixture-spike.qmd

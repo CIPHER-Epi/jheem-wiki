@@ -4,13 +4,12 @@ date: 2026-09-02
 date-modified: 2026-09-22
 ---
 
-**Status:** Evidence-backed investigation. SHIELD calibration is the first
-reference workflow for evaluating reproducibility. Exact per-run syphilis-manager
-selection is available on `master`; provenance, immutable runtime setup, and a
-container canary exist on review branches but have not entered the team's ordinary
-calibration path. A bounded container pilot can proceed before deterministic
-replay is established. A same-seed replay claim still depends on defining and
-verifying the sampler's seed and resume contract.
+**Status:** Evidence-backed cross-repository investigation of the run and
+provenance contract. SHIELD calibration is the first reference workflow, but
+its [container pilot](shield-container-pilot.qmd) and
+[manager compatibility](manager-compatibility.qmd) have their own focused
+investigations. Provenance and immutable runtime setup are staged on review
+branches, not used through the team's ordinary calibration path.
 
 **Verified against:** `jheem_analyses@c97c8af33447758a1c5c50416812d516092be867`
 and its `codex/shield-source-readiness` review branch at
@@ -27,7 +26,8 @@ Manager-distribution behavior was additionally reverified at
 `jheem_analyses@53f6e5d3073433888e1a63bbb00a8522f4c0f033` and against the
 repository's published releases on 2026-09-09. The current calibration, staging,
 sampler, and container claims were reverified from source on 2026-09-17.
-The SHIELD integration changes below were rechecked against
+The SHIELD integration changes described in the companion investigations were
+rechecked against
 `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3` and
 `jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31` on
 2026-09-22; the older pinned analysis remains a dated snapshot.
@@ -132,125 +132,13 @@ the pinned `jheem_analyses` commit. The implementation claims are grounded in:
   `jheem2:R/FILE_MANAGER_file_manager.R:64-323`; and
 - performance-oriented run metadata: `jheem2:R/JHEEM_run_metadata.R:3-153`.
 
-## SHIELD reference-workflow checkpoint (2026-09-17)
+## SHIELD reference workflow and container pilot
 
-A failed SHIELD stage-3 calibration was initially presented as a shared-storage
-interruption because the launcher caught any `run.calibration()` error, replaced
-its message with a write-interruption explanation, and retried. Direct checks of
-the output roots and lower-level file operations did not reproduce a storage
-failure. The same calibration then failed against a local output root, and the
-failure was traced to a likelihood term with a zero denominator. This incident
-joins three reproducibility questions that were previously being treated
-separately: whether the real error remains observable, whether the scientific
-inputs and environment can be reconstructed, and whether an interrupted
-calibration follows the same stochastic path when resumed.
-
-Current `jheem_analyses` `master` changes the future-growth ratio denominator from
-`start` to `start + 1` in
-[`55bd55c6`](https://github.com/tfojo1/jheem_analyses/commit/55bd55c6975c09063c8c62828bf52f6a9da31eb3).
-That makes the immediate division finite but also defines scientific behavior for
-zero and small baselines. Engineering work may reproduce the edge cases, preserve
-the original error, and add characterization or non-finite-likelihood checks. A
-different formula, pseudocount, exclusion rule, or expected value should not be
-selected through an infrastructure change; the intended behavior needs explicit
-scientific review before it becomes a regression assertion.
-
-The sampler currently lacks a coherent explicit-seed contract. At
-[`bayesian.simulations@4e0d13e`](https://github.com/tfojo1/bayesian.simulations/commit/4e0d13e85857396bb0e6e2ac1d244775b2145f75):
-
-- `create.mcmc.cache(seed = ...)` validates `seed` but does not pass it to
-  `do.create.cache()`, whose signature requires it;
-- `do.create.chain.cache.controls(..., seed)` accepts the value but generates
-  per-chunk seeds with `runif()` from ambient R state rather than from that
-  argument; and
-- `jheem2::set.up.calibration()` exposes no seed argument, so current application
-  setup relies on prior global RNG state.
-
-Per-chunk seed storage was introduced in
-[`b170ce7`](https://github.com/tfojo1/bayesian.simulations/commit/b170ce7e5c265fa7540a2847a8bc894fa797dd2c),
-after the `34840866` revision currently installed by the container base lock.
-Consequently, the existing container canary proves that a partial cache can be
-continued to its remaining chunk; it does not prove that an explicit seed controls
-the schedule, that interrupted and uninterrupted traces are equal, or that the
-same request is reproducible across the team's servers.
-
-Two review branches establish useful but incomplete evidence:
-
-- [`jheem_analyses@accd7b64`](https://github.com/tfojo1/jheem_analyses/commit/accd7b64dd0ab1f38f5ccad993a643c3c7544de2)
-  stages automatic provenance, immutable source declarations, read-only manager
-  caches, truthful failure/resume behavior, and a bounded SHIELD canary. It split
-  from `master` at `ea111ea3` and must be reconciled with later application work,
-  including the likelihood change, before it can be proposed for ordinary use.
-- [`jheem-containers@262c733`](https://github.com/ncsizemore/jheem-containers/commit/262c733d5c71ec4aa480dde4131880002105dc31)
-  builds a pinned SHIELD image and has completed a real-engine preflight plus a
-  forced-interruption/resume canary in CI. The image still pins the older sampler,
-  the canary is a tiny stage-0 path rather than the failing stage-3 path, and no
-  uninterrupted-versus-resumed or cross-server equality comparison is made.
-
-These are validation assets, not yet evidence that SHIELD calibration is
-reproducible. The 2026-09-17 sequence prioritized a small, executable sampler
-seed demonstration and focused correction before SHIELD branch reconciliation.
-The narrower container-pilot sequence is updated below; it does not remove the
-sampler prerequisite for a deterministic-replay claim.
-
-## SHIELD container-pilot update (2026-09-22)
-
-The team is evaluating containerization of SHIELD as an operational deliverable.
-That question is narrower than whether an earlier calibration can be reproduced
-exactly. The [existing container spike](https://github.com/ncsizemore/jheem-containers/blob/262c733d5c71ec4aa480dde4131880002105dc31/workloads/shield/README.md)
-builds a pinned image and exercises a small real-engine calibration through a
-forced interruption and checkpoint continuation in hosted CI. It has not yet
-run on a team server, completed production-sized simset assembly there, or
-compared uninterrupted and resumed scientific traces.
-
-The spike pins `jheem_analyses@accd7b64`, while the verified active branch is
-`master@16eff985`, 71 commits ahead of the common base with the staged
-`codex/shield-source-readiness` branch. The active SHIELD tree now has a
-[three-tier model-test workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml)
-and a [calibration launcher](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_calib_setup_and_run.R)
-that prints the original error and stops on many non-storage failures. Those
-changes supersede parts of the staged branch, but ordinary setup still defaults
-to clearing state and uses a fixed `set.seed(0)` before calibration. The
-[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R)
-still requires a sibling `jheem2` checkout on `dev` in source mode, and can pull
-when interactive. A recorded container run needs an explicit, non-mutating
-source and run-mode contract; the older branch supplies candidate pieces, not a
-merge-ready replacement for the current application.
-
-The new test workflow is useful characterization, not yet a dependable green
-gate: the [2026-09-22 run](https://github.com/tfojo1/jheem_analyses/actions/runs/35762822719)
-failed in the static tier and skipped the later tiers. Its
-[README](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md)
-says some tests intentionally fail to preserve open code-review findings. At
-least one static test asserts that the `+1` growth-penalty denominator should be
-removed and suggests alternatives; because that is a scientific formula choice,
-it should be resolved by the scientific owners, not silently changed as
-container-readiness work.
-
-A clean local checkout of the same pinned analyses commit reproduced 11 static
-assertion failures and 3 static skips. Running the unit-file subset independently
-returned 6 assertion failures, 4 errors, and 4 skips; missing test-bootstrap
-inputs account for some of those errors and skips, so these counts are not a
-model-defect count. The workflow chains static → unit → integration with `needs`,
-which means a persistently red static tier prevents the model tier from running.
-Conversely, the
-[test runner](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/run_tests.R#L94-L114)
-exits nonzero only for failed assertions or errors: if required bootstrap stages
-are unavailable and tests only skip, a tier can appear green without exercising
-its intended model path. Before using this workflow as a container acceptance
-gate, separate open diagnostic findings from must-pass checks and make missing
-required integration prerequisites fail explicitly. Text matching for a local
-`set.seed()` call and the growth-penalty formula test are examples that need a
-contract-level or domain-reviewed assertion rather than an automatic code edit.
-
-A bounded pilot should therefore establish, in order: a pinned image built
-against current SHIELD source; identified manager assets and source revisions;
-non-destructive fresh/resume behavior; successful real-engine preflight and a
-small checkpoint continuation; then a retained run on a team server that checks
-mounts, file ownership, error logs, runtime, and output inspection. Full assembly
-and repeated-run comparisons are separate acceptance steps. The sampler seed
-finding remains recorded and should be tested before claiming deterministic
-replay or equivalent results across servers.
+The dated calibration failure, sampler seed boundary, staged runtime work, current
+model-test workflow, and bounded operational pilot are documented in the
+[SHIELD Calibration and Container Pilot](shield-container-pilot.qmd) investigation.
+A container can be piloted for dependable execution before claiming
+same-seed deterministic replay.
 
 ## The current filesystem contract
 
@@ -332,18 +220,12 @@ The ecosystem already contains most of the patterns needed:
   dependencies, not manager builds protected by active-model compatibility
   checks, and the ordinary runtime loader does not expose them as selectable
   versions.
-- The syphilis-manager workflow declares major inputs, builds in CI, performs
-  structural validation, and publishes a versioned release. It is the closest
-  upstream exemplar, but its approval boundary is incomplete. A manual override
-  can convert structural regressions into a new baseline, and the separate
-  promotion workflow verifies only that the requested release exists. The current
-  approved alias consequently points to a build whose attached report says
-  `FAIL (17 failures, 10 warnings)`. Its defaults are also floating aliases
-  (`*-latest`, `jheem2_ref=dev`), and its release notes record the requested
-  `jheem2` ref rather than the resolved engine commit. The optional handoff from
-  the section-build workflow still dispatches the filename of a workflow now
-  stored under `.github/workflows-archived/`, so that path also needs repair and
-  an end-to-end verification before it is treated as automatic.
+- The syphilis-manager workflow builds from released inputs, structurally
+  validates, publishes versioned candidates, and promotes a chosen version
+  separately. It is the closest upstream exemplar, but its structural gate
+  and promotion check do not establish active-model compatibility. Its current
+  limitations and the manager-selection path are detailed in
+  [Manager Selection and Compatibility](manager-compatibility.qmd).
 - The delivery platform pins package refs and promotes tested container digests.
 - The calibration cache already has an identity and checkpoint structure, and the
   proposed observability sidecar can share a run identity rather than invent a
@@ -353,181 +235,13 @@ The ecosystem already contains most of the patterns needed:
 
 This is therefore a consolidation problem, not a greenfield platform project.
 
-## Manager compatibility and rollback
+## Manager selection and compatibility
 
-A manager can be internally consistent while being incompatible with a model that
-consumes it. Changing an outcome's dimensions, source labels, ontology, location
-coverage, or available years can leave the manager structurally valid but break a
-specification, likelihood, or functional form. Manager validation and
-model-manager compatibility are therefore separate gates.
-
-### Reproduced SHIELD incompatibility (2026-09-09)
-
-SHIELD names its runtime syphilis artifact `SURVEILLANCE.MANAGER`. The bootstrap
-loads `syphilis.manager.rdata`, not `surveillance.manager.rdata`, into that global.
-The model's MSM initialization then makes two `proportion.msm` requests that
-include `sex = "male"`: an Emory county request and a BRFSS state/race request.
-
-At the time the failure was reported, `syphilis-manager-latest` resolved to
-[`syphilis-manager-v2026.08.26`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.08.26),
-SHA-256
-`45446020e779f67ad58a0238ba8c505973dd9c8258d25caf84dd863033e2ace9`.
-Its attached structural report already identifies the relevant regression:
-Emory `proportion.msm` lost `year__location__sex`, while totals-level
-`year__location` was added. Three sex-stratified BRFSS shapes also lost most state
-locations. The build used the explicit force-update path and was subsequently
-promoted to the approved alias.
-
-A read-only probe against the exact release artifact reproduced the application
-failure. For Baltimore, the current SHIELD Emory request returns `NULL`, which
-triggers `Cannot get best-guess msm proportions`. The same request against
-[`syphilis-manager-v2026.07.27`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.07.27),
-SHA-256
-`0d9bf7e02d58554a52844bdce85e0506c99aec27ac578d052f6b4d2eb89339eb`,
-returns the expected seven-county array. That earlier artifact's structural
-report records 687 checks passed and no failures.
-
-Later on September 9,
-[`jheem_analyses@cdd7ed7`](https://github.com/tfojo1/jheem_analyses/commit/cdd7ed7c84c045bba7ce9ffe9c5152e0debef8d9)
-deliberately removed `sex` from the remaining national BRFSS
-`proportion.msm` records and manager writes. The construction still calculates
-MSM numerators over male-only denominators; totals-level describes the stored
-dimensions, not an all-sex denominator. The resulting
-[`syphilis-manager-v2026.09.09`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.09.09),
-SHA-256
-`c3e3c983d6b4e9c961f735f9c59d45483bd63cfa715cf75c1fae874da2d129e6`,
-was promoted to `syphilis-manager-latest`. Its attached report records 698
-structural checks passed, 3 failed, and 3 warnings; the failures are the three
-removed BRFSS sex-stratified shapes. The structural baseline was force-updated
-after the report was generated.
-
-The September artifact returns `NULL` for both existing SHIELD MSM requests and
-returns the expected Emory and BRFSS arrays when `sex` is omitted. A code-only
-adjustment that removes `sex` completed `get.best.guess.msm.proportions()` for all
-ten routine SHIELD MSAs. A second prototype prefers that totals-level query but
-falls back to the earlier `sex = "male"` shape; it completed the same calculation
-against the July, August, and September artifacts. The census population request
-for 2010 also succeeded against the published August 26 census manager.
-
-The reported 2010 issue is therefore not an independently reproduced missing-data
-failure in this code path: `DEFAULT.POPULATION.YEARS` selects the census year,
-while the two `proportion.msm` requests average their available years. This probe
-establishes the totals-level shape as the intended current manager contract. It
-does not establish numerical scientific equivalence: the derived SHIELD MSM
-proportions are identical between the August and September artifacts for all ten
-MSAs but differ materially from July. For Baltimore, the three race-level values
-change from approximately `0.0493`, `0.0431`, and `0.0518` in July to `0.0331`,
-`0.0316`, and `0.0366` in August and September. Those value changes remain a
-domain-review question rather than an automatic consequence of accepting the new
-storage dimensions.
-
-The full compatibility path was then exercised locally with `jheem2@90b68ad`
-installed as package version `1.12.3.9000`. For each manager version, a clean
-runtime initializer loaded explicit manager artifacts into a temporary output
-root; a Baltimore engine compiled, one deterministic median-parameter simulation
-completed, and the stage-0 and stage-1 likelihood sets instantiated and returned
-6 and 12 finite values respectively. This establishes executable compatibility
-of the July, August, and September releases with the prototype adapter. The exact
-September artifact also passed the ten-MSA contract and full Baltimore smoke. This
-does not select backward compatibility policy, certify changed estimates, or
-replace calibration-scale validation.
-
-The immediate rollback contract should allow an operator or run configuration to
-select a dated manager release and asset. A convenient alias may identify the
-currently approved manager, but it must resolve to a dated tag and digest before
-execution and that resolved identity must enter the run record. Failure of a new
-candidate should not silently substitute an older manager: either the approved
-alias remains on the prior version or the operator explicitly selects a known
-version.
-
-The corresponding promotion path is:
-
-1. publish an immutable candidate manager with its digest;
-2. run manager-internal structural validation;
-3. run compatibility checks for the supported active models against pinned code
-   revisions;
-4. publish a readable compatibility result; and
-5. move the approved alias only when the required checks pass.
-
-The first model check can be deliberately narrow: resolve the candidate syphilis
-manager and its surveillance/census dependencies by immutable tag and digest,
-build the SHIELD specification and likelihoods, and evaluate a small calibration
-path for a representative location in a temporary output root. Fast assertions
-should first exercise the two MSM pulls, their ontology mappings, 2010 census
-coverage, and all supported SHIELD locations. The end-to-end Baltimore smoke then
-catches assumptions not visible in the schema contract. This gates promotion of
-an approved manager alias, not ordinary source commits or the creation of
-candidates. A forced structural-baseline update may still publish a review
-candidate, but it must not by itself make that candidate eligible for promotion.
-
-### Implementation status (2026-09-09)
-
-Exact per-run syphilis-manager selection is implemented on `jheem_analyses`
-`master` in
-[`87fdd1d9`](https://github.com/tfojo1/jheem_analyses/commit/87fdd1d9604915536f399b3152464fafb3a62732).
-Omitting the new final `release.tag` argument retains the existing promoted-manager
-path. Supplying an immutable tag resolves that exact GitHub Release asset and its
-published SHA-256 digest, materializes it under a version-specific cache path,
-verifies the digest before loading, and attaches the resolved identity to the
-loaded manager. Offline loading requires an already cached artifact whose metadata
-and digest both validate; it does not contact GitHub or substitute another version.
-The focused regression script covers legacy positional dispatch, exact and alias
-resolution, concurrent cache access, corruption detection and repair, and digest
-mismatch rejection. An end-to-end check also loaded the July 27 historical manager
-through the public entry point and reloaded it offline.
-
-SHIELD's bootstrap gained an opt-in selector in
-[`11b70172`](https://github.com/tfojo1/jheem_analyses/commit/11b701726d74608e3c5fc2c20c3c9cb6d1bc6ac1).
-A run can set `SYPHILIS.MANAGER.RELEASE.TAG` before sourcing the bootstrap or use
-`JHEEM_SYPHILIS_MANAGER_TAG` in a batch environment. With neither set, SHIELD
-continues to load the promoted manager. If a manager is already present, the
-bootstrap preserves it and warns rather than pretending the requested selector
-took effect. Repository-local usage documentation lives beside the loader in
-`commoncode/data-manager-releases.md`.
-
-An unmerged `jheem_analyses` proposal, now based four upstream commits behind
-`master`, separates the work into two commits.
-Commit
-[`2bac62bc`](https://github.com/tfojo1/jheem_analyses/commit/2bac62bcfcdeda516c92a45f1bf249c6a75d5505),
-published on the `codex/shield-manager-compatibility-gates` review branch,
-implements the non-mutating runtime initializer, ten-MSA
-contract, Baltimore smoke, and build/promotion gates described above without
-changing the two SHIELD manager queries. The tests use the installed package
-path; CI installs the exact requested `jheem2` revision. The promotion proposal
-also requires explicit immutable census-manager and `jheem2` inputs and refuses
-to move the approved alias unless the candidate's structural report and both
-SHIELD checks pass. With unchanged application behavior, that commit rejects the
-August 26 artifact in all ten MSAs and accepts July 27; July also passes the full
-Baltimore smoke.
-
-The review branch has not been merged or exercised in GitHub Actions. A second,
-local-only commit (`42d5f1f5`) layers the dual-shape SHIELD adapter described
-above on top. It was deliberately not published while the data and model changes
-were being coordinated. Upstream now establishes the totals-level current
-contract, but whether current SHIELD should also load July-era managers remains a
-separate compatibility-policy choice. The shipped release selector supplies the
-rollback mechanism without making that choice automatically or changing the
-current MSM queries.
-
-### Current SHIELD adapter (2026-09-22)
-
-The preceding paragraphs describe the September 9 review state, not the current
-application. In
-[`8c3021ce`](https://github.com/tfojo1/jheem_analyses/commit/8c3021ce5e65dd3d6bcc8a8fbee44524f6da78f2),
-SHIELD's `get.best.guess.msm.proportions()` gained both query shapes: it omits
-`sex` for managers whose `last.modified.date` is on or after August 1, 2026,
-and keeps `sex = "male"` for earlier managers. The current
-[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R#L14-L20)
-explicitly selects `syphilis-manager-v2026.07.27` in source. The selector still
-provides the technical rollback mechanism, but SHIELD's active default is not
-the promoted alias at this revision.
-
-The date threshold is an implementation proxy for schema, not an explicit
-schema/version contract. This pass verified the code path, not the behavior of
-that current adapter against all three published manager artifacts or the
-ten-MSA/Baltimore probes. Those checks should be rerun before making the
-unmerged promotion gate authoritative. The earlier value differences remain a
-separate scientific interpretation question.
+A structurally valid manager can still break an active model. The reproduced
+syphilis-manager incompatibility, exact-version rollback path, SHIELD adapter,
+and proposed consumer gate are documented in
+[Manager Selection and Compatibility](manager-compatibility.qmd). Exact release
+selection is implemented; the promotion compatibility gate remains a proposal.
 
 ## Proposed target contract
 
@@ -641,58 +355,13 @@ An adapter can initially map the existing `cached/<friendly-name>` files into
 these roles. That makes current work visible without pretending that every legacy
 file already has provenance.
 
-## Recommended sequence
+## Run-record adoption sequence
 
-### Current SHIELD reproducibility slice
-
-Work should proceed in dependency order and produce a small, reviewable artifact
-at each boundary:
-
-1. **Make failures truthful without selecting science.** Preserve the original
-   calibration condition and add a diagnostic probe covering ordinary, zero, and
-   near-zero likelihood inputs. Do not alter likelihood formulas or encode the
-   `start + 1` policy as expected behavior until the scientific owners confirm it.
-2. **Establish the sampler seed contract.** Publish a short explanation and an
-   executable reproducer showing whether the same explicit setup seed yields the
-   same starting state and chunk-seed schedule. Correct the forwarding and local
-   RNG behavior in `bayesian.simulations`, with focused same-seed, different-seed,
-   uninterrupted/resumed, and changed-process-RNG tests.
-3. **Reconcile the SHIELD readiness branch.** Rebase or reconstruct its bounded
-   runtime, provenance, and canary commits on current `jheem_analyses` `master`.
-   Likelihood behavior changes remain outside this infrastructure slice.
-4. **Run the deterministic comparison.** Under one recorded Linux image digest,
-   compare a fresh uninterrupted run with an interrupted/resumed run, then repeat
-   one seed on each server. Compare the stored seed schedule, starting parameters,
-   initial likelihood, sample and likelihood traces, accept/reject decisions, and
-   final chain state; exclude timestamps and runtime measurements.
-5. **Pilot the supported path.** Run a bounded production-representative SHIELD
-   calibration against explicit managers and roots, inspect the human-readable
-   run summary, and verify that the artifact can lead back to its receipt.
-6. **Add durable archival.** Retain local-first capture and add one serialized,
-   retryable writer to the selected near-zero-cost shared sink. Promotion or
-   publication can eventually require an archived receipt; exploratory science
-   should not fail because the archive is temporarily unavailable.
-
-Calibration monitoring follows this slice. It uses the same checkpoint and seed
-boundary, so implementing stop decisions first would make both systems harder to
-reason about.
-
-### Immediate model-manager compatibility slice
-
-Before building the general provenance layer, use the current compatibility need
-to establish its first real input contract:
-
-1. reproduce the active-model failure against the candidate manager and verify a
-   dated prior release as a rollback candidate;
-2. extend the loader to select a dated release and verify its asset digest without
-   requiring manual file replacement;
-3. add the narrow SHIELD compatibility smoke in a temporary root; and
-4. require that smoke before moving the approved manager alias.
-
-This slice provides an immediate recovery path and produces the first concrete
-manager identity and compatibility result for the run record. Full build
-automation for surveillance and census managers can follow; it is not a
-prerequisite for making the existing snapshots selectable and testable.
+The immediate [SHIELD operational pilot](shield-container-pilot.qmd) and
+[HIV surveillance-manager candidate build](hiv-surveillance-manager-ci.qmd)
+are bounded deliverables. The sequence below concerns the broader run-record
+and provenance contract; its first pieces are staged on a review branch, not
+used by the team's ordinary calibration path.
 
 ### 1. Define the minimal record and build a read-only collector
 
@@ -748,11 +417,11 @@ configuration and seed capture, split-process/concurrent event writes, adjacent
 receipts, digest-led recovery including multiple origins for byte-identical
 artifacts, no-op opt-out, and survival of the primary record when the local spool
 is unavailable. It also confirms that the artifact bytes are not modified. This
-is not yet a production observation. Before a server trial, the branch must be
-reconciled with current `master` and the sampler seed contract must be made
-testable; otherwise the receipt would faithfully record an environment whose
-stochastic replay semantics remain undefined. The local spool is an outbox; no
-automatic shared archiver exists yet.
+is not yet a production observation. Before an operational server pilot, the
+branch must be reconciled with current `master`; the sampler seed contract must
+also be made testable before a deterministic-replay claim. Otherwise the receipt
+would faithfully record an environment whose stochastic replay semantics remain
+undefined. The local spool is an outbox; no automatic shared archiver exists yet.
 
 ### 3. Separate resolution from mutation
 
@@ -815,13 +484,6 @@ receipt on a machine without JHEEM loaded.
 
 ## Open questions
 
-- Which bounded SHIELD run is representative enough for the first same-image,
-  cross-server comparison without incurring a full calibration cost?
-- After exact equality is tested within one Linux image and architecture, which
-  scientific outputs and tolerances define equivalence across materially different
-  numerical platforms?
-- What scientific behavior is intended for the future-growth penalty when its
-  baseline is zero or near zero?
 - Can all required scientific inputs be stored as release assets, or do some need
   an access-controlled artifact registry with the same identity/checksum contract?
 - Which package and system dependencies differ across active applications enough
