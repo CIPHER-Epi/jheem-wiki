@@ -11,9 +11,9 @@ versioned release snapshot. A corrected hosted trial completed a candidate and
 passed a provisional structural comparison. Review traced its two reported
 additions and found value changes that the structural check does not report.
 A subsequent direct active-baseline comparison and ten focused consumer checks
-passed locally. Their workflow integration is on a review branch, not `master`;
-the fixed active-baseline release and hosted verification remain pending.
-No candidate release, full-model validation, or promotion has occurred.
+passed locally and in hosted verification. The unchanged baseline and a verified
+candidate are retained as releases. The revised workflow is on a review branch,
+not `master`; no full-model validation or promotion has occurred.
 This is not raw-to-final automation.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
@@ -143,8 +143,9 @@ August 26. The hosted candidate's `data` object is identical to the earlier
 local merge candidate, whose 408 nested data arrays matched the active August
 31 manager. This is useful reproduction evidence, but the trial did not compare
 selected scientific values against an independently reviewed expectation or run
-an active-model consumer. The candidate remains a short-lived Actions artifact;
-no current manager or `latest` alias was changed.
+an active-model consumer. That trial retained only a short-lived Actions artifact;
+the later verified candidate release is described below. No current manager or
+`latest` alias was changed.
 
 ### Baseline-delta review (2026-09-23)
 
@@ -185,7 +186,8 @@ historical changes open without treating the baseline as scientific approval.
 [`jheem_analyses@7c13479`](https://github.com/tfojo1/jheem_analyses/commit/7c13479)
 adds a report-only value-delta diagnostic on the isolated
 [`codex/hiv-value-delta` branch](https://github.com/tfojo1/jheem_analyses/tree/codex/hiv-value-delta).
-It is not on `master` and has not run in hosted CI. Applied locally to the
+It is not on `master`; its subsequent hosted verification is described below.
+Applied locally to the
 downloaded trial candidate and the exact released August 26 baseline, it
 reported the 408/15/10,810 comparison above. Its focused tests and the
 existing merge-path check passed. The diagnostic does not turn these changes
@@ -201,8 +203,10 @@ matches the current and archived copies observed on shared storage on September
 22. Compared directly with the hosted candidate, it has identical stored data
 across all 408 arrays, equivalent compared metadata, and no differences in 603
 structural checks. Build timestamps and runtime methods are excluded from the
-metadata comparison. This identifies a regression baseline without claiming to
-recover its original build environment.
+metadata comparison. The unchanged bytes are now retained in the
+[August 31 regression-baseline release](https://github.com/tfojo1/jheem_analyses/releases/tag/hiv-surveillance-baseline-2026.08.31),
+whose uploaded asset digest matches the observed file. This identifies a
+regression baseline without claiming to recover its original build environment.
 
 [`jheem_analyses@c8c978cd`](https://github.com/tfojo1/jheem_analyses/commit/c8c978cd)
 adds this comparison and a
@@ -213,20 +217,48 @@ prevalence query, and the actual syphilis adult-population transfer into an
 empty manager with the released syphilis source registry. The probe loads the
 application's ontology mappings and checks previously available finite values
 remain accessible; it does not launch calibrations or rebuild the full syphilis
-manager. Local verification used installed `jheem2` 1.12.3.9000; the revised
-hosted workflow pins a source commit but has not yet run.
+manager. Local verification used installed `jheem2` 1.12.3.9000; these checks
+were subsequently repeated with the pinned hosted environment described below.
+
+R and the `jheem2`/`locations` revisions are fixed by the workflow. Other R
+dependencies are installed from the configured package repository without a
+lockfile; the build retains their observed versions in `session_info.txt`.
+This is identified build evidence, not a fully frozen dependency environment.
 
 The branch also allows a new dated five-section snapshot and manifest digest
 to be supplied, preserves active and historical comparisons separately, and
 produces a readable `CANDIDATE.md` summary. Its
-[operator documentation](https://github.com/tfojo1/jheem_analyses/blob/c8c978cd/data_processing/hiv.surveillance.manager/README.md)
-describes the section handoff and candidate-retention boundary. Activation
-requires publishing the identified active-baseline snapshot and completing a
-hosted verification run. Candidate publication remains separate from promotion.
+[operator documentation](https://github.com/tfojo1/jheem_analyses/blob/43a6a820/data_processing/hiv.surveillance.manager/README.md)
+describes the section handoff and candidate-retention boundary. The identified
+active-baseline snapshot and verified candidate are published. Integration into
+the default branch and application loading remains separate from candidate
+publication; promotion is also separate.
 The HIV default loader still uses its existing distribution route; the
 syphilis `release.tag` selector does not yet select HIV releases. Directly
 loading a retained candidate for inspection is not an integrated application
 rollback path.
+
+### Hosted verification and retained candidate (2026-09-24 UTC)
+
+[Run 35952637832](https://github.com/tfojo1/jheem_analyses/actions/runs/35952637832)
+completed successfully at `jheem_analyses@c8c978cd`, using the pinned
+`jheem2@90b68ad`, `locations@2481fc44`, R 4.4.2, and checksummed release inputs.
+Against the active baseline, all 603 structural checks passed without warnings,
+all 408 data arrays matched, and the compared metadata was equivalent. All ten
+focused consumer checks passed, including transfer of 26 population arrays.
+The historical August 26 comparison still reports two coverage warnings and
+10,810 changed cells across 15 differing arrays; those changes are not unique
+to the candidate. The merge took 20:36 at 8,175,092 KiB peak resident memory
+(about 7.8 GiB), with 82 GiB disk free afterward.
+
+The [verified candidate prerelease](https://github.com/tfojo1/jheem_analyses/releases/tag/hiv-surveillance-candidate-2026.09.24-r35952637832)
+retains the final manager, readable summary, input identities, checksum
+manifest, and an evidence archive containing reports, logs, runtime/resource
+information, and the successful run identity. The final manager's SHA-256 is
+`983992e44dc64f22649096c5f526ef0823f5a2d56ffb43cd8a5acd096d55830e`;
+the downloaded bytes and published GitHub asset digest agree. It is a
+non-latest prerelease, not an active-manager promotion. Neither the data
+distribution defaults nor any latest alias was changed.
 
 ### Merge-path isolation (2026-09-23)
 
@@ -288,9 +320,10 @@ Promotion to the active manager remains a separate action.
    path or `latest` alias, identifies the build input.
 2. Pin the analyses, `jheem2`, `locations`, and runtime versions used by the
    hosted job. Keep the now-isolated merge transformations unchanged.
-3. Build a reviewed structural baseline from a known-good surveillance manager.
-   Validate outcome/source/ontology/stratification shape and selected values or
-   queries used by active consumers. The syphilis build is one downstream
+3. Build regression checks from an identified active surveillance manager,
+   retaining a separate historical comparison for review. Validate
+   outcome/source/ontology/stratification shape and selected values or queries
+   used by active consumers. The syphilis build is one downstream
    consumer of the HIV surveillance manager; a suitable compatibility probe
    should cover that boundary as well as an active HIV-model use where feasible.
 4. Download only the required release assets to a temporary workspace on a
@@ -316,12 +349,13 @@ report, and select or return to a retained manager version.
   source revisions and build lineage remain unproved.
 - Which merge-time `source()` calls read additional inputs or write intermediate
   files? The top-level script audit is not a complete side-effect audit.
-- Which active HIV-model queries and syphilis-build dependencies constitute a
-  useful consumer compatibility check? Structural equality alone cannot answer
-  whether a changed value remains scientifically suitable.
+- Beyond the initial Ryan White/EHE queries and syphilis population-transfer
+  probe, which full-model scenarios should gate promotion? Structural equality
+  and accessible values alone do not establish scientific suitability.
 - What explains the August 26 to August 31 adult-population changes for
-  `MA.1`, `MA.4`, and `MA.5`, and which snapshot should serve as the reviewed
-  value baseline for subsequent candidates?
+  `MA.1`, `MA.4`, and `MA.5`, and are the active values scientifically intended?
+  The identified active snapshot is the regression reference, not an answer to
+  that scientific question.
 - How much margin will the selective section-to-final merge retain as inputs
   grow? The first successful hosted trial used about 7.8 GiB peak resident
   memory and 23 minutes for the merge; repeat sizing after material input or
