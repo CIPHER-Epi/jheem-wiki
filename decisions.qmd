@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-09-22
+date-modified: 2026-09-23
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,23 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-021 · Distinguish workflow reproduction from scientific review {#d-021}
+
+*2026-09-23. Working decision; refines D-020.* Manager automation is first
+evaluated against an identified artifact already used by the existing workflow.
+Retain its digest and a reproducible comparison of data, relevant metadata, and
+consumer behavior. Differences from an older historical baseline remain visible
+and may warrant scientific investigation, but do not automatically prevent
+publishing a candidate that reproduces the active workflow. A regression
+baseline records existing behavior; it does not certify scientific correctness.
+Unexplained differences introduced by the candidate require review. Promotion
+to the active manager remains separate from publishing a candidate for review.
+
+The first HIV workflow covers section-to-final assembly. Changes to upstream
+processing are exercised only when rebuilt section inputs are supplied. The
+operator instructions must state this boundary and explain how updated sections
+enter a candidate build.
 
 ## D-020 · Bounded manager CI and container pilot — refines D-015 and D-019 {#d-020}
 

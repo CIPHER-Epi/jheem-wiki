@@ -75,9 +75,17 @@ failure reporting, checkpoint continuation, and inspectable outputs. This does
 not yet establish uninterrupted/resumed equality or production-scale assembly.
 For HIV surveillance, the first manual hosted merge has established a candidate
 and measured its Linux resource use. The two structural warnings are traced;
-next explain the Massachusetts value changes and establish an active-consumer
-validation baseline, then publish a versioned candidate with
-its inputs, logs, and validation report before any promotion. The released
+a direct active-manager comparison and ten focused consumer checks now pass
+locally. Their workflow integration is on `codex/hiv-value-delta`, not
+`master`. Next publish the identified regression-baseline snapshot, verify the
+revised hosted workflow, and retain a versioned candidate with its inputs, logs,
+and validation report. Historical Massachusetts
+value differences remain a separate scientific question unless evidence shows
+a candidate-specific regression ([D-021](decisions.qmd#d-021)). Document the
+section handoff, report, version selection, and rollback as one operator path;
+the current branch documents candidate inspection but does not yet connect HIV
+releases to the application loader.
+Promotion remains a separate step. The released
 sections, verified movement archive, and pinned census manager form a declared
 section-to-final input set, but their upstream raw-to-section lineage remains
 open. The seed/resume evidence and scientific likelihood questions remain open;

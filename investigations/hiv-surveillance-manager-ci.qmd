@@ -10,7 +10,10 @@ check, and a manual-only hosted section-to-final trial workflow are on
 versioned release snapshot. A corrected hosted trial completed a candidate and
 passed a provisional structural comparison. Review traced its two reported
 additions and found value changes that the structural check does not report.
-No active-consumer validation, candidate release, or promotion has occurred.
+A subsequent direct active-baseline comparison and ten focused consumer checks
+passed locally. Their workflow integration is on a review branch, not `master`;
+the fixed active-baseline release and hosted verification remain pending.
+No candidate release, full-model validation, or promotion has occurred.
 This is not raw-to-final automation.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`
@@ -171,6 +174,14 @@ have not been established in this review. The two structural warnings must not
 be used as a complete summary of baseline-to-candidate data differences;
 promotion still needs a reviewed value/consumer check.
 
+For the automation acceptance check, use an identified copy of the active
+manager as the regression baseline and retain the comparison evidence
+([D-021](../decisions.qmd#d-021)). The August 26 comparison remains useful
+historical evidence. Its Massachusetts differences do not by themselves block
+publishing a candidate that reproduces the active workflow. Preserve and review
+any candidate-specific differences, and keep the scientific interpretation of
+historical changes open without treating the baseline as scientific approval.
+
 [`jheem_analyses@7c13479`](https://github.com/tfojo1/jheem_analyses/commit/7c13479)
 adds a report-only value-delta diagnostic on the isolated
 [`codex/hiv-value-delta` branch](https://github.com/tfojo1/jheem_analyses/tree/codex/hiv-value-delta).
@@ -180,6 +191,42 @@ reported the 408/15/10,810 comparison above. Its focused tests and the
 existing merge-path check passed. The diagnostic does not turn these changes
 into an automated scientific acceptance rule or change the structural pass
 result.
+
+### Active-baseline and consumer checks (2026-09-23)
+
+The August 31 manager was recovered through the repository's configured
+distribution link without shared-storage access. Its SHA-256,
+`93756ce23467b10f593924145a0a648a87a935a48b5bfe016b129852fa7e6ab2`,
+matches the current and archived copies observed on shared storage on September
+22. Compared directly with the hosted candidate, it has identical stored data
+across all 408 arrays, equivalent compared metadata, and no differences in 603
+structural checks. Build timestamps and runtime methods are excluded from the
+metadata comparison. This identifies a regression baseline without claiming to
+recover its original build environment.
+
+[`jheem_analyses@c8c978cd`](https://github.com/tfojo1/jheem_analyses/commit/c8c978cd)
+adds this comparison and a
+[focused consumer probe](https://github.com/tfojo1/jheem_analyses/blob/c8c978cd/data_processing/hiv.surveillance.manager/check_consumers.R)
+on `codex/hiv-value-delta`. All ten checks passed locally: four Ryan White
+year-series queries each for Texas and California, EHE's national stratified
+prevalence query, and the actual syphilis adult-population transfer into an
+empty manager with the released syphilis source registry. The probe loads the
+application's ontology mappings and checks previously available finite values
+remain accessible; it does not launch calibrations or rebuild the full syphilis
+manager. Local verification used installed `jheem2` 1.12.3.9000; the revised
+hosted workflow pins a source commit but has not yet run.
+
+The branch also allows a new dated five-section snapshot and manifest digest
+to be supplied, preserves active and historical comparisons separately, and
+produces a readable `CANDIDATE.md` summary. Its
+[operator documentation](https://github.com/tfojo1/jheem_analyses/blob/c8c978cd/data_processing/hiv.surveillance.manager/README.md)
+describes the section handoff and candidate-retention boundary. Activation
+requires publishing the identified active-baseline snapshot and completing a
+hosted verification run. Candidate publication remains separate from promotion.
+The HIV default loader still uses its existing distribution route; the
+syphilis `release.tag` selector does not yet select HIV releases. Directly
+loading a retained candidate for inspection is not an integrated application
+rollback path.
 
 ### Merge-path isolation (2026-09-23)
 
@@ -257,7 +304,10 @@ This would give contributors a repeatable verdict on changes to the merge and
 post-processing stages. It would **not** yet prove that each section can be
 recreated from raw surveillance files in CI. The raw-to-section stages can be
 made portable and automated incrementally after their inputs and runtime costs
-are known.
+are known. A change to an upstream processing script is exercised only after
+its section is rebuilt and supplied to the merge. The supported operator path
+must explain how to supply a newly identified section set, inspect the candidate
+report, and select or return to a retained manager version.
 
 ## Open questions and destination
 
