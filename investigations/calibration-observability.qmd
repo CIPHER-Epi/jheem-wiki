@@ -1,7 +1,7 @@
 ---
 title: "Calibration Observability Investigation"
 date: 2026-08-26
-date-modified: 2026-09-02
+date-modified: 2026-09-27
 ---
 
 **Status:** Evidence-backed investigation; recommendation proposed, not adopted or
@@ -68,7 +68,10 @@ The standard calibration path is:
    (`jheem2:R/CALIBRATION_main.R:13-653`).
 3. Setup creates one cache per
    `root/mcmc_runs/<version>/<location>/<calibration-code>` and one mutable control
-   file per chain (`jheem2:R/FILE_MANAGER_file_manager.R:381-391`).
+   file per chain (`jheem2:R/FILE_MANAGER_file_manager.R:381-391`). *Update
+   2026-09-27:* `jheem2@ccb1f9b` (2026-09-21) reordered this to
+   `<version>/<calibration-code>/<location>`; an inspector should take the
+   layout from `get.calibration.dir()` rather than hard-coding it.
 4. `jheem2::run.calibration()` delegates selected chains to
    `bayesian.simulations::run.mcmc.from.cache()` and attempts to cache a summary
    after the run (`jheem2:R/CALIBRATION_main.R:715-775`).

@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-09-23
+date-modified: 2026-09-27
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,33 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-022 · Manager builds record inputs and gate removals at promotion — refines D-004 and D-021 {#d-022}
+
+*2026-09-27. Working decision; implemented for HIV surveillance.* The syphilis
+pipeline established the build → versioned release → separate promotion
+boundary (D-004). Its builds, however, record moving inputs such as
+`data-raw-latest` and `dev` rather than the versions they resolved to, and its
+spec-based gate commits an updated spec to `master` on additive changes and
+requires a force flag for intentional removals. The baseline therefore moves
+when a build runs, whether or not that build is promoted.
+
+Decision: a manager build lets the operator choose its inputs (sections, raw
+data, dependencies, engine ref), with `latest`/`dev` defaults. It verifies each
+download against its published digest and records the exact version, digest,
+and commit of every input in the release. Its regression baseline is the
+currently promoted manager, so the baseline moves only on promotion, and a build
+never modifies the repository. Merge errors and failed consumer checks fail the
+build. Structural removals don't: they mark the release for review, and
+promotion requires explicit confirmation. Applications load the promoted
+manager through the GitHub Releases loader, and can pin a specific build.
+
+Rationale: reproducibility comes from recording what was used, not from
+restricting what can be chosen. Placing the removal decision at promotion keeps
+review where the human decision already happens. HIV surveillance adopts this
+first; the syphilis pipeline should align after the HIV path has been used by
+its maintainers, as one change. D-021's distinction between reproducing active
+behavior and scientific review still applies.
 
 ## D-021 · Distinguish workflow reproduction from scientific review {#d-021}
 

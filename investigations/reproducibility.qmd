@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-09-23
+date-modified: 2026-09-27
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -84,7 +84,7 @@ boundary, and outputs can be checked against an explicit scientific tolerance.
 | Engine identity | The committed switch selects source mode. The shared bootstrap sources the sibling `../jheem2`; the SHIELD bootstrap first pulls `jheem_analyses`, then synchronizes the sibling engine to the moving `dev` branch and can hard-reset it before sourcing. Package setup installs GitHub repositories without refs when packages are missing. | The code that executes can change at launch time. A script commit alone does not identify the engine or support-package source. |
 | R environment | No repository `DESCRIPTION`, `renv.lock`, or equivalent dependency lock declares the analysis environment. The RStudio project leaves workspace restore, workspace save, and history at their defaults. | Package versions and restored objects can vary between machines and sessions. |
 | Paths | The local workspace convention is a `jheem/` directory with sibling repositories under `code/` and scientific storage under `files/`. From the expected `code/jheem_analyses` working directory, the default storage root is `../../files`; on other machines it is inferred as `Q:`, `/Volumes/jheem$`, or `/mnt/jheem_nas_share` from path existence and a short hostname list. Many scripts bypass this root with working-directory-relative or platform-specific paths; 147 R, R Markdown, or Markdown files contain an absolute platform path. | The same source expression can resolve to different inputs or output roots, and changing the launch directory can change the meaning of a relative path. |
-| Data managers | Six manager names are cataloged in a tracked serialized metadata file. Five currently fall through to mutable OneDrive links validated by object creation/modified timestamps. Syphilis follows a GitHub `latest` release alias by default, but now also accepts an explicit release tag: the loader resolves the release asset and published SHA-256 digest, stores it separately by version, verifies it before loading, and exposes the resolution on the loaded manager. Separate `data-managers-v*` releases already preserve surveillance and census manager snapshots with published SHA-256 digests, but the runtime loader does not yet route those other managers to the releases. | Syphilis runs can select and identify a known manager without changing the team default. A staged provenance path captures that resolved identity; ordinary runs do not yet persist it in a durable receipt. Other manager inputs still resolve as “current enough.” |
+| Data managers | Six manager names are cataloged in a tracked serialized metadata file. Four currently fall through to mutable OneDrive links validated by object creation/modified timestamps (HIV surveillance moved to GitHub Releases on 2026-09-27, `jheem_analyses@e1970a72`). Syphilis and HIV surveillance follow GitHub `latest` release aliases by default, but now also accepts an explicit release tag: the loader resolves the release asset and published SHA-256 digest, stores it separately by version, verifies it before loading, and exposes the resolution on the loaded manager. Separate `data-managers-v*` releases already preserve surveillance and census manager snapshots with published SHA-256 digests, but the runtime loader does not yet route those other managers to the releases. | Syphilis runs can select and identify a known manager without changing the team default. A staged provenance path captures that resolved identity; ordinary runs do not yet persist it in a durable receipt. Other manager inputs still resolve as “current enough.” |
 | Smaller derived inputs | Twenty-five serialized objects are tracked under `commoncode/object_for_version_cache/`. Lookup is by model-version label and silently falls back through registered ancestor versions. | Git versions the files, but a run does not state which fallback object it resolved. |
 | Local `cached/` | One sampled checkout contained 17 files totaling 483.6 MiB: shared managers, application-specific managers, a mobility extract, merge intermediates, analysis results, and `.bak` copies. The entire directory is ignored. | “Copy the cached folder” transfers an opaque workspace snapshot, not a declared dependency set. |
 | Tracked session/artifact state | The repository tracks 58 R serialization files totaling 65.3 MiB, including `.RDataTmp` (67.2 MB compressed; its gzip header reports about 1.46 GB uncompressed) and a saved `.Random.seed` in `first_time_setup/.RData`. | Source history contains runtime/session artifacts whose role and regeneration path are not declared. |
@@ -173,7 +173,9 @@ level.
 
 jheem2 defines three standard locations beneath that root:
 
-- `mcmc_runs/<version>/<location>/<calibration-code>/` for calibration state;
+- `mcmc_runs/<version>/<calibration-code>/<location>/` for calibration state
+  (as of `jheem2@ccb1f9b`, 2026-09-21; at the `90b68ad` revision verified
+  above, the order was `<version>/<location>/<calibration-code>`);
 - `mcmc_summaries/<version>/<calibration-code>/` for assembled summaries; and
 - `simulations/<version[-subversion]>/<calibration-code>-<n>/<location>/` for
   simsets.

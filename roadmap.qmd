@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-09-23
+date-modified: 2026-09-27
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -23,14 +23,14 @@ container runtime. Calibration observability and functional-form documentation
 remain open. The broader program is still a working engineering proposal rather
 than a team-adopted plan ([D-017](decisions.qmd)).
 
-### Practice baseline (updated 2026-09-22)
+### Practice baseline (updated 2026-09-27)
 
 Per-repo engineering practice, as verifiable facts. This table is the program's "before" picture and its progress tracker — cells flip as work lands ([D-014](decisions.qmd)).
 
 | Repo | README | Tests | CI | Release discipline |
 |---|---|---|---|---|
 | `jheem2` | — | 100 recursive test/reprex/profiling artifacts; 0 automated gate | — | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
-| `jheem_analyses` | no root README | syphilis structural validation plus SHIELD static/unit/model tests | 3 syphilis-manager workflows plus SHIELD model-test workflow; recent SHIELD runs stop at the failing static tier | n/a (scripts) |
+| `jheem_analyses` | no root README | syphilis structural validation; HIV comparison and consumer checks; SHIELD static/unit/model tests | 3 syphilis-manager and 2 HIV-manager workflows plus SHIELD model-test workflow; recent SHIELD runs stop at the failing static tier | versioned, digest-verified manager releases (syphilis, HIV) |
 | `bayesian.simulations` | — | — | — | — |
 | `distributions` | — | — | — | — |
 | `locations` | ✅ | ✅ | ✅ | — |
@@ -64,7 +64,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 5 | **Functional-form documentation** — inventory and explain the forms used by model specifications, with runnable examples where practical | Queued | Requested bounded documentation work; final API and examples belong in `jheem2`, while an evidence-backed investigation may be staged here ([D-018](decisions.qmd)) |
 | 6 | **Model-manager compatibility and rollback** — select immutable manager versions and gate promotion against active consumers | **Exact selection shipped; compatibility gate pending** (2026-09-22) | The shared syphilis loader supports exact release selection with digest verification, versioned caching, and offline reload (`87fdd1d9`). Current SHIELD source pins the July 27 release and now selects old or totals-level MSM queries using the manager's modification date ([`8c3021ce`](https://github.com/tfojo1/jheem_analyses/commit/8c3021ce5e65dd3d6bcc8a8fbee44524f6da78f2)); this pass did not rerun the earlier ten-MSA and Baltimore compatibility smokes against that adapter. August and September artifacts produced identical derived MSM values in the earlier probe, while July differed and still needs domain interpretation. The unmerged promotion-gate proposal must be reconciled with current SHIELD and tested before enforcement. See [Manager compatibility and rollback](investigations/manager-compatibility.qmd). |
 | 7 | **SHIELD runtime and reproducibility** — establish a bounded container pilot, then test stronger replay claims | **Current-source recorded route on review branch; container canary pending** (2026-09-23) | The [cross-repository investigation](investigations/reproducibility.qmd) finds that `cached/` is only one part of the runtime contract. [`jheem_analyses@5b377e8`](https://github.com/tfojo1/jheem_analyses/commit/5b377e8) adds an opt-in recorded route with explicit input identities and guarded fresh/resume behavior, without likelihood edits; it is not on `master`. `jheem-containers@262c733` still targets the older source branch and modular launcher, so its earlier canary does not validate this route. Reconcile and rerun a current-source hosted canary before a team-server pilot. The sampler seed finding limits deterministic-replay claims, not the initial operational pilot. See the [SHIELD pilot investigation](investigations/shield-container-pilot.qmd). |
-| 8 | **HIV surveillance-manager CI** — assemble and validate a versioned candidate from identified section artifacts | **Verified candidate released; workflow integration pending** (2026-09-24 UTC) | The [verified prerelease](https://github.com/tfojo1/jheem_analyses/releases/tag/hiv-surveillance-candidate-2026.09.24-r35952637832) retains the final manager and build evidence. [Hosted verification](https://github.com/tfojo1/jheem_analyses/actions/runs/35952637832) passed 603 structural checks, matched all 408 arrays and compared metadata against the unchanged active baseline, and passed ten focused consumer checks. The merge took 20:36 at 7.8 GiB peak memory. Historical NSDUH and Massachusetts differences remain visible separately. The revised workflow remains on `codex/hiv-value-delta`; no application loader, active manager, or latest alias changed. This is section-to-final assembly, not raw-to-final automation. See the [HIV CI investigation](investigations/hiv-surveillance-manager-ci.qmd). |
+| 8 | **HIV surveillance-manager CI** — assemble, check, and promote the manager from identified section artifacts | **Shipped; first contributor build pending** (2026-09-27) | Build and promote workflows, a section-upload script, and operator docs are on `jheem_analyses` `master` ([`6085981c`](https://github.com/tfojo1/jheem_analyses/commit/6085981c)), matching the syphilis steps. Builds take chosen inputs with `latest`/`dev` defaults, verify every download against its published digest, record exact versions, and compare against the promoted manager with ten focused consumer checks; structural removals require confirmation at promotion ([D-022](decisions.qmd#d-022)). `SURVEILLANCE.MANAGER` now loads from `hiv-surveillance-manager-latest` ([`e1970a72`](https://github.com/tfojo1/jheem_analyses/commit/e1970a72)); the first promoted version is byte-identical to the previous OneDrive copy, so no data changed. A default-input build reproduced its data exactly (0 of 408 arrays differing; [run 36271434117](https://github.com/tfojo1/jheem_analyses/actions/runs/36271434117)). Section-to-final only. See the [graduated investigation](investigations/hiv-surveillance-manager-ci.qmd). |
 
 ### Next
 
@@ -73,20 +73,11 @@ route, reconcile its entrypoint and fixture with the older container canary, the
 demonstrate a pinned image on a team server with explicit inputs, storage mounts,
 failure reporting, checkpoint continuation, and inspectable outputs. This does
 not yet establish uninterrupted/resumed equality or production-scale assembly.
-For HIV surveillance, the unchanged active baseline and a verified candidate
-are retained as versioned releases. Hosted verification has passed the
-active-manager comparison and ten focused consumer checks. The revised workflow
-is on `codex/hiv-value-delta`, not `master`; next integrate that tested workflow
-and complete the explicit application-loading/version-selection handoff before
-treating it as the routine contributor path. Historical Massachusetts
-value differences remain a separate scientific question unless evidence shows
-a candidate-specific regression ([D-021](decisions.qmd#d-021)). Document the
-section handoff, report, version selection, and rollback as one operator path;
-the current branch documents candidate inspection but does not yet connect HIV
-releases to the application loader.
-Promotion remains a separate step. The released
-sections, verified movement archive, and pinned census manager form a declared
-section-to-final input set, but their upstream raw-to-section lineage remains
+For HIV surveillance (2026-09-27), the build, promotion, and loading path is on
+`master` and documented beside the code; it becomes the routine contributor path
+once the first contributor-run build is promoted. The syphilis pipeline should
+then adopt the same input recording and promotion gate ([D-022](decisions.qmd#d-022)).
+Upstream raw-to-section lineage for the HIV sections remains
 open. The seed/resume evidence and scientific likelihood questions remain open;
 neither should be silently resolved by container or manager-pipeline changes.
 
@@ -109,7 +100,7 @@ neither should be silently resolved by container or manager-pipeline changes.
   sampling when no policy is configured, resumable checkpoint-boundary stopping,
   and deterministic policy decisions before enabling early termination on routine
   runs.
-- **Complete syphilis raw-to-final automation and extend manager CI upstream** — the syphilis raw-data→section stage still runs outside the hosted merge workflow. The first HIV surveillance slice should similarly label its prebuilt-section boundary rather than claiming a full raw-to-final pipeline. Broader census and surveillance-manager graduation remains open ([D-004](decisions.qmd), refined by [D-015](decisions.qmd)).
+- **Complete syphilis raw-to-final automation and extend manager CI upstream** — the syphilis raw-data→section stage still runs outside the hosted merge workflow, and HIV surveillance is automated section-to-final only. Align syphilis with the HIV input-recording and promotion pattern ([D-022](decisions.qmd#d-022)), then bring the census manager, which still loads through OneDrive, onto the same pipeline ([D-004](decisions.qmd), refined by [D-015](decisions.qmd)).
 - **Custom domain for this site** (`docs.jheem.org`) once the team is using it.
 
 ### Later / deferred

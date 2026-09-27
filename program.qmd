@@ -1,6 +1,7 @@
 ---
 title: "The Program"
 date: 2026-09-02
+date-modified: 2026-09-27
 ---
 
 A continuous engineering investment in the JHEEM ecosystem, with one destination:
@@ -96,6 +97,8 @@ durable home, used through the supported path, and guarded against regression.
 - First fixes on jheem2 `dev`: a method-registration bug that had forced a workaround in the interactive app, two engine crashes found by the toy-model spike, repository cleanup.
 - The **toy model** itself — spiked, verified (GO), and already paying for itself in bugs found.
 - This site: the [ecosystem map](ecosystem-map.qmd), a working [specification reference](spec-framework-notes.qmd), the [decision log](decisions.qmd), and the program's running record.
+- **HIV surveillance manager in CI** (2026-09-27): sections are uploaded as checksummed releases, then assembled, checked against the promoted manager, released, and promoted through the same steps as the syphilis manager, and analyses load it from GitHub Releases. Section-to-final only; see the [roadmap](roadmap.qmd).
+- Exact, digest-verified data-manager version selection for analyses (`release.tag`), used by SHIELD to pin its syphilis manager.
 - The templates were already here: the container platform's digest-promotion gates and the syphilis manager's gated CI assembly-and-promotion path are in-house proof of the practices stretches 2 and 3 extend.
 
 ## What it costs

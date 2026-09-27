@@ -1,6 +1,7 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
+date-modified: 2026-09-27
 ---
 
 **Status:** Evidence-backed investigation. Exact syphilis-manager release
@@ -19,7 +20,8 @@ The wider [reproducibility investigation](reproducibility.qmd) defines why
 resolved manager identities belong in a run record. The
 [HIV surveillance-manager CI investigation](hiv-surveillance-manager-ci.qmd)
 covers assembling a different manager from released sections and auxiliary
-inputs.
+inputs. Since 2026-09-27 that manager also loads through the GitHub Releases
+route, so `release.tag` can select HIV builds as well as syphilis ones.
 
 ## Manager compatibility and rollback
 
