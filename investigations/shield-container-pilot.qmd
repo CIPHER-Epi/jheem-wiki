@@ -1,14 +1,15 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-09-23
+date-modified: 2026-09-29
 ---
 
-**Status:** Evidence-backed investigation. A bounded operational container pilot
-is proposed, not yet run on a team server. An opt-in current-source recorded-run
-adapter is available on a review branch, but has not passed a current-source
-container canary or been merged into `master`. The staged container canary does
-not establish deterministic replay or production-scale assembly.
+**Status:** Evidence-backed investigation. A current-source recorded-run
+container passes its hosted checkpoint/resume canary and a bounded pilot on
+one team server (shield2, 2026-09-29), with calibration state on local disk and
+on the NAS. Both the analyses branch and the container change are unmerged
+review branches. The pilot doesn't establish deterministic replay, production-
+scale runtime, or operation by another team member.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -16,6 +17,9 @@ the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993
 `bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75` on
 2026-09-22. The September 17 checkpoint below records the earlier source
 investigation; the September 22 update distinguishes newer application behavior.
+The 2026-09-29 section is verified against `jheem_analyses@e0580817`
+(`codex/shield-recorded-contract`), `jheem2@ccb1f9bf`, and
+`jheem-containers@c3f8c9a` (PR #24).
 
 The cross-repository [reproducibility contract](reproducibility.qmd) describes
 source, data, environment, run records, and storage beyond SHIELD. Manager
@@ -180,20 +184,70 @@ with the current recorded entrypoint, run a must-pass hosted smoke, and only
 then attempt a retained team-server pilot. No deterministic-replay or
 production-calibration claim follows from the source branch alone.
 
+## Container canary and shield2 pilot (2026-09-29)
+
+The recorded-run branch was rebased onto current `master`. Two source changes
+followed. The recorded state check had rebuilt the calibration directory as
+`mcmc_runs/<version>/<location>/<code>`, but `jheem2@ccb1f9b` reorders it to
+`<version>/<code>/<location>`, so `resume` would have looked in the wrong
+place; the check now asks jheem2 for the directory once jheem2 is loaded.
+And a two-iteration `container.smoke.stage0` calibration (the real SHIELD model
+and stage-0 likelihood, two parameters) is registered only when a recorded run
+sets `SHIELD_ENABLE_CONTAINER_SMOKE=true`.
+
+The container build in `jheem-containers` PR #24 was pointed at that source.
+Its hosted CI now builds the recorded image, runs preflight (declared source
+revisions, immutable manager releases, verified manager digests), starts a
+fresh calibration, kills it once the first checkpoint is durable, and resumes
+it in a separate process until the second checkpoint is durable, checking
+that the first was not rewritten. It deliberately stops there. A 2-iteration
+run peaks above the 16 GB hosted runner's memory while building the MCMC
+summary (the kernel killed R at 15.5 GB resident), so summary and assembly are
+server tests. Two test defects surfaced and were fixed: a digest comparison
+that failed on an attribute, and a checkpoint check that required the control
+file to be strictly newer than the chunk. Kernel timestamps are coarse, so the
+control saved right after a chunk can share its timestamp.
+
+The image CI tested (exported as an artifact, image ID `214b9677…`) was loaded
+into rootless Podman on shield2 under an administrator's account:
+
+| Run | Local-disk state | NAS state |
+|---|---|---|
+| Canary calibration, uninterrupted through summary and assembly | passed, 342 s | passed, 368 s |
+| Kill after the first checkpoint, resume to the second | passed | passed |
+| Memory: loading / sampling / summary and assembly | about 5.9 / 10.3 / 28 GB | about 5.9 / 10.3 / 28.5 GB |
+
+Chunk files are about 265 MB each and take about 54 s to write; the global
+control is about 154 MB. Writing a chunk takes longer than a sampling iteration
+at this size. The simulation set is 270 MB.
+
+Server prerequisites observed on the RHEL 9 hosts, recorded in the server
+administration repository:
+
+- Podman is installed and Docker is not. Rootless runs use `--userns=keep-id`
+  so outputs keep the user as owner; local bind mounts need an SELinux relabel.
+- A rootless container is stopped about 10 seconds after its user's last login
+  session ends unless lingering is enabled for that user
+  (`loginctl enable-linger`). A pilot container was lost this way before
+  lingering was enabled.
+- Containers reach the CIFS-mounted NAS only with the `virt_use_samba` SELinux
+  boolean enabled on the host, and write to it only when the container keeps
+  the user's `jheem` group (`--group-add keep-groups`); without it, writes are
+  refused. Both prerequisites were enabled for this pilot on shield2 only.
+
 ## Proposed next sequence
 
-1. Review the opt-in current-source recorded-run branch, including its
-   preflight, cache, and fresh/resume guards. Keep likelihood behavior outside
-   the container plumbing review.
-2. Reconcile the existing container interfaces with that branch, then build a
-   pinned image and run a small,
-   must-pass operational smoke. Missing required bootstrap inputs should fail
-   the smoke rather than count as skips. Keep the new model suite's open
-   diagnostic and scientific findings visible but separate from this gate.
-3. Run the bounded image on one team server, retain its input identities,
-   logs, checkpoints, and output, and verify interruption/continuation, mounts,
-   file ownership, and operator recovery. Production-scale assembly is a
-   subsequent acceptance step.
+1. Run one realistic stage for one location on shield2 at a quiet time, with
+   state on the NAS, and compare runtime and peak memory with the ordinary
+   launcher. The canary's 28 GB peak for two iterations suggests the summary
+   and assembly steps, not sampling, set how many runs a server can hold at
+   once.
+2. Have another team member launch, interrupt, resume, and locate outputs from
+   the container README alone. This is the acceptance test for the team's
+   container request.
+3. Review and merge the recorded-run branch into `jheem_analyses` and the
+   container change into `jheem-containers`, so the path is supported rather
+   than staged. The analyses change touches the SHIELD launcher.
 
 A stronger same-seed replay claim follows a separate sampler increment:
 demonstrate the present seed-forwarding behavior, correct it with focused
@@ -204,12 +258,10 @@ imply it.
 
 ## Open questions and destination
 
-- Which bounded SHIELD calibration is representative enough for the server
-  pilot without turning it into a full production run?
+- Which realistic stage and location should follow the canary, and what
+  runtime and memory difference from the ordinary launcher is acceptable?
 - Which current model checks can become a reliable must-pass operational
   subset, and which assertions require scientific review?
-- Which source, manager, image, and state/output identities should the pilot
-  retain for another operator to inspect?
 - After same-image equality is tested, which scientific outputs and tolerances
   define equivalence across materially different numerical platforms?
 - What scientific behavior is intended for the future-growth penalty when its
