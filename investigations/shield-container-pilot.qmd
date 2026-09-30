@@ -220,7 +220,8 @@ into rootless Podman on shield2 under an administrator's account:
 Chunk files are about 265 MB each and take about 54 s to write; the global
 control is about 154 MB. Writing a chunk takes longer than a sampling iteration
 at this size. The simulation set is 270 MB. The stage-0 run below shows these
-sizes, and the summary and assembly memory, are inflated in the container.
+sizes, and the summary and assembly memory, were inflated by the image's
+package installation, since fixed.
 
 Server prerequisites observed on the RHEL 9 hosts, recorded in the server
 administration repository:
@@ -256,23 +257,38 @@ Runtime and stability are comparable. The image's analyses revision is
 slightly newer than the one the native run started from, so likelihood values
 are not compared.
 
-The chunk difference is not in the number of simulations. In the container's
-first chunk, the first stored simulation serializes to about 5.6 GB, most of
-it its engine kernel and data; in the native chunk the first simulation is
-about 20 MB. Loading such chunks likely accounts for much of the container's
-summary and assembly memory, so the 28 GB and 35 GB peaks above describe this
-image, not SHIELD in general. The image differs from the team's servers in
-three candidate ways, not yet isolated: `bayesian.simulations` from the base
-image's lock (a June 2025 commit, before the August fixes the servers run),
-jheem2 attached as an installed package rather than sourced, and R 4.4.2
-rather than 4.5.2.
+The chunk difference was not in the number of simulations. In the container's
+first chunk, the first stored simulation serialized to about 5.6 GB against
+about 20 MB natively. The cause was the image installing the team packages
+with kept source references. Each jheem2 R6 object stored in a simulation
+(specification, solver, and run metadata) has methods whose source reference
+points at the package source file, and that file's text was an unforced lazy-load
+promise; saving it serialized about 2.8 GB of the package's lazy-load state per
+object. Native runs source jheem2 under `Rscript`, which keeps no source
+references. R's default package install doesn't keep them either.
+
+The image now installs `distributions`, `bayesian.simulations`, `locations`, and
+jheem2 with `R CMD INSTALL --without-keep.source`, fails its build if any of
+them keeps source references, and pins `bayesian.simulations` and
+`distributions` to the commits the team servers run (the base image had carried
+an older `bayesian.simulations` without its July and August 2025 fixes). The
+hosted canary now fails if its first chunk exceeds 100 MB. The same canary on
+shield2 with NAS state (`jheem-containers@93bf24e`):
+
+| | Before the fix | After the fix |
+|---|---|---|
+| Elapsed | 368 s | 101 s |
+| Peak memory (summary and assembly) | 28.5 GB | 11.1 GB |
+| Checkpoint chunk | 266 MB | 5.4 MB |
+| Simulation set (2 simulations) | 270 MB | 9.6 MB |
+
+The earlier 28 GB and 35 GB peaks therefore described the image, not SHIELD. A
+full stage has not been rerun with the fixed image.
 
 ## Proposed next sequence
 
-1. Find why the container's stored simulations are so much larger than
-   native ones: first align `bayesian.simulations` with the servers' pinned
-   revision, then compare installed-package and sourced jheem2. Until then,
-   treat the container's chunk sizes and summary memory as unrepresentative.
+1. Optionally rerun one full stage with the fixed image at a quiet time to
+   record production-size memory and chunk sizes.
 2. Have another team member launch, interrupt, resume, and locate outputs from
    the container README alone. This is the acceptance test for the team's
    container request.
