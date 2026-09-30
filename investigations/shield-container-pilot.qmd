@@ -1,7 +1,7 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-09-29
+date-modified: 2026-09-30
 ---
 
 **Status:** Evidence-backed investigation. A current-source recorded-run
@@ -219,7 +219,8 @@ into rootless Podman on shield2 under an administrator's account:
 
 Chunk files are about 265 MB each and take about 54 s to write; the global
 control is about 154 MB. Writing a chunk takes longer than a sampling iteration
-at this size. The simulation set is 270 MB.
+at this size. The simulation set is 270 MB. The stage-0 run below shows these
+sizes, and the summary and assembly memory, are inflated in the container.
 
 Server prerequisites observed on the RHEL 9 hosts, recorded in the server
 administration repository:
@@ -235,13 +236,43 @@ administration repository:
   the user's `jheem` group (`--group-add keep-groups`); without it, writes are
   refused. Both prerequisites were enabled for this pilot on shield2 only.
 
+## Realistic stage on shield2 (2026-09-30)
+
+`calib.9.28.stage0` for C.12580 (15,000 iterations, 30 chunks) ran in the same
+image on shield2 with NAS state, one BLAS thread, and the ordinary launcher's
+checkpoint settings, alongside the team's completed native run of the same
+stage and location on shield1:
+
+| | Container, shield2 | Native, shield1 |
+|---|---|---|
+| Result | exit 0; summary and 300-simulation set written | complete |
+| Time per 500-iteration chunk | median 27.6 min (25.9–29.4) | median 29.9 min (28.8–30.9), 10 locations sharing the server |
+| Sampling | 13 h 46 min at about 10.5 GB | about 15 h |
+| Summary and assembly | about 12 min, peak 35.4 GB | not measured |
+| Chunk file | about 305 MB | about 44 MB |
+| Simulation set | 1.54 GB | 1.28 GB |
+
+Runtime and stability are comparable. The image's analyses revision is
+slightly newer than the one the native run started from, so likelihood values
+are not compared.
+
+The chunk difference is not in the number of simulations. In the container's
+first chunk, the first stored simulation serializes to about 5.6 GB, most of
+it its engine kernel and data; in the native chunk the first simulation is
+about 20 MB. Loading such chunks likely accounts for much of the container's
+summary and assembly memory, so the 28 GB and 35 GB peaks above describe this
+image, not SHIELD in general. The image differs from the team's servers in
+three candidate ways, not yet isolated: `bayesian.simulations` from the base
+image's lock (a June 2025 commit, before the August fixes the servers run),
+jheem2 attached as an installed package rather than sourced, and R 4.4.2
+rather than 4.5.2.
+
 ## Proposed next sequence
 
-1. Run one realistic stage for one location on shield2 at a quiet time, with
-   state on the NAS, and compare runtime and peak memory with the ordinary
-   launcher. The canary's 28 GB peak for two iterations suggests the summary
-   and assembly steps, not sampling, set how many runs a server can hold at
-   once.
+1. Find why the container's stored simulations are so much larger than
+   native ones: first align `bayesian.simulations` with the servers' pinned
+   revision, then compare installed-package and sourced jheem2. Until then,
+   treat the container's chunk sizes and summary memory as unrepresentative.
 2. Have another team member launch, interrupt, resume, and locate outputs from
    the container README alone. This is the acceptance test for the team's
    container request.
