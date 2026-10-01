@@ -5,9 +5,10 @@ date-modified: 2026-10-01
 ---
 
 **Status:** Opt-in pilot merged into both owning repositories (2026-10-01).
-The current image passes hosted checkpoint/resume, assembly, stage-lineage,
-and negative output-verification checks. An earlier image passed a bounded
-shield2 pilot with state on local disk and on the NAS. Another operator's
+The retained image passes hosted checkpoint/resume, assembly, stage-lineage,
+and negative output-verification checks. A separately captured source snapshot
+also completed a two-stage NAS smoke on shield2 without rebuilding that image
+([October 1 source-selection update](#separate-source)). Another operator's
 runbook exercise and a representative full stage with the corrected image
 remain open. This does not establish deterministic replay or scientific
 equivalence.
@@ -380,6 +381,63 @@ same-seed/different-seed and uninterrupted/resumed tests in
 `bayesian.simulations`, then compare traces under one image digest and across
 the servers. The operational pilot need not wait for that claim, but must not
 imply it.
+
+## Separate source from the runtime (2026-10-01) {#separate-source}
+
+The wrapper now preserves analysis code separately from the retained image
+([containers `b1a40dc`](https://github.com/ncsizemore/jheem-containers/commit/b1a40dc072dc0cf3983f74b36fa9b683b6fe19b8),
+[D-023](../decisions.qmd#d-023)). First use of a calibration code captures a clean
+committed checkout; all its locations in that run root share the selection.
+A pipeline selects its stages together. New codes can use newer source without
+an image build, while subsequent stages and continuations retain their original
+source, image ID, manager releases, and seed. The
+[operator guide](https://github.com/tfojo1/jheem_analyses/blob/5e441ea6fd58368cce5f2558de29a6b212930649/applications/SHIELD/CONTAINER-PILOT.md)
+describes this without requiring a container-repository checkout.
+
+The saved archive and per-file hashes live under `run_sources/`, beside records
+and outputs. Both container paths to the snapshot are read-only. The wrapper
+verifies saved content before reuse and checks specification/registry startup
+against installed packages before detached sampling. Dirty source, incompatible
+stage selections, missing snapshots, and explicit changes to saved inputs are
+refused. Whole-repository snapshots currently occupy about 580 MiB including
+archive and materialized files; NAS capture adds startup I/O. CIFS mount-wide
+permissions are supported without relying on per-file `chmod`.
+
+Twenty-eight fast checks cover the helper, wrapper mounts and startup refusal,
+source drift, integrity failures, and existing-state preservation; the
+[hosted check](https://github.com/ncsizemore/jheem-containers/actions/runs/36921240029)
+passed. On shield2,
+two new tiny calibration definitions absent from the retained image completed
+summary, assembly, and preceding-stage lineage with NAS state. Changing the
+original test checkout while the pipeline ran did not change either stage's
+saved source. This used an isolated committed fixture based on `06505412`, not
+the latest scientific model. Repeating the pipeline verified both stages' output
+files and skipped completed work. The
+[test definitions](https://github.com/ncsizemore/jheem-containers/blob/b1a40dc072dc0cf3983f74b36fa9b683b6fe19b8/workloads/shield/tests/snapshot_calibration.R)
+and [technical reference](https://github.com/ncsizemore/jheem-containers/blob/b1a40dc072dc0cf3983f74b36fa9b683b6fe19b8/workloads/shield/SOURCE-SNAPSHOTS.md)
+are in the owning repository.
+
+The current-source trial at analyses `03e3eea5` stopped before MCMC: the registry
+refers to `calib.9.23.stage2` before registering it
+([early reference](https://github.com/tfojo1/jheem_analyses/blob/03e3eea538d862e84dfd22b3300d56c7ecf11d4c/applications/SHIELD/shield_calib_register.R#L83),
+[later definition](https://github.com/tfojo1/jheem_analyses/blob/03e3eea538d862e84dfd22b3300d56c7ecf11d4c/applications/SHIELD/shield_calib_register.R#L153)).
+The same startup failure occurred with a direct mount of the clean checkout,
+without the snapshot helper, against the retained engine. The container work
+does not change that registration. A current-source operator
+trial needs a working selection agreed with the model owners. Ordinary SHIELD
+also now selects promoted syphilis data by default
+([`03e3eea5`](https://github.com/tfojo1/jheem_analyses/commit/03e3eea538d862e84dfd22b3300d56c7ecf11d4c));
+the recorded pilot retains its explicit manager selection. New source does not
+implicitly update those inputs.
+
+The shared installation and two intended accounts passed administrator checks:
+image loading, persistent user services, shared-input readability, and container
+NAS writes. This is not yet an independent operator's calibration exercise.
+The installed wrapper also verified and skipped both completed NAS test stages.
+Startup locks serialize launches but do not provide
+general lifetime or cross-account writer coordination. Multi-chain stage 3,
+native handoff, corrected-image full-stage measurement, deterministic replay,
+and automatic archival of source/records/results remain open.
 
 ## Open questions and destination
 

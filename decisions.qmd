@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-09-27
+date-modified: 2026-10-01
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,25 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-023 · Separate SHIELD analysis source from its runtime image {#d-023}
+
+*2026-10-01. Working decision for the opt-in pilot; refines D-020.* Routine
+analysis edits should not require rebuilding the R/package environment. The
+operator wrapper captures a clean, committed analyses checkout at first use of
+a calibration code, preserves the archive and file hashes beside its run records,
+and mounts that source read-only in an identified runtime image. Selection is
+shared across locations within a run root; a pipeline selects its stages together.
+Continuations reuse saved source, image, managers, and seed rather than following
+the current checkout. A deliberately different selection uses a new calibration
+code or run root, not an in-place edit to an existing run's history.
+
+Startup compatibility is checked before sampling. New package requirements can
+still require a tested image; capturing source does not establish scientific
+acceptance or deterministic replay. Source snapshots must be retained with
+records and results, and automatic archival remains separate work. The pilot's
+[implementation and server evidence](investigations/shield-container-pilot.qmd#separate-source)
+do not change the multi-chain or native-handoff boundary.
 
 ## D-022 · Manager builds record inputs and gate removals at promotion — refines D-004 and D-021 {#d-022}
 
