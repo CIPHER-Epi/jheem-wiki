@@ -91,6 +91,30 @@ the current pointer. A live July 27 syphilis-manager download and offline reload
 also passed through this shared loader. These checks protect loading and identity,
 not the scientific compatibility of a selected manager.
 
+## Release roles (2026-10-01)
+
+A published build is an identified artifact available for review or explicit
+loading; it is not automatically the team's default. Promotion selects that
+same artifact for the mutable `hiv-surveillance-manager-latest` alias rather
+than rebuilding it. GitHub's release/pre-release badge is not the authority for
+which manager ordinary analyses load.
+
+| Release | Role |
+|---|---|
+| `hiv-surveillance-manager-v2026.10.01` | First automatically published master build, with input identities and validation evidence. Not promoted at this checkpoint. |
+| `hiv-surveillance-manager-latest` and `hiv-surveillance-baseline-2026.09.24` | The active alias and its immutable source snapshot. Both remain necessary to resolve and identify the current default. |
+| `hiv-sections-latest` and `hiv-sections-snapshot-2026.09.23` | The section-input alias and the exact snapshot consumed by the published build; not duplicate final managers. |
+| `hiv-surveillance-baseline-2026.08.31` | Historical baseline from before the Oakland update, retained for comparisons. |
+| `hiv-surveillance-candidate-2026.09.24-r35952637832` | Earlier development trial reproducing the August baseline; historical evidence rather than the current candidate. |
+
+The [earlier candidate](https://github.com/tfojo1/jheem_analyses/releases/tag/hiv-surveillance-candidate-2026.09.24-r35952637832)
+retains the comparison with August 26 data. It predates the current build
+naming convention: the
+[promotion workflow at `3f463e2a`](https://github.com/tfojo1/jheem_analyses/blob/3f463e2ab274e4d5e24decdf82f294a91b628857/.github/workflows/promote-hiv-surveillance-manager.yml)
+accepts `manager-v*` and `baseline-*` tags, not that old `candidate-*` tag.
+The October 1 build is data-identical to the active baseline, but has a different
+serialized digest and stored manager name; it is not a byte-for-byte duplicate.
+
 ## Boundaries of the claim
 
 - This is **section-to-final** automation. Sections are still built locally

@@ -322,13 +322,22 @@ stale preceding-stage records and interrupted setup without a checkpoint.
 The ordinary SHIELD static suite still fails on existing findings and skips
 later tiers; these operational checks do not resolve its scientific assertions.
 
-1. Retain the tested image beyond the seven-day Actions artifact lifetime;
-   an image ID alone is not recoverability.
-2. Have another team member launch, interrupt, resume, and locate outputs from
+The exact tested image is retained in the non-latest
+[`shield-pilot-2026.10.01-r36815091235` prerelease](https://github.com/ncsizemore/jheem-containers/releases/tag/shield-pilot-2026.10.01-r36815091235),
+beyond the seven-day Actions artifact lifetime. The release contains the image
+archive and `IMAGE.txt` with its identity and source revisions. Its published
+archive SHA-256 matches the tested export:
+`01e344d5948945851f397a41e2ec24b5f77878e2335b5d8960eb5a5a3a81e60c`.
+This retains the runtime, not scientific outputs or their run records; canary
+logs and records remain in their temporary CI artifact.
+
+Next:
+
+1. Have another team member launch, interrupt, resume, and locate outputs from
    the runbook. Run one representative full stage with the corrected image to
    measure its production-size memory and output sizes. The earlier cross-server
    timings establish feasibility, not a controlled speed or equivalence result.
-3. Complete the stage-3 boundary: either support and verify multiple chains or
+2. Complete the stage-3 boundary: either support and verify multiple chains or
    document and test the handoff from isolated container outputs to the native
    workflow. Recorded mode currently refuses multi-chain calibrations. Shared
    writers also require a cross-process locking strategy, beyond the wrapper's

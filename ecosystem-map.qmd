@@ -12,7 +12,7 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 
 | Repo | What it is |
 |------|-----------|
-| `jheem2` | The simulation engine R package (~64k lines R + ~10k lines C++ via Rcpp, R6-based; largest file 11,243 lines). Model specification → compiled specification → ODE engine → simulations → likelihoods → calibration, plus the data-manager class, ontology mapping, interventions, and plotting. Working branch is `dev`. It has 100 recursive manual test/reprex/profiling artifacts but no automated test gate, CI, or README yet — see the [practice baseline](roadmap.qmd#where-we-stand-august-2026). |
+| `jheem2` | The simulation engine R package (~64k lines R + ~10k lines C++ via Rcpp, R6-based; largest file 11,243 lines). Model specification → compiled specification → ODE engine → simulations → likelihoods → calibration, plus the data-manager class, ontology mapping, interventions, and plotting. Working branch is `dev`. It has 100 recursive manual test/reprex/profiling artifacts but no automated test gate, CI, or README yet — see the [practice baseline](roadmap.qmd#where-we-stand). |
 | `jheem_analyses` | Applications repo: **15 model applications** (EHE, SHIELD, Ryan White, CDC testing, …), each ~10–15k lines of standalone scripts (see [Anatomy of a Model Application](application-anatomy.qmd)), the data-manager build pipelines (`data_processing/`, `input_managers/`), shared glue (`commoncode/`, `source_code.R`), the syphilis-manager CI workflows, and a newer three-tier SHIELD model-test workflow. The SHIELD workflow is present but not yet a green regression gate; see the [roadmap](roadmap.qmd). |
 | `jheem2_interactive`, `jheem_interactive` | Earlier Shiny-based interactive apps, superseded by the portal. Historical. |
 

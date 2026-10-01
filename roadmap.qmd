@@ -6,7 +6,7 @@ date-modified: 2026-10-01
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
 
-## Where we stand (October 2026)
+## Where we stand (October 2026) {#where-we-stand}
 
 The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem2`, ~75k lines) with no automated test gate, no CI, and several very large files. The other end contains a mature artifact-promotion subsystem: digest-promoted containers with golden and perturbation tests, feeding release-versioned data and the portal. The missing middle is the work. One complete exemplar — the container platform — and one partial upstream exemplar — the syphilis manager's gated assembly-and-promotion path — show modern practice already succeeds in this ecosystem.
 
@@ -77,8 +77,9 @@ The immediate work is two bounded tracks, updated 2026-10-01:
    alignment follows that experience ([D-022](decisions.qmd#d-022)).
 2. **SHIELD handoff.** The integrated hosted canary exercises checkpoints,
    assembly, attempt/output records, two sequential stages, and negative
-   output/input checks. Retain its exact tested image beyond temporary Actions
-   storage, then exercise the runbook with another operator and a representative full stage using the
+   output/input checks. Its exact tested image is retained in a versioned
+   pilot release. Exercise the runbook with another operator and a
+   representative full stage using the
    corrected image. Stage 3 still needs multi-chain support or an explicitly
    tested native handoff; shared writers need cross-process locking.
 
