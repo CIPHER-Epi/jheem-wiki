@@ -82,6 +82,9 @@ The immediate work is two bounded tracks, updated 2026-10-01:
    representative full stage using the
    corrected image. Stage 3 still needs multi-chain support or an explicitly
    tested native handoff; shared writers need cross-process locking.
+   The operator guide is now in `jheem_analyses`; installation and account
+   acceptance remain prerequisites to inviting operators. The retained image
+   is an identified earlier snapshot, not automatically the newest SHIELD code.
 
 Neither track establishes same-seed replay or a durable output-to-record archive.
 Upstream raw-to-section lineage, sampler behavior, and scientific likelihood

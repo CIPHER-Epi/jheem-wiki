@@ -331,6 +331,37 @@ archive SHA-256 matches the tested export:
 This retains the runtime, not scientific outputs or their run records; canary
 logs and records remain in their temporary CI artifact.
 
+### Operator handoff (2026-10-01)
+
+The [operator guide](https://github.com/tfojo1/jheem_analyses/blob/72922ef9f54e72ef57d9a31d9368e687f77aff7b/applications/SHIELD/CONTAINER-PILOT.md)
+now lives beside SHIELD in `jheem_analyses`, linked from its server guide and
+recorded-runtime reference. Operators use an installed wrapper; they need no
+container-repository checkout. The
+[administrator runbook](https://github.com/ncsizemore/jheem-containers/blob/717875b7d8fbb2f69ce52b5f519fd3c819e22c56/workloads/shield/RUNBOOK.md)
+stays in `jheem-containers` and separates installation/account verification from
+the subsequent independent operator exercise. Default-branch publication is not
+evidence that the intended server accounts are ready.
+
+This handoff retains the tested image's analyses snapshot `06505412`. Newer
+master changes include STI-screening modifier behavior
+([`3f9e2019`](https://github.com/tfojo1/jheem_analyses/commit/3f9e2019068a8d9e2cb6eb94426fdd947a4d9756))
+and widening `TRATE_DELTA` from 1.5 to 3
+([`207672f2`](https://github.com/tfojo1/jheem_analyses/commit/207672f2c1fa9dbf588a9fbafa4307ab8e9dc5ce)); the image does not include
+them. Trying its operational mechanics is separate from selecting code and
+inputs for a scientific calibration. The guide explicitly says not to delay
+ordinary full calibrations: multi-chain stage 3 and native handoff remain
+unsupported.
+
+The wrapper now rejects a fresh start when only a previous run-record directory
+exists, as well as when calibration state exists, and directs recovery toward
+preserving evidence and selecting a separate state root. Four executable shell
+tests cover existing state, receipt-only setup, an unrecorded pipeline, and
+resume without a checkpoint; they verify no container is launched and files
+are preserved. Fast shell/contract checks now also run on main-branch pushes,
+without building or promoting an image. The first hosted
+[handoff check](https://github.com/ncsizemore/jheem-containers/actions/runs/36885991550)
+passed.
+
 Next:
 
 1. Have another team member launch, interrupt, resume, and locate outputs from
