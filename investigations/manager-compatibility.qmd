@@ -1,7 +1,7 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-09-27
+date-modified: 2026-10-01
 ---
 
 **Status:** Evidence-backed investigation. Exact syphilis-manager release
@@ -22,6 +22,15 @@ resolved manager identities belong in a run record. The
 covers assembling a different manager from released sections and auxiliary
 inputs. Since 2026-09-27 that manager also loads through the GitHub Releases
 route, so `release.tag` can select HIV builds as well as syphilis ones.
+
+As of 2026-10-01, ordinary `latest` loading also resolves an immutable promoted
+version and verifies its digest before loading
+([`7f687a8a`](https://github.com/tfojo1/jheem_analyses/commit/7f687a8aa1e01080fa5626c82ed67f673fd9b705)).
+The [loader documentation](https://github.com/tfojo1/jheem_analyses/blob/7f687a8aa1e01080fa5626c82ed67f673fd9b705/commoncode/data-manager-releases.md)
+describes version selection, offline migration, and corruption handling.
+Changing an explicit selection does not move the shared promoted alias or the
+local default pointer. SHIELD's ordinary bootstrap still explicitly chooses its
+July 27 manager; loading verification does not change that scientific input.
 
 ## Manager compatibility and rollback
 

@@ -1,15 +1,16 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-09-30
+date-modified: 2026-10-01
 ---
 
-**Status:** Evidence-backed investigation. A current-source recorded-run
-container passes its hosted checkpoint/resume canary and a bounded pilot on
-one team server (shield2, 2026-09-29), with calibration state on local disk and
-on the NAS. Both the analyses branch and the container change are unmerged
-review branches. The pilot doesn't establish deterministic replay, production-
-scale runtime, or operation by another team member.
+**Status:** Opt-in pilot merged into both owning repositories (2026-10-01).
+The current image passes hosted checkpoint/resume, assembly, stage-lineage,
+and negative output-verification checks. An earlier image passed a bounded
+shield2 pilot with state on local disk and on the NAS. Another operator's
+runbook exercise and a representative full stage with the corrected image
+remain open. This does not establish deterministic replay or scientific
+equivalence.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -285,7 +286,7 @@ shield2 with NAS state (`jheem-containers@93bf24e`):
 The earlier 28 GB and 35 GB peaks therefore described the image, not SHIELD. A
 full stage has not been rerun with the fixed image.
 
-## Proposed next sequence
+## Integration checkpoint and next sequence (2026-10-01)
 
 The September 30 implementation adds input/output lineage, per-attempt records,
 and sequential single-chain stages
@@ -296,25 +297,38 @@ now completes summary and assembly, checks the records, and runs a two-stage
 pipeline. The operator wrapper and runbook are in the container repository.
 This newer path has not yet been exercised by another operator on a team server.
 
-A negative check found an outstanding boundary defect: deleting the summary
+A negative check found a boundary defect: deleting the summary
 and simulation-set files while retaining `outputs.json` still lets the pipeline
 report all stages complete. The preceding-stage resolver hashes the record but
 does not verify the files it describes. Completion and lineage checks therefore
-need to verify record identity and referenced output sizes and digests before
-reusing a stage. A successful ordinary canary does not cover that failure mode.
+needed to verify record identity and referenced output sizes and digests before
+reusing a stage. A successful ordinary canary did not cover that failure mode.
 
-1. Correct output verification and cover missing, modified, or stale outputs
-   and interrupted setup with focused regression tests. Reconcile the source
-   branch with current application code without changing scientific behavior.
-2. Retain the tested image durably. Export is currently optional and its Actions
-   artifact expires after seven days; an image ID alone is not recoverability.
-   Review and merge the opt-in runtime and container changes after their checks
-   pass, keeping the pilot status explicit.
-3. Have another team member launch, interrupt, resume, and locate outputs from
+That defect is now fixed in
+[`jheem_analyses@06505412`](https://github.com/tfojo1/jheem_analyses/commit/06505412ff4ad870ba0263361b791ba5d53737de),
+integrated into `master` through
+[`3f463e2a`](https://github.com/tfojo1/jheem_analyses/commit/3f463e2ab274e4d5e24decdf82f294a91b628857).
+The matching container implementation was integrated into `main` through
+[`4b9f83db`](https://github.com/ncsizemore/jheem-containers/commit/4b9f83dbab3f784aa177947e2c27925d784eae10).
+The source branch includes current application changes and verified latest-loader
+integration; this increment changes no likelihood formula or sampler behavior.
+
+[Run 36815091235](https://github.com/ncsizemore/jheem-containers/actions/runs/36815091235)
+passed the offline runtime/cache tests, real-engine interruption/resume,
+summary and assembly, and a two-stage pipeline. Missing simsets, same-size
+modified simsets, and a changed requested seed were each rejected. Restoring
+the original files and inputs allowed verified reuse. Focused tests also cover
+stale preceding-stage records and interrupted setup without a checkpoint.
+The ordinary SHIELD static suite still fails on existing findings and skips
+later tiers; these operational checks do not resolve its scientific assertions.
+
+1. Retain the tested image beyond the seven-day Actions artifact lifetime;
+   an image ID alone is not recoverability.
+2. Have another team member launch, interrupt, resume, and locate outputs from
    the runbook. Run one representative full stage with the corrected image to
    measure its production-size memory and output sizes. The earlier cross-server
    timings establish feasibility, not a controlled speed or equivalence result.
-4. Complete the stage-3 boundary: either support and verify multiple chains or
+3. Complete the stage-3 boundary: either support and verify multiple chains or
    document and test the handoff from isolated container outputs to the native
    workflow. Recorded mode currently refuses multi-chain calibrations. Shared
    writers also require a cross-process locking strategy, beyond the wrapper's

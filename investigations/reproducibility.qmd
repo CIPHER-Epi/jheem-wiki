@@ -1,15 +1,16 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-09-30
+date-modified: 2026-10-01
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
 provenance contract. SHIELD calibration is the first reference workflow, but
 its [container pilot](shield-container-pilot.qmd) and
 [manager compatibility](manager-compatibility.qmd) have their own focused
-investigations. Provenance and immutable runtime setup are staged on review
-branches, not used through the team's ordinary calibration path.
+investigations. A bounded recorded runtime is merged as an opt-in SHIELD pilot;
+broader output-linked provenance remains staged, not used through the team's
+ordinary calibration path.
 
 **Verified against:** `jheem_analyses@c97c8af33447758a1c5c50416812d516092be867`
 and its `codex/shield-source-readiness` review branch at
@@ -138,16 +139,17 @@ The dated calibration failure, sampler seed boundary, staged runtime work, curre
 model-test workflow, and bounded operational pilot are documented in the
 [SHIELD Calibration and Container Pilot](shield-container-pilot.qmd) investigation.
 A container can be piloted for dependable execution before claiming
-same-seed deterministic replay. As of 2026-09-30, the recorded-run branch
-([`373faf27`](https://github.com/tfojo1/jheem_analyses/commit/373faf2775f584093ac16c17ce18432959c609d9))
+same-seed deterministic replay. As of 2026-10-01, the opt-in recorded runtime
+([`3f463e2a`](https://github.com/tfojo1/jheem_analyses/commit/3f463e2ab274e4d5e24decdf82f294a91b628857))
 records input identities, preceding-stage record digests, and summary/simulation-
 set paths, sizes, and digests. The container
-([`ad92324`](https://github.com/ncsizemore/jheem-containers/commit/ad92324f7d742d2059a31aac65a9b51e1d23c528))
+([`4b9f83db`](https://github.com/ncsizemore/jheem-containers/commit/4b9f83dbab3f784aa177947e2c27925d784eae10))
 adds per-attempt image, operator, host, timing, and exit information. These
 records live under the run tree, not beside each simulation set, and have no
-automatic archive or digest-led recovery index. Output verification before
-stage reuse also remains incomplete; see the companion investigation's
-negative check. This is a useful first run-history implementation, not yet
+automatic archive or digest-led recovery index. Stage reuse now verifies the
+actual output files, preceding-stage lineage, and requested inputs, with hosted
+negative checks for missing or modified outputs and changed seed. This is a
+useful first run-history implementation, not yet
 the complete output-linked, automatically retained provenance contract below.
 
 ## The current filesystem contract
@@ -372,8 +374,9 @@ file already has provenance.
 The immediate [SHIELD operational pilot](shield-container-pilot.qmd) and
 [HIV surveillance-manager candidate build](hiv-surveillance-manager-ci.qmd)
 are bounded deliverables. The sequence below concerns the broader run-record
-and provenance contract; its first pieces are staged on a review branch, not
-used by the team's ordinary calibration path.
+and provenance contract. Its broader collector and output-sidecar pieces remain
+staged separately; the merged opt-in runtime does not make them part of the
+team's ordinary calibration path.
 
 ### 1. Define the minimal record and build a read-only collector
 

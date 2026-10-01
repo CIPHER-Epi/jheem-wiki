@@ -1,7 +1,7 @@
 ---
 title: "Ecosystem Map"
 date: 2026-08-17
-date-modified: 2026-09-30
+date-modified: 2026-10-01
 ---
 
 JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
@@ -56,6 +56,15 @@ flowchart LR
 4. **Simsets** (simulation sets) are generated from calibrated parameters and stored as `.rdata`, then published as versioned **GitHub Releases** in `jheem-simulations`.
 5. **Containers** (orchestrated by `jheem-backend` workflows) download release data, run jheem2 code to extract/transform outcomes, and write JSON/plot data to **S3**, served via **CloudFront**.
 6. **The portal** reads that data and serves the interactive explorers.
+
+At the 2026-10-01 checkpoint, both ordinary `latest` and exact-tag manager loads
+use the verified version cache
+([analyses `7f687a8a`](https://github.com/tfojo1/jheem_analyses/commit/7f687a8aa1e01080fa5626c82ed67f673fd9b705)).
+The first automatic HIV candidate publication and isolated loading have passed;
+publication did not change the promoted alias. The recorded SHIELD runtime is
+also merged as an opt-in pilot, not the ordinary calibration default; its
+[investigation](investigations/shield-container-pilot.qmd) distinguishes tested
+execution from the remaining replay and archival work.
 
 ## How jheem2 is loaded by consumers
 

@@ -1,17 +1,16 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-09-30
+date-modified: 2026-10-01
 ---
 
-**Status: Implementation and operator documentation in the owning repository;
-operational closeout pending (2026-09-30).** Hosted builds have exercised the
-structural, value, and active-consumer checks against the promoted manager.
-The successful builds ran on review branches, where automatic release publication
-is deliberately skipped. Baseline promotion and ordinary loading are established;
-a build from `master` through automatic publication and the first contributor-run
-update remain to be exercised. The operator path and check descriptions live
-with the code:
+**Status: Master build, automatic candidate publication, and exact loading
+verified (2026-10-01); contributor handoff pending.** The first automatically
+built candidate reproduced the promoted manager's data and passed the focused
+consumer checks. It was loaded online and offline without changing the active
+manager. Baseline promotion and ordinary loading are established; the next
+exercise is a contributor's section update through review and deliberate
+promotion. The operator path and check descriptions live with the code:
 
 - [`scripts/README.md` — HIV Surveillance Manager](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/scripts/README.md#hiv-surveillance-manager):
   upload sections, build, promote, refresh the shared-drive copy, load or pin a version.
@@ -60,18 +59,37 @@ runner.
 
 The later [September 28 build](https://github.com/tfojo1/jheem_analyses/actions/runs/36436325354)
 also passed, including itemized review notes and shared data-quality checks.
-Both runs skipped **Create versioned release** because they ran on review
-branches. No `hiv-surveillance-manager-v*` release had been published at the
-September 30 checkpoint. A successful candidate publication need not promote
-that candidate or alter the active manager.
+Those review-branch runs deliberately skipped release publication.
 
-Ordinary `latest` loading still uses the older mutable-cache route on `master`:
-unlike explicit `release.tag` selection, it does not verify the published digest
-or attach a resolved manager identity. The
-[`codex/harden-latest-loader` change](https://github.com/tfojo1/jheem_analyses/commit/a7b00adedea10dbffb97abc3f90a9114484251ef)
-routes ordinary loads through the verified release cache; it remains unmerged
-at this checkpoint. Its tests must be reconciled with the recorded SHIELD
-read-only cache path before integration.
+The first [master build](https://github.com/tfojo1/jheem_analyses/actions/runs/36813310513),
+from `60488abb`, published
+[`hiv-surveillance-manager-v2026.10.01`](https://github.com/tfojo1/jheem_analyses/releases/tag/hiv-surveillance-manager-v2026.10.01)
+automatically. It passed 603 structural checks and ten consumer checks, with
+zero value differences across 408 arrays; only the stored manager `name`
+differed. The merge took 25:54 with 7.8 GiB peak resident memory. The release
+retains input identities, checksums, the review summary, and validation evidence.
+Its manager SHA-256 is
+`1c8a71dce22b0c72299c08e929cd4708adc99d3e5dbeb536d5ea64986eb21930`.
+
+Exact-tag loading and offline reload passed in an isolated cache, without
+creating a local latest pointer. The remote promoted alias remained on the
+September 24 baseline with SHA-256 `e282f8cb92c44282efd6ccac2da83e51924818ceee16ef4c010a24dae10350a8`.
+Publication is therefore exercised; promotion remains a separate decision.
+
+Ordinary `latest` loading now uses the verified release cache on `master`
+([`7f687a8a`](https://github.com/tfojo1/jheem_analyses/commit/7f687a8aa1e01080fa5626c82ed67f673fd9b705),
+verified 2026-10-01). Both default and explicit-tag loads attach the resolved
+release identity and verify the manager digest. Verified offline reads need no
+writer lock; concurrent online updates serialize the local current pointer.
+A known corrupt current record fails rather than falling back to an unverified
+copy. Legacy-only offline caches retain a warned compatibility fallback until
+their first online verified load.
+
+The focused [Linux and Windows checks](https://github.com/tfojo1/jheem_analyses/actions/runs/36813629484)
+passed, including migration, corruption, and explicit selection without changing
+the current pointer. A live July 27 syphilis-manager download and offline reload
+also passed through this shared loader. These checks protect loading and identity,
+not the scientific compatibility of a selected manager.
 
 ## Boundaries of the claim
 
