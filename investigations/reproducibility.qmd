@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-09-27
+date-modified: 2026-09-30
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -138,11 +138,17 @@ The dated calibration failure, sampler seed boundary, staged runtime work, curre
 model-test workflow, and bounded operational pilot are documented in the
 [SHIELD Calibration and Container Pilot](shield-container-pilot.qmd) investigation.
 A container can be piloted for dependable execution before claiming
-same-seed deterministic replay. The 2026-09-23 current-source recorded-run
-branch establishes only prepared-input preflight and a local input receipt;
-it does not yet port the earlier staged automatic run history, simset linkage,
-or archival path. The operational pilot and the broader provenance sequence
-therefore remain distinct increments.
+same-seed deterministic replay. As of 2026-09-30, the recorded-run branch
+([`373faf27`](https://github.com/tfojo1/jheem_analyses/commit/373faf2775f584093ac16c17ce18432959c609d9))
+records input identities, preceding-stage record digests, and summary/simulation-
+set paths, sizes, and digests. The container
+([`ad92324`](https://github.com/ncsizemore/jheem-containers/commit/ad92324f7d742d2059a31aac65a9b51e1d23c528))
+adds per-attempt image, operator, host, timing, and exit information. These
+records live under the run tree, not beside each simulation set, and have no
+automatic archive or digest-led recovery index. Output verification before
+stage reuse also remains incomplete; see the companion investigation's
+negative check. This is a useful first run-history implementation, not yet
+the complete output-linked, automatically retained provenance contract below.
 
 ## The current filesystem contract
 

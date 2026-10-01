@@ -1,7 +1,7 @@
 ---
 title: "Ecosystem Map"
 date: 2026-08-17
-date-modified: 2026-09-27
+date-modified: 2026-09-30
 ---
 
 JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
@@ -64,7 +64,13 @@ Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`:
 - **Package mode** (`USE.JHEEM2.PACKAGE = T`): `library(jheem2)` against an installed build. CI and containers use this mode; production containers pin a git ref, while the syphilis-manager workflow accepts a ref whose current default is the moving `dev` branch.
 - **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++. The current SHIELD bootstrap also synchronizes the sibling checkout to `dev` before sourcing it.
 
-Sourcing a model specification currently *requires* source mode: spec files call jheem2 functions that aren't exported from the package NAMESPACE (details in the [Spec Framework Notes](spec-framework-notes.qmd)). The NAMESPACE export sweep on the [roadmap](roadmap.qmd) removes that constraint, after which package mode (plus `devtools::load_all()` during development) can become the single supported path.
+Some model specifications call jheem2 functions that aren't exported from the
+package NAMESPACE (details in the [Spec Framework Notes](spec-framework-notes.qmd)).
+This remains a barrier to ecosystem-wide package-mode loading, but not every
+application requires source mode: the September 30 recorded SHIELD container
+canary runs against installed, commit-selected packages. The NAMESPACE export
+sweep on the [roadmap](roadmap.qmd) should follow verified consumer requirements,
+with package mode (plus `devtools::load_all()` during development) as the target.
 
 ## Gotchas worth knowing
 

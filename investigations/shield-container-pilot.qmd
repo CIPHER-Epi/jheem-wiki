@@ -287,14 +287,38 @@ full stage has not been rerun with the fixed image.
 
 ## Proposed next sequence
 
-1. Optionally rerun one full stage with the fixed image at a quiet time to
-   record production-size memory and chunk sizes.
-2. Have another team member launch, interrupt, resume, and locate outputs from
-   the container README alone. This is the acceptance test for the team's
-   container request.
-3. Review and merge the recorded-run branch into `jheem_analyses` and the
-   container change into `jheem-containers`, so the path is supported rather
-   than staged. The analyses change touches the SHIELD launcher.
+The September 30 implementation adds input/output lineage, per-attempt records,
+and sequential single-chain stages
+([analyses `373faf27`](https://github.com/tfojo1/jheem_analyses/commit/373faf2775f584093ac16c17ce18432959c609d9),
+[containers `ad92324`](https://github.com/ncsizemore/jheem-containers/commit/ad92324f7d742d2059a31aac65a9b51e1d23c528)).
+The [hosted canary](https://github.com/ncsizemore/jheem-containers/actions/runs/36776425076)
+now completes summary and assembly, checks the records, and runs a two-stage
+pipeline. The operator wrapper and runbook are in the container repository.
+This newer path has not yet been exercised by another operator on a team server.
+
+A negative check found an outstanding boundary defect: deleting the summary
+and simulation-set files while retaining `outputs.json` still lets the pipeline
+report all stages complete. The preceding-stage resolver hashes the record but
+does not verify the files it describes. Completion and lineage checks therefore
+need to verify record identity and referenced output sizes and digests before
+reusing a stage. A successful ordinary canary does not cover that failure mode.
+
+1. Correct output verification and cover missing, modified, or stale outputs
+   and interrupted setup with focused regression tests. Reconcile the source
+   branch with current application code without changing scientific behavior.
+2. Retain the tested image durably. Export is currently optional and its Actions
+   artifact expires after seven days; an image ID alone is not recoverability.
+   Review and merge the opt-in runtime and container changes after their checks
+   pass, keeping the pilot status explicit.
+3. Have another team member launch, interrupt, resume, and locate outputs from
+   the runbook. Run one representative full stage with the corrected image to
+   measure its production-size memory and output sizes. The earlier cross-server
+   timings establish feasibility, not a controlled speed or equivalence result.
+4. Complete the stage-3 boundary: either support and verify multiple chains or
+   document and test the handoff from isolated container outputs to the native
+   workflow. Recorded mode currently refuses multi-chain calibrations. Shared
+   writers also require a cross-process locking strategy, beyond the wrapper's
+   same-account container check.
 
 A stronger same-seed replay claim follows a separate sampler increment:
 demonstrate the present seed-forwarding behavior, correct it with focused

@@ -1,14 +1,17 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-09-27
+date-modified: 2026-09-30
 ---
 
-**Status: Graduated (2026-09-27).** The retirement condition set by this
-investigation is met. `jheem_analyses` now documents the supported build
-boundary, and its CI produces versioned candidates with structural,
-value, and active-consumer checks against the promoted manager. The operator
-path and check descriptions live with the code:
+**Status: Implementation and operator documentation in the owning repository;
+operational closeout pending (2026-09-30).** Hosted builds have exercised the
+structural, value, and active-consumer checks against the promoted manager.
+The successful builds ran on review branches, where automatic release publication
+is deliberately skipped. Baseline promotion and ordinary loading are established;
+a build from `master` through automatic publication and the first contributor-run
+update remain to be exercised. The operator path and check descriptions live
+with the code:
 
 - [`scripts/README.md` — HIV Surveillance Manager](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/scripts/README.md#hiv-surveillance-manager):
   upload sections, build, promote, refresh the shared-drive copy, load or pin a version.
@@ -23,9 +26,12 @@ inventory, hosted trials, and baseline-delta review, is preserved in this
 wiki's history at
 [`587a171`](https://github.com/CIPHER-Epi/jheem-wiki/blob/587a171/investigations/hiv-surveillance-manager-ci.qmd).
 
-## What shipped
+## Implemented path and verification
 
-Verified against `jheem_analyses@e1970a72` on 2026-09-27.
+Initially verified against `jheem_analyses@e1970a72` on 2026-09-27;
+publication and loader boundaries rechecked at
+[`60488abb`](https://github.com/tfojo1/jheem_analyses/commit/60488abb9a04a368c9607000f816feb9b2997b5c)
+on 2026-09-30.
 
 | Piece | State |
 |---|---|
@@ -51,6 +57,21 @@ reproduced its data exactly: 603 of 603 structural checks passed, and none of
 `name`, which depends on whether the manager was patched in place or merged from
 sections. The merge took 25:55 and 7.8 GiB peak resident memory on the hosted
 runner.
+
+The later [September 28 build](https://github.com/tfojo1/jheem_analyses/actions/runs/36436325354)
+also passed, including itemized review notes and shared data-quality checks.
+Both runs skipped **Create versioned release** because they ran on review
+branches. No `hiv-surveillance-manager-v*` release had been published at the
+September 30 checkpoint. A successful candidate publication need not promote
+that candidate or alter the active manager.
+
+Ordinary `latest` loading still uses the older mutable-cache route on `master`:
+unlike explicit `release.tag` selection, it does not verify the published digest
+or attach a resolved manager identity. The
+[`codex/harden-latest-loader` change](https://github.com/tfojo1/jheem_analyses/commit/a7b00adedea10dbffb97abc3f90a9114484251ef)
+routes ordinary loads through the verified release cache; it remains unmerged
+at this checkpoint. Its tests must be reconciled with the recorded SHIELD
+read-only cache path before integration.
 
 ## Boundaries of the claim
 

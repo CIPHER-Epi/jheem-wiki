@@ -29,7 +29,7 @@ website:
           - href: investigations/manager-compatibility.qmd
             text: Manager Compatibility
           - href: investigations/hiv-surveillance-manager-ci.qmd
-            text: HIV Surveillance Manager CI (graduated)
+            text: HIV Surveillance Manager CI
           - href: investigations/calibration-observability.qmd
             text: Calibration Observability
       - href: decisions.qmd
