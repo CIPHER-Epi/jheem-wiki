@@ -520,6 +520,23 @@ Both downloaded numerical reports parse as JSON without modifying the files.
 The tested image was exported as a time-limited Actions artifact; it has not
 replaced the retained release or installed image.
 
+**Later October 2 update:** ordinary SHIELD now selects September 9 and includes
+the same registry correction in
+[`38b20dcf`](https://github.com/tfojo1/jheem_analyses/commit/38b20dcfa1e879c46e5489b0a52ffa1045e91582).
+An [operator-reported stage-1 failure](manager-compatibility.qmd#stage1-fallback)
+also confirms the practical consequence of loading an unintended older manager.
+The May-input canary remains evidence about that historical configuration,
+not the baseline for the intended next calibration. First reconcile the
+candidate with current master, verify September's manager against the actual
+stage-1 likelihood setup, and then use that selection for prospective
+native/container comparisons. The passed two-stage canary did not exercise
+the scientific stage-1 likelihood.
+
+The shared [loader hardening and identity logging](manager-compatibility.qmd#loader-hardening)
+subsequently landed on analyses master at `336df26d`, without deploying a new
+image or changing server checkouts. The broader candidate's numerical-output
+inspection remains separate from that landing.
+
 Full calibration comparisons follow those fixed-parameter checks and examine
 parameter and outcome distributions and sampling diagnostics. The two-iteration
 CI canary does not establish convergence, and exact equality of independent MCMC

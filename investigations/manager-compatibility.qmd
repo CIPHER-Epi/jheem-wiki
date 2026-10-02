@@ -29,11 +29,13 @@ version and verifies its digest before loading
 The [loader documentation](https://github.com/tfojo1/jheem_analyses/blob/7f687a8aa1e01080fa5626c82ed67f673fd9b705/commoncode/data-manager-releases.md)
 describes version selection, offline migration, and corruption handling.
 Changing an explicit selection does not move the shared promoted alias or the
-local default pointer. Ordinary SHIELD now requests the promoted manager
-([`03e3eea5`](https://github.com/tfojo1/jheem_analyses/commit/03e3eea538d862e84dfd22b3300d56c7ecf11d4c));
-the recorded pilot retains an explicit July 27 selection. A failed ordinary
-alias lookup can still use a legacy local copy with a warning, as observed below;
-requesting latest does not by itself establish the loaded artifact's identity.
+local default pointer. Ordinary SHIELD requested the promoted manager on October
+1, then pinned September 9 on October 2
+([`38b20dcf`](https://github.com/tfojo1/jheem_analyses/commit/38b20dcfa1e879c46e5489b0a52ffa1045e91582));
+the retained recorded pilot uses an explicit July 27 selection. The October 2
+[loader hardening](#loader-hardening) stops failed online resolution instead of
+substituting a cached input, and logs the loaded release and digest. The older
+fallback behavior and its observed consequence are documented below.
 
 ## Manager compatibility and rollback
 
@@ -228,16 +230,41 @@ This follows the
 after failed alias resolution it tries the last verified version, then permits
 an unverified legacy file if no version pointer exists. The warnings expose the
 substitution but do not stop sampling. The exact-tag path does not substitute
-another release. The observation does not establish invalid scientific results
-or the cause of the authentication failure. Confirm the intended data with the
-model owner, preserve the active run's inputs, and distinguish future-loading
-repairs from changes to an in-progress calibration. Resolved input identities
-and explicit fallback policy remain necessary even when the application source
+another release. At the audit checkpoint, this did not establish invalid
+scientific results or the cause of the authentication failure. Confirm the
+intended data with the model owner, preserve the active run's inputs, and
+distinguish future-loading repairs from changes to an in-progress calibration.
+Resolved input identities and explicit fallback policy remain necessary even when the application source
 requests the promoted manager.
 
-### Loader-hardening candidate (2026-10-02)
+### Stage-1 failure and explicit selection (2026-10-02) {#stage1-fallback}
 
-The [candidate loader](https://github.com/tfojo1/jheem_analyses/blob/212fb0e7000ad683addd566a6bf44016c0738710/commoncode/cache_manager.R)
+A subsequent operator report describes `calib.10.1.stage1` on SHIELD3 failing
+because the fallback manager lacks `prop.male.ps.diag.among.msm`. The operator
+identified an expired GitHub token and reported that replacing it resolved the
+HTTP 401; September 9 was confirmed as the intended manager. This report is not
+a separate file-digest audit of SHIELD3's old cache and does not establish that
+it was the same May artifact identified above.
+
+The source explains why stage 0 could finish before this failure: its likelihood
+includes demographic terms and total primary/secondary diagnoses, whereas
+[stage 1 adds the MSM diagnosis-proportion term](https://github.com/tfojo1/jheem_analyses/blob/38b20dcfa1e879c46e5489b0a52ffa1045e91582/applications/SHIELD/shield_likelihoods.R#L710-L769).
+Completing stage 0 does not show that its fitted data match September's manager.
+Reuse of that predecessor requires an explicit decision based on its effective
+inputs; changing credentials or the next stage's selection does not repair
+earlier results.
+
+Commit `38b20dcf` selects `syphilis-manager-v2026.09.09` for ordinary
+SHIELD and removes the audited duplicate calibration registration. It does not
+change the shared loader's online fallback behavior; the separate loader fix
+below is now on master. The next compatibility check is to exercise the actual
+stage-1 likelihood setup against the intended manager before a long run.
+The container's two-stage operational canary uses stage-0
+likelihoods in both stages and does not cover this missing outcome.
+
+### Loader hardening landed (2026-10-02) {#loader-hardening}
+
+The [loader on master](https://github.com/tfojo1/jheem_analyses/blob/336df26d6e04f387b9ecfc655a26607b0b6491dc/commoncode/cache_manager.R)
 retries an authenticated HTTP 401 once anonymously, for the same known-public
 JHEEM manager release URL. Other repositories, endpoints, and HTTP failures do
 not receive that retry. Release selection and digest verification still apply.
@@ -245,12 +272,27 @@ If online alias resolution ultimately fails, loading stops instead of selecting
 a cached substitute; `offline=TRUE` remains an explicit choice. Exact-tag
 selection remains available independently of the promoted alias.
 
-[Linux and Windows tests](https://github.com/tfojo1/jheem_analyses/actions/runs/36998100518)
-passed for the candidate's mocked HTTP cases and cache behavior. This is a
-published review branch, not the default loader on `master`, and does not change
-any running calibration's manager. The owning repository's
-[loader reference](https://github.com/tfojo1/jheem_analyses/blob/212fb0e7000ad683addd566a6bf44016c0738710/commoncode/data-manager-releases.md)
+[Linux and Windows tests](https://github.com/tfojo1/jheem_analyses/actions/runs/37040001420)
+passed for the exact landed commit's mocked HTTP cases, cache behavior, identity
+logging, and ordinary/recorded SHIELD selection. Both exact and promoted loads
+now print the resolved tag and full SHA-256 only after successful loading;
+verified offline loads report the same identity. SHIELD's editable ordinary
+selection remains September 9, with recorded configuration taking precedence.
+Startup wording distinguishes requesting a release from actually loading it.
+This does not update server checkouts or any running calibration's manager.
+The owning repository's
+[loader reference](https://github.com/tfojo1/jheem_analyses/blob/336df26d6e04f387b9ecfc655a26607b0b6491dc/commoncode/data-manager-releases.md)
 documents the behavior and explicit offline option.
+
+Release selection and failure handling are separate choices. The shared
+loader can legitimately follow the promoted alias when `release.tag=NULL`;
+that request must resolve and verify an identified release or fail. For a
+long-running calibration, keep a dated selection fixed across stages rather
+than resolving a moving alias separately at each launch. The SHIELD ordinary
+September pin and recorded configuration both support fixed selection; banning
+`NULL` in every consumer is not necessary to prevent online cache substitution.
+Neither a pin nor successful loading proves scientific compatibility or makes
+an earlier stage's results reusable after changing the data.
 
 ## Syphilis CI as a partial template
 
