@@ -1,7 +1,7 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-10-01
+date-modified: 2026-10-02
 ---
 
 **Status:** Evidence-backed investigation. Exact syphilis-manager release
@@ -234,6 +234,23 @@ model owner, preserve the active run's inputs, and distinguish future-loading
 repairs from changes to an in-progress calibration. Resolved input identities
 and explicit fallback policy remain necessary even when the application source
 requests the promoted manager.
+
+### Loader-hardening candidate (2026-10-02)
+
+The [candidate loader](https://github.com/tfojo1/jheem_analyses/blob/212fb0e7000ad683addd566a6bf44016c0738710/commoncode/cache_manager.R)
+retries an authenticated HTTP 401 once anonymously, for the same known-public
+JHEEM manager release URL. Other repositories, endpoints, and HTTP failures do
+not receive that retry. Release selection and digest verification still apply.
+If online alias resolution ultimately fails, loading stops instead of selecting
+a cached substitute; `offline=TRUE` remains an explicit choice. Exact-tag
+selection remains available independently of the promoted alias.
+
+[Linux and Windows tests](https://github.com/tfojo1/jheem_analyses/actions/runs/36998100518)
+passed for the candidate's mocked HTTP cases and cache behavior. This is a
+published review branch, not the default loader on `master`, and does not change
+any running calibration's manager. The owning repository's
+[loader reference](https://github.com/tfojo1/jheem_analyses/blob/212fb0e7000ad683addd566a6bf44016c0738710/commoncode/data-manager-releases.md)
+documents the behavior and explicit offline option.
 
 ## Syphilis CI as a partial template
 

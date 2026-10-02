@@ -1,7 +1,7 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-01
+date-modified: 2026-10-02
 ---
 
 **Status:** Opt-in pilot merged into both owning repositories (2026-10-01).
@@ -12,6 +12,11 @@ also completed a two-stage NAS smoke on shield2 without rebuilding that image
 runbook exercise and a representative full stage with the corrected image
 remain open. This does not establish deterministic replay or scientific
 equivalence.
+
+The [October 2 current-source candidate](#current-source-comparison) also passes
+hosted checkpoint/resume, two-stage assembly, and numerical output inspection.
+It is not installed; the fixed-parameter native/container comparison remains
+planned.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -469,6 +474,58 @@ Startup locks serialize launches but do not provide
 general lifetime or cross-account writer coordination. Multi-chain stage 3,
 native handoff, corrected-image full-stage measurement, deterministic replay,
 and automatic archival of source/records/results remain open.
+
+## Current-source comparison candidate (2026-10-02) {#current-source-comparison}
+
+The audited registry correction is now recorded on a
+[candidate analyses branch](https://github.com/tfojo1/jheem_analyses/commit/041498235821ad7bf0a743be9035a44f2c740f4b).
+It removes only the premature duplicate, producing the audited registry bytes
+exactly; no remaining calibration definition or likelihood formula changes.
+The candidate runtime selects jheem2 `9578726b`, and its optional
+`native-2026-10-01` test-input profile identifies the May 5 syphilis artifact,
+August 26 census artifact, and seed 0. The retained installed image and its
+defaults are unchanged. This selection reproduces the identified native inputs
+for comparison, not a recommendation about which data should be used in future
+calibrations.
+
+Validation separates three questions:
+
+1. **Execution and preservation:** can the current model start, checkpoint,
+   resume, assemble simsets, and retain verified input/output and stage-lineage
+   records?
+2. **Readable numerical contents:** do completed simsets contain the expected
+   stage and location, finite parameter values, and finite population, incidence,
+   and diagnosis totals for selected years? The candidate
+   [inspector](https://github.com/tfojo1/jheem_analyses/blob/eab6beb0a3131607b978b8f42bc1c87b9592c1a2/applications/SHIELD/R/shield_output_checks.R)
+   reports actual values and descriptive ranges. Its initial outcome view sums
+   across demographic strata; it is not a stratified equivalence test.
+3. **Native/container numerical comparison — planned:** hold source, manager
+   bytes, initial conditions, solver settings, and saved parameter values
+   constant, then compare trajectories and individual likelihood contributions.
+   Relevant stratified outputs belong in this comparison because agreement in
+   aggregate totals can hide different subgroup results. Report absolute and
+   relative differences and establish justified numerical tolerances before
+   treating the result as an acceptance gate.
+
+The first two levels passed in
+[hosted run 37000162439](https://github.com/ncsizemore/jheem-containers/actions/runs/37000162439),
+using container source `9d0869d4`, analyses `eab6beb0`, engine `9578726b`, and the
+native-input profile above. Each Baltimore canary stage produced two simulations
+with 173 finite stored parameters. Population, incidence, total diagnoses, and
+primary/secondary diagnoses were finite, with no negative totals, for 2010,
+2015, 2020, 2025, and 2030. Only two transmission parameters vary in the canary;
+the second stage exercises predecessor reuse, not the full scientific stage-1
+calibration. Missing/modified simsets and changed-input reuse were rejected.
+Both downloaded numerical reports parse as JSON without modifying the files.
+The tested image was exported as a time-limited Actions artifact; it has not
+replaced the retained release or installed image.
+
+Full calibration comparisons follow those fixed-parameter checks and examine
+parameter and outcome distributions and sampling diagnostics. The two-iteration
+CI canary does not establish convergence, and exact equality of independent MCMC
+traces or serialized simset files is not a current requirement. This also does
+not test whether a newer manager changes scientific conclusions; data-version
+comparisons remain a separate question.
 
 ## Open questions and destination
 
