@@ -430,6 +430,37 @@ also now selects promoted syphilis data by default
 the recorded pilot retains its explicit manager selection. New source does not
 implicitly update those inputs.
 
+These results exercise different source selections. The September 30 full
+`calib.9.28.stage0` run predates the registry change introduced in
+[`0591d626`](https://github.com/tfojo1/jheem_analyses/commit/0591d626ebfde257f81cc60785bfcacd0c44a1e8).
+The retained image's successful hosted canary uses `06505412`; the later NAS
+source-preservation test deliberately uses a fixture based on that same earlier
+source. Neither establishes that the latest calibration definitions can start.
+Both the ordinary modular launcher and the recorded startup check source the
+whole registry, so an out-of-order definition can stop startup even when that
+older calibration was not requested.
+
+A native `calib.10.1.stage0` run was separately observed progressing beyond
+4,000 iterations on October 1. A read-only server audit at 23:34 UTC explains
+the registration difference: its checkout is at `03e3eea5` with an uncommitted
+deletion of exactly the ten-line early duplicate. Removing those lines from the
+published file produces the audited working file's SHA-256 exactly. Its modification
+time precedes the R process start by about seven seconds. The inspected launcher,
+source bootstrap, specification, and likelihood files match their committed
+versions. This is a working-source difference, not evidence that the container
+introduced a new registration rule. The audit describes files at inspection;
+it is not a contemporaneous source receipt from the native launch.
+
+The native log and audited engine identify jheem2 `9578726b`. The
+[published engine comparison](https://github.com/CIPHER-Epi/jheem2/compare/ccb1f9bfe40844143dbcec65ffd27829aa39d7ef...9578726b012a2ee380b380ef0203733d1bd81163)
+changes only spline functional forms; the audited registration implementation
+and source-mode bootstrap match that commit. Those newer spline fixes still
+require runtime alignment before reproducing the current calibration. The audit
+also identified a [legacy manager fallback](manager-compatibility.qmd#observed-legacy-fallback)
+to an older released artifact. Recording the existing source correction and
+agreeing on engine and manager selections precede a current-source container
+trial; no scientific source or running calibration was changed by the audit.
+
 The shared installation and two intended accounts passed administrator checks:
 image loading, persistent user services, shared-input readability, and container
 NAS writes. This is not yet an independent operator's calibration exercise.

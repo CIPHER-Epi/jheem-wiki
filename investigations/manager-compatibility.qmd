@@ -29,8 +29,11 @@ version and verifies its digest before loading
 The [loader documentation](https://github.com/tfojo1/jheem_analyses/blob/7f687a8aa1e01080fa5626c82ed67f673fd9b705/commoncode/data-manager-releases.md)
 describes version selection, offline migration, and corruption handling.
 Changing an explicit selection does not move the shared promoted alias or the
-local default pointer. SHIELD's ordinary bootstrap still explicitly chooses its
-July 27 manager; loading verification does not change that scientific input.
+local default pointer. Ordinary SHIELD now requests the promoted manager
+([`03e3eea5`](https://github.com/tfojo1/jheem_analyses/commit/03e3eea538d862e84dfd22b3300d56c7ecf11d4c));
+the recorded pilot retains an explicit July 27 selection. A failed ordinary
+alias lookup can still use a legacy local copy with a warning, as observed below;
+requesting latest does not by itself establish the loaded artifact's identity.
 
 ## Manager compatibility and rollback
 
@@ -207,6 +210,30 @@ that current adapter against all three published manager artifacts or the
 ten-MSA/Baltimore probes. Those checks should be rerun before making the
 unmerged promotion gate authoritative. The earlier value differences remain a
 separate scientific interpretation question.
+
+### Observed legacy fallback (2026-10-01) {#observed-legacy-fallback}
+
+A native SHIELD calibration log reports HTTP 401 when resolving
+`syphilis-manager-latest`, followed by loading an unverified legacy
+`cached/syphilis.manager.rdata`. A read-only audit found that file's SHA-256
+matches the published
+[`syphilis-manager-v2026.05.05`](https://github.com/tfojo1/jheem_analyses/releases/tag/syphilis-manager-v2026.05.05)
+asset exactly, not the promoted September 9 asset or the recorded container's
+July 27 selection. The audited census file matches the container's August 26
+release artifact. File metadata places both cached files before the run; this
+is retrospective evidence, not a run-time input receipt.
+
+This follows the
+[ordinary loader's fallback](https://github.com/tfojo1/jheem_analyses/blob/03e3eea538d862e84dfd22b3300d56c7ecf11d4c/commoncode/cache_manager.R#L533-L554):
+after failed alias resolution it tries the last verified version, then permits
+an unverified legacy file if no version pointer exists. The warnings expose the
+substitution but do not stop sampling. The exact-tag path does not substitute
+another release. The observation does not establish invalid scientific results
+or the cause of the authentication failure. Confirm the intended data with the
+model owner, preserve the active run's inputs, and distinguish future-loading
+repairs from changes to an in-progress calibration. Resolved input identities
+and explicit fallback policy remain necessary even when the application source
+requests the promoted manager.
 
 ## Syphilis CI as a partial template
 
