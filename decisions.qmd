@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-10-01
+date-modified: 2026-10-03
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,27 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-024 · Freeze staged runs and measure repeatability separately from the seed API {#d-024}
+
+*2026-10-03. Working implementation decision; refines D-019, D-020, and D-023.*
+The preservation boundary is the whole declared calibration pipeline: source,
+runtime, input identities, and configuration remain fixed across its locations,
+stages, and restarts. Source-loaded `jheem2` requires the same preservation as
+analysis source; package-mode migration is not a prerequisite. Later transmutation
+or recalibration is a new operation linked to identified parent artifacts, not a
+rewrite of the original run's history. These are target requirements, not claims
+that ordinary native runs already enforce them.
+
+Test current SHIELD behavior before making sampler changes: fixed-parameter
+native/container comparisons, separate fresh runs, and uninterrupted/resumed
+traces answer different questions. The ignored explicit cache-seed argument is
+still a defect, but SHIELD's preceding `set.seed()` means it does not by itself
+disprove repeatability under a fixed setup. A passing workflow test likewise does
+not repair that argument. Any sampler correction remains a separately reviewed,
+regression-tested change; no scientific formula change follows from this decision.
+See the [validation plan](investigations/shield-container-pilot.qmd#repeatability-plan)
+and [preservation boundary](investigations/reproducibility.qmd#run-preservation).
 
 ## D-023 · Separate SHIELD analysis source from its runtime image {#d-023}
 

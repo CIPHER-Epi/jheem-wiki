@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-10-02
+date-modified: 2026-10-03
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -17,11 +17,13 @@ remains an explicit publication need, with SHIELD as the first reference workflo
 a SHIELD container pilot and CI for assembling the HIV surveillance manager
 ([D-020](decisions.qmd#d-020)).
 Neither is equivalent to a claim of end-to-end reproducibility or raw-data-to-final
-automation. The sampler seed/resume finding remains relevant to a later
-deterministic-replay claim, but is not a prerequisite for establishing a bounded
-container runtime. Calibration observability and functional-form documentation
-remain open. The broader program is still a working engineering proposal rather
-than a team-adopted plan ([D-017](decisions.qmd)).
+automation. The sampler seed-argument defect remains open, but does not by itself
+disprove repeatability through SHIELD's preceding `set.seed()` call. Bounded
+fresh-run and resume comparisons now precede any sampler correction
+([D-024](decisions.qmd#d-024)); replay is not yet verified. Calibration
+observability and functional-form documentation remain open. The broader program
+is still a working engineering proposal rather than a team-adopted plan
+([D-017](decisions.qmd)).
 
 ### Practice baseline (updated 2026-10-01)
 
@@ -62,13 +64,13 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap the script as a package fixture when package/CI feasibility is evaluated; the data-manager half comes with the likelihood demo |
 | 4 | **Calibration observability and online stopping** — establish the architecture, then implement one bounded vertical slice | **Sequenced behind the seed/resume contract** (2026-09-17) | Routine runs target the shared servers. The [code-grounded investigation](investigations/calibration-observability.qmd) measured 1.89 GB SHIELD and 17.89 GB EHE caches and recommends small parameter-only checkpoint sidecars rather than repeated science-chunk reads. Monitoring and stopping share the sampler checkpoint boundary now under reproducibility review; the seed and uninterrupted/resumed tests land first. |
 | 5 | **Functional-form documentation** — inventory and explain the forms used by model specifications, with runnable examples where practical | Queued | Requested bounded documentation work; final API and examples belong in `jheem2`, while an evidence-backed investigation may be staged here ([D-018](decisions.qmd)) |
-| 6 | **Model-manager compatibility and rollback** — select immutable manager versions and gate promotion against active consumers | **Loader safety and identity logging landed; actual stage-1 check next** (2026-10-02) | Master `336df26d` stops failed online resolution without substituting cached data, retries rejected credentials once anonymously for known-public releases, and logs the verified release/digest. Linux/Windows tests passed. Ordinary SHIELD remains pinned to September 9; recorded selection is unchanged. No server checkout was updated by this landing. Next check the actual stage-1 likelihood against the intended manager. The broader ten-MSA/Baltimore checks and unmerged promotion gate still need reconciliation with current SHIELD. Earlier July-versus-newer MSM value differences remain a separate scientific question. See [Manager compatibility and rollback](investigations/manager-compatibility.qmd#loader-hardening). |
-| 7 | **SHIELD runtime and reproducibility** — establish a bounded container pilot, then test stronger replay claims | **Current-source candidate passes hosted canary; installed pilot unchanged** (2026-10-02) | Candidate analyses `eab6beb0` records the audited registry correction, hardens manager loading, and adds numerical output inspection. Container candidate `9d0869d4` selects engine `9578726b`; its native-input profile passed checkpoint/resume, two-stage assembly, numerical inspection, and negative output-reuse checks. Next are fixed-parameter native/container comparisons, a representative full stage, and another operator's exercise. The candidate image is an Actions artifact, not a new installed release. Stage 3, lifetime/shared-writer coordination, deterministic replay, and automatic archival remain open. See the [comparison checkpoint](investigations/shield-container-pilot.qmd#current-source-comparison). |
+| 6 | **Model-manager compatibility and rollback** — select immutable manager versions and gate promotion against active consumers | **Loader safety landed; Baltimore stage-1 compatibility verified locally** (2026-10-03) | Master `336df26d` stops failed online resolution without cached substitution and logs verified identities, with Linux/Windows tests. Ordinary SHIELD selects September 9. The actual stage-1 likelihood now passes locally with that manager: 12 finite components at three parameter vectors. May's manager reproduces the missing-outcome failure. The new check is not merged or a CI gate; broader location coverage and the promotion proposal still need reconciliation with current SHIELD. Earlier MSM value differences remain a separate scientific question. See [results and limits](investigations/manager-compatibility.qmd#stage1-check). |
+| 7 | **SHIELD runtime and reproducibility** — establish a bounded container pilot, then test stronger replay claims | **Fixed-parameter comparisons measured; replay still untested** (2026-10-03) | Published candidate analyses `94ba7298` adds only output inspection and diagnostics to master `4264842c`. Hand-sourced and installed engine `9578726b` agree exactly within macOS and within the Linux image: 24,948 stratified values, 36 likelihood components, and three totals with September inputs. Mac-versus-Linux differences are measured and small on this probe (maximum total-log-likelihood difference about $1.64\times10^{-9}$), not evidence of identical calibration traces or a universal tolerance. The installed pilot is unchanged. Native-server checks, fresh/resumed traces, full-stage/operator exercise, stage 3, shared-writer coordination, and automatic archival remain open. See [result and limits](investigations/shield-container-pilot.qmd#engine-loading-comparison). |
 | 8 | **HIV surveillance-manager CI** — assemble, check, and promote the manager from identified section artifacts | **Automatic publication and exact loading verified; contributor handoff next** (2026-10-01) | A master build published `hiv-surveillance-manager-v2026.10.01`: 603 structural and ten consumer checks passed; no values differed across 408 arrays. Online and offline exact loading passed without changing latest. Ordinary latest-loading now uses the same verified release cache (`7f687a8a`), with Linux/Windows tests. Next exercise a real contributor update and deliberate review/promotion. Section-to-final only; see the [investigation](investigations/hiv-surveillance-manager-ci.qmd). |
 
 ### Next
 
-The immediate work is two bounded tracks, updated 2026-10-02:
+The immediate work is two bounded tracks, updated 2026-10-03:
 
 1. **HIV contributor handoff.** The master-build/publication and loading paths
    have passed. Exercise a real contributor's section update, review the
@@ -84,13 +86,21 @@ The immediate work is two bounded tracks, updated 2026-10-02:
    records the audited registry correction and selects the required engine fixes.
    Its current-source canary and numerical inspection have passed, but both tiny
    stages use stage-0 likelihoods. Loader hardening and release-identity logging
-   are now on master, independently of the container branch. Reconcile the
-   remaining candidate with current master and verify
-   actual stage-1 setup using the now-confirmed September 9 manager. The May
-   profile remains historical evidence, not the intended next-run baseline.
-   Then compare fixed-parameter trajectories and likelihood contributions in
-   native and container runtimes with matched September inputs. Reusing an old
-   stage-0 result needs a separate input review; do not change existing run
+   are now on master, independently of the container branch. A local check of
+   the actual stage-1 likelihood now passes with September's manager; full
+   predecessor handoff remains untested. The remaining candidate is reconciled
+   and published. Both local and hosted same-environment source/package
+   comparisons agree exactly; Mac-versus-Linux differences are measured, but a
+   team server's native setup has not been compared. The May profile remains historical evidence,
+   not the intended next-run baseline.
+   Preserve source, runtime, inputs, and stage configuration across the whole
+   declared pipeline, including the source-loaded native engine. Compare
+   any additionally identified server environment against the same fixed-parameter
+   evidence, and run bounded fresh/fresh and uninterrupted/resumed comparisons
+   before a full-stage trial.
+   The [repeatability plan](investigations/shield-container-pilot.qmd#repeatability-plan)
+   defines these separate checks; no sampler or scientific formula change is
+   assumed. Reusing an old stage-0 result needs a separate input review; do not change existing run
    history. Exercise the runbook with another operator and measure a
    representative full stage using the candidate image.
    Stage 3 still needs multi-chain support or an explicitly tested native handoff;
@@ -106,6 +116,11 @@ questions remain separate work; infrastructure changes must not silently decide
 them. The [HIV](investigations/hiv-surveillance-manager-ci.qmd) and
 [SHIELD](investigations/shield-container-pilot.qmd) pages hold the current evidence
 and acceptance boundaries.
+
+Later transmutation or recalibration should produce a new record linked to its
+identified parent artifacts, preserving the original run's history. Include
+that relationship in the [provenance design](investigations/reproducibility.qmd#derived-lineage)
+now; generalized cross-model conversion remains deferred.
 
 - **Package-mode and CI feasibility** — use the toy fixture and the actual
   `jheem_analyses` loading path to measure what prevents `library(jheem2)`, what a

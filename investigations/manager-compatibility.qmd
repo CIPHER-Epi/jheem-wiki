@@ -1,13 +1,14 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-10-02
+date-modified: 2026-10-03
 ---
 
 **Status:** Evidence-backed investigation. Exact syphilis-manager release
 selection and digest verification are implemented; a model-consumer check before
-promotion is proposed but not merged. The current SHIELD adapter's behavior
-against all published manager versions has not been rerun in this pass.
+promotion is proposed but not merged. A local [stage-1 likelihood check](#stage1-check)
+passes with September's manager and reproduces the missing-outcome failure with
+May's manager. This is not a check of all published versions or all locations.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the July 27, August 26, and September 9 syphilis-manager releases, and the
@@ -257,8 +258,8 @@ earlier results.
 Commit `38b20dcf` selects `syphilis-manager-v2026.09.09` for ordinary
 SHIELD and removes the audited duplicate calibration registration. It does not
 change the shared loader's online fallback behavior; the separate loader fix
-below is now on master. The next compatibility check is to exercise the actual
-stage-1 likelihood setup against the intended manager before a long run.
+below is now on master. The subsequent [October 3 check](#stage1-check) exercises
+the actual stage-1 likelihood against the intended manager before a long run.
 The container's two-stage operational canary uses stage-0
 likelihoods in both stages and does not cover this missing outcome.
 
@@ -293,6 +294,41 @@ September pin and recorded configuration both support fixed selection; banning
 `NULL` in every consumer is not necessary to prevent online cache substitution.
 Neither a pin nor successful loading proves scientific compatibility or makes
 an earlier stage's results reusable after changing the data.
+
+### Stage-1 compatibility check (2026-10-03) {#stage1-check}
+
+A local check loaded the real SHIELD specification and
+[calibration registry](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_calib_register.R#L38-L46),
+then instantiated the registered `calib.10.1.stage1` likelihood for Baltimore
+(`C.12580`). The scientific source was analyses `4264842c`, with engine
+`9578726b`, sampler `4e0d13e`, and R 4.4.2 on macOS. Engine loading used the
+recorded bootstrap's `pkgload::load_all()` path, not the ordinary hand-sourced
+native launcher or a container. Managers came from separate, digest-verified
+offline cache entries; no shared cache or active calibration was changed.
+
+| Syphilis release | Observed result |
+|---|---|
+| `syphilis-manager-v2026.09.09` | Passed at three fixed parameter vectors. Each produced 12 finite likelihood components, including the MSM diagnosis-proportion term. The component sum, optimized total, and ordinary consistency-checking total agreed. |
+| `syphilis-manager-v2026.05.05` | Negative control failed while instantiating the likelihood: `prop.male.ps.diag.among.msm` is not a registered outcome. No simulation or MCMC was started. |
+
+The vectors were the full model's prior medians and two diagnostic variations
+scaling both global transmission rates by 0.9 or 1.1. These are neither posterior
+samples nor changes to the model's priors. The September and May artifact
+SHA-256 values were respectively
+`c3e3c983d6b4e9c961f735f9c59d45483bd63cfa715cf75c1fae874da2d129e6`
+and `e8acbeb758ae4af4e149a62ef78c862a114a2d55f43a0c4695f49d9a8a9fa0e6`.
+Both checks used census `data-managers-v2026.08.26`, SHA-256
+`f8c710684ccfdfb3a5c8e6f4b54caf0417ab67afb82b89ab3259c4b8151e1053`.
+
+**Boundary:** this demonstrates compatibility at the tested location and
+parameter settings, not scientific acceptance, full stage-0-to-stage-1 handoff,
+same-seed replay, or native/container agreement. The May control reproduces the
+reported failure but does not identify SHIELD3's old cached file. No likelihood
+formula, calibration registration, or sampler behavior was changed. The reusable
+check, helper tests, and execution guide are prepared locally under
+`jheem_analyses/applications/SHIELD/tests/`; they are not yet merged or a CI gate.
+The next runtime comparison follows the
+[repeatability plan](shield-container-pilot.qmd#repeatability-plan).
 
 ## Syphilis CI as a partial template
 

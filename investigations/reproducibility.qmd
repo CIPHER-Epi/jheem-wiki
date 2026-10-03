@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-10-01
+date-modified: 2026-10-03
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -152,6 +152,11 @@ negative checks for missing or modified outputs and changed seed. This is a
 useful first run-history implementation, not yet
 the complete output-linked, automatically retained provenance contract below.
 
+The [October 3 validation plan](shield-container-pilot.qmd#repeatability-plan)
+distinguishes repeatability through SHIELD's seeded setup from the sampler's
+ignored explicit seed argument. The former remains an experiment, not a result;
+the latter does not require postponing that experiment until a package fix lands.
+
 ## The current filesystem contract
 
 The common local checkout is organized as:
@@ -284,6 +289,33 @@ pulling branches, resetting checkouts, or starting an expensive model run. A
 separate, explicit materialization command may download verified assets into a
 local cache.
 
+### Preserve the whole staged run {#run-preservation}
+
+*Target requirement, 2026-10-03 ([D-024](../decisions.qmd#d-024)).* Select source,
+runtime, managers, and the configuration of all declared stages once for the
+calibration pipeline. Every location, later stage, and restart reuses that
+selection. Record each stage's predecessor outputs separately as they become
+available; those outputs must not be replaced by a newer result with the same
+filename. Deliberately changing a selection creates a new run rather than
+silently continuing the old one.
+
+Updating a checkout or manager file does not ordinarily replace functions or data
+already loaded into an R process. The exposure is at startup, subsequent file
+reads, new workers, restarts, and later stages. Preserve the actual input bytes
+outside mutable development checkouts, verify them before reuse, and use read-only
+access where practical. A commit recorded beside a dirty checkout, or a dated
+release name without retained and verified contents, is not sufficient.
+
+Native SHIELD's [source-mode bootstrap](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_source_code.R#L197-L224)
+loads a sibling `jheem2` checkout. That engine needs an identified snapshot and
+its loading/build environment recorded just as analysis source does. The container
+instead [installs an exact engine revision](https://github.com/ncsizemore/jheem-containers/blob/9d0869d4f84cdb0cc5673d13c1491fd26aee343b/workloads/shield/Dockerfile)
+into the runtime image; preserving engine identity does not require the same
+loading mechanism. Equivalence between these paths remains a test, not an
+assumption. The [existing analysis snapshots](shield-container-pilot.qmd#separate-source)
+implement part of this boundary for the opt-in pilot; universal native-run
+isolation and automatic archival remain open.
+
 ### During and after execution: run history and receipt
 
 The resolved lock should be written when the run is created and remain immutable.
@@ -323,6 +355,25 @@ digest. Link 1 remains open. `load.simulation.set()` reconstructs a copy of the
 serialized R6 object, so an arbitrary object attribute would not by itself be a
 reliable embedded reference; any in-object run ID needs an explicit, supported
 field and compatibility policy in `jheem2`.
+
+### Derived models and transmuted simsets {#derived-lineage}
+
+*Target requirement, 2026-10-03.* Treat transmutation, model extension, and later
+recalibration as new operations with their own source, environment, inputs,
+configuration, and output records. Each record should identify its parent
+artifacts by digest and, where available, originating run ID. Keep the original
+artifact and run history unchanged. Reproducing an old result in its old
+environment is different from intentionally deriving a new result with newer
+code; both histories must remain recoverable.
+
+Identity alone does not establish compatibility: newer code may need a tested
+conversion to interpret an older serialized simset or parameterization. Record
+such conversions as operations, with scientific review where model meaning
+changes. Preserve the necessary source, environments, and artifact bytes, not
+only their identifiers. Parent-artifact references belong in the provenance
+design now; generalized transmutation support and historical migrations are
+deferred. The current SHIELD predecessor checks are a narrower implementation,
+not a general cross-model compatibility guarantee.
 
 ### Capture and archive
 

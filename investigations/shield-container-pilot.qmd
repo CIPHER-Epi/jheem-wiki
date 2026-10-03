@@ -1,7 +1,7 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-02
+date-modified: 2026-10-03
 ---
 
 **Status:** Opt-in pilot merged into both owning repositories (2026-10-01).
@@ -15,8 +15,20 @@ equivalence.
 
 The [October 2 current-source candidate](#current-source-comparison) also passes
 hosted checkpoint/resume, two-stage assembly, and numerical output inspection.
-It is not installed; the fixed-parameter native/container comparison remains
-planned.
+It is not installed. The later [October 3 comparison](#engine-loading-comparison)
+measures fixed-parameter agreement with reconciled source and September inputs;
+it does not validate the earlier May-input setup as a scientific baseline.
+
+The [October 3 repeatability plan](#repeatability-plan) separates the sampler's
+explicit-seed defect from replay through SHIELD's existing seeded setup. No
+same-seed trace comparison has yet passed; testing that behavior need not wait
+for a sampler correction. A local [stage-1 likelihood check](manager-compatibility.qmd#stage1-check)
+now passes with September's manager; this does not change the installed image
+or establish native/container agreement. A subsequent
+[engine-loading comparison](#engine-loading-comparison) found exact agreement
+between hand-sourced and installed-package execution within both tested
+environments, with small measured differences across macOS and Linux. A team
+server's native environment has not been compared.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -92,7 +104,9 @@ These are validation assets, not yet evidence that SHIELD calibration is
 reproducible. The 2026-09-17 sequence prioritized a small, executable sampler
 seed demonstration and focused correction before SHIELD branch reconciliation.
 The narrower container-pilot sequence is updated below; it does not remove the
-sampler prerequisite for a deterministic-replay claim.
+need to test the sampler behavior behind a deterministic-replay claim. The
+[October 3 refinement](#repeatability-plan) distinguishes testing the current
+workflow from correcting the explicit seed argument.
 
 ## SHIELD container-pilot update (2026-09-22)
 
@@ -380,12 +394,11 @@ Next:
    writers also require a cross-process locking strategy, beyond the wrapper's
    same-account container check.
 
-A stronger same-seed replay claim follows a separate sampler increment:
-demonstrate the present seed-forwarding behavior, correct it with focused
-same-seed/different-seed and uninterrupted/resumed tests in
-`bayesian.simulations`, then compare traces under one image digest and across
-the servers. The operational pilot need not wait for that claim, but must not
-imply it.
+The October 1 sequence proposed a sampler correction before same-seed trace
+comparisons. The [October 3 plan](#repeatability-plan) refines that order: measure
+repeatability through the current seeded workflow first, while keeping the
+explicit seed-argument defect and any correction separate. Successful checkpoint
+continuation alone remains insufficient evidence of trace equality.
 
 ## Separate source from the runtime (2026-10-01) {#separate-source}
 
@@ -539,10 +552,137 @@ inspection remains separate from that landing.
 
 Full calibration comparisons follow those fixed-parameter checks and examine
 parameter and outcome distributions and sampling diagnostics. The two-iteration
-CI canary does not establish convergence, and exact equality of independent MCMC
-traces or serialized simset files is not a current requirement. This also does
-not test whether a newer manager changes scientific conclusions; data-version
-comparisons remain a separate question.
+CI canary does not establish convergence. The bounded replay tests below compare
+matched same-seed traces separately; they do not require different-seed
+calibrations or serialized simset files to be identical. Whether a newer manager
+changes scientific conclusions remains a separate question.
+
+## Repeatability validation plan (2026-10-03) {#repeatability-plan}
+
+**Verified evidence:** the published heads remain analyses `4264842c`, engine
+`9578726b`, and sampler `4e0d13e`. A toy cache check rerun on October 3 reproduced
+the ignored explicit seed argument: keeping `seed = 123` but changing prior R
+state from `set.seed(1)` to `set.seed(2)` changes stored chunk seeds; keeping
+`set.seed(1)` but changing the argument to `456` does not. The
+[public constructor](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/run_interface.R#L181-L217)
+does not forward the argument, and the
+[chunk-seed generator](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/cache.R#L235-L261)
+uses ambient random state. This check does not run a scientific calibration.
+
+**Hypothesis to test:** ordinary SHIELD calls `set.seed(0)` before setup, while
+recorded mode uses its configured seed at the
+[same point](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_calib_setup_and_run.R#L64-L114).
+An otherwise identical setup could therefore recreate the same chunk schedule
+and trace despite the API defect. Neither fresh-run equality nor
+uninterrupted/resumed equality has been demonstrated. Any package correction
+remains separate from characterization of this workflow ([D-024](../decisions.qmd#d-024)).
+
+**Validation matrix:**
+
+| Comparison | Question and evidence |
+|---|---|
+| Fixed parameter vectors, native versus container | The [October 3 result](#engine-loading-comparison) compares hand-sourced and installed-package engines within macOS and Linux, and Mac hand-sourced versus Linux container execution. It covers three vectors at one location, not a team server's native environment or full calibration. |
+| Two fresh container processes with separate empty output roots | Does the same selection reproduce initial parameters, stored chunk seeds, sampled parameter values, and likelihood traces? Add a changed-seed control to check that the configured seed affects sampling. |
+| Uninterrupted versus interrupted/resumed execution | With the same setup, does continuation in a new process preserve the trace across multiple checkpoint chunks? A resume-completes check alone is insufficient. |
+| Matched native versus container calibration | After fixed-parameter checks, assess trace agreement with the actual native source-loading path and container package-loading path explicitly recorded. A mismatch requires locating the first divergence, not immediately blaming the sampler. |
+
+Hold source and manager bytes, initial conditions, solver settings, chain setup,
+iteration count, burn-in, thinning, and checkpoint frequency constant. Record
+R/package versions, loading mode, RNG settings, and runtime identity. Compare
+scientific values rather than whole serialized files containing timestamps or
+runtime metadata. Exact same-environment trace equality and justified numerical
+tolerances across environments are different acceptance claims; a bounded pass
+is not proof of convergence or every multi-chain configuration.
+
+**Compatibility checkpoint:** on October 3, the actual registered stage-1
+likelihood passed a local Baltimore check with September's intended manager:
+12 finite components at three fixed parameter vectors. May's manager reproduced
+the missing-outcome failure during likelihood construction. This check used the
+recorded source-loading path, not a native/container comparison, and did not
+exercise predecessor output reuse or MCMC. See the
+[identities, results, and limits](manager-compatibility.qmd#stage1-check).
+
+The remaining candidate is now reconciled with analyses master
+`4264842c`, retaining the output inspector and diagnostics without changing
+production scientific or loader code. Preserve selections across the
+[whole staged run](reproducibility.qmd#run-preservation), then perform the
+remaining native-server checks and small replay experiments before a representative full
+stage and operator handoff. Existing native runs can contribute evidence only
+to the extent that their loaded inputs and environment are identifiable; do not
+alter them or invent missing launch records to construct a comparison.
+
+The deliverable is a short comparison report stating what matched, what differed,
+and what was not tested, backed by repeatable scripts in the owning repositories.
+Later model derivation follows the separate
+[parent-artifact lineage requirement](reproducibility.qmd#derived-lineage);
+generalized transmutation is not a prerequisite for these tests.
+
+### Engine-loading comparison (2026-10-03) {#engine-loading-comparison}
+
+Two fresh macOS/R 4.4.2 processes evaluated the real Baltimore stage-1 likelihood
+with identical September syphilis and August census manager bytes. One used
+`jheem2@9578726b` installed from source into an isolated library; the other used
+that revision's existing `R/tests/source_jheem2_package.R` loader. Both consumed
+the same saved parameter doubles. The reconciled
+[diagnostic candidate](https://github.com/tfojo1/jheem_analyses/commit/94ba72984737d71ea9ca8ed102a8add58b48e6f2)
+is analyses `94ba7298`, with scientific source unchanged from master `4264842c`.
+
+| Compared values across three parameter vectors | Observed agreement |
+|---|---|
+| Population, incidence, total diagnoses, and primary/secondary diagnoses: 2010–2030 annually, retaining 11 ages × 3 races × 3 sex groups (24,948 values) | Exact at full double precision |
+| Twelve stage-1 likelihood components per vector (36 values), plus three totals | Exact at full double precision |
+
+The hand-sourced side used a disposable analyses copy with one diagnostic
+bootstrap substitution: the recorded `pkgload::load_all()` call invoked the
+existing engine source script instead. All other tracked SHIELD/commoncode
+file hashes matched. This keeps manager selection offline and isolated while
+exercising the different engine-loading mechanism; it is not a new production
+loading option or a test of the ordinary native bootstrap in full. The comparator
+retains 17-significant-digit values and rejects mismatched source, input, or
+parameter identities. Its tests include detecting a one-ULP difference.
+
+The paired Linux check also completed in
+[hosted run 37153878619](https://github.com/ncsizemore/jheem-containers/actions/runs/37153878619),
+using container source `eff598ab` and image
+`sha256:2819cc3ec51ff7ffaf8804ec82212bcc2fe6248ff02748feb76711830ba924a2`.
+It used two fresh processes in one Ubuntu 24.04.1/R 4.4.2 image, read-only
+source/manager mounts, and no network. Both loading modes agreed exactly on
+the same 24,948 outcome values, 36 components, and three totals. The downloaded
+reports, not only workflow status, were checked.
+
+The full workflow also passed checkpoint/resume, two-stage summary/assembly,
+numerical output inspection, and missing/modified-output and changed-seed
+rejection. Each tiny canary stage produced two simulations with 173 finite
+parameters and finite selected outcome totals. This is operational continuation
+and integrity evidence: the canary's second stage still uses the stage-0
+likelihood, and uninterrupted-versus-resumed trace equality was not compared.
+
+The Linux parameter fixture's digest matched the Mac fixture byte-for-byte,
+allowing an additional cross-platform comparison: Linux installed-package
+versus Mac hand-sourced execution, with matched scientific sources and manager
+bytes. Values were not identical across platforms:
+
+| Quantity | Largest absolute difference | Largest relative difference |
+|---|---:|---:|
+| Population cell | $1.89\times10^{-8}$ | $1.57\times10^{-13}$ |
+| Incidence cell | $1.88\times10^{-10}$ | $6.57\times10^{-13}$ |
+| Total-diagnosis cell | $2.03\times10^{-10}$ | $1.28\times10^{-12}$ |
+| Primary/secondary-diagnosis cell | $1.33\times10^{-10}$ | $2.31\times10^{-12}$ |
+| Likelihood component | $4.34\times10^{-10}$ | $1.34\times10^{-13}$ |
+| Total log likelihood | $1.64\times10^{-9}$ | $4.65\times10^{-14}$ |
+
+Relative differences divide by the larger absolute value in each pair; the
+absolute and relative maxima need not occur in the same cell. For scale, the
+largest population difference occurred at values near 120,557. The environments
+also differ in BLAS and compiler/platform details; the specific cause of each
+numerical difference was not isolated. These measurements are not an adopted
+scientific tolerance or proof that MCMC traces will remain identical.
+
+**Limits:** no full native bootstrap, active server run, predecessor reuse,
+convergence, or replay claim follows from this fixed-parameter result. The
+candidate branches are published, but default branches, retained image,
+releases, server checkouts, and active runs are unchanged. This hosted run
+does not export an image for installation.
 
 ## Open questions and destination
 

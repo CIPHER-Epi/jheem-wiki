@@ -1,7 +1,7 @@
 ---
 title: "Ecosystem Map"
 date: 2026-08-17
-date-modified: 2026-10-02
+date-modified: 2026-10-03
 ---
 
 JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
@@ -78,7 +78,7 @@ it; an existing process's loaded manager is unaffected.
 Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`:
 
 - **Package mode** (`USE.JHEEM2.PACKAGE = T`): `library(jheem2)` against an installed build. CI and containers use this mode; production containers pin a git ref, while the syphilis-manager workflow accepts a ref whose current default is the moving `dev` branch.
-- **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++. The current SHIELD bootstrap also synchronizes the sibling checkout to `dev` before sourcing it.
+- **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++. The [current ordinary SHIELD bootstrap](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_source_code.R#L116-L224) requires the sibling checkout to be on `dev`; it pulls only in interactive sessions and otherwise verifies the branch and logs its SHA without updating it. Recorded source mode instead uses `pkgload::load_all()`; these loading paths must not be treated as already proven equivalent.
 
 Some model specifications call jheem2 functions that aren't exported from the
 package NAMESPACE (details in the [Spec Framework Notes](spec-framework-notes.qmd)).
