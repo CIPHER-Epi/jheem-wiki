@@ -88,8 +88,9 @@ The immediate work is two bounded tracks, updated 2026-10-03:
    stages use stage-0 likelihoods. Loader hardening and release-identity logging
    are now on master, independently of the container branch. A local check of
    the actual stage-1 likelihood now passes with September's manager; full
-   predecessor handoff remains untested. The remaining candidate is reconciled
-   and published. Both local and hosted same-environment source/package
+   predecessor handoff remains untested. The reconciled diagnostics landed on
+   analyses master `94ba7298` and container main `5cf61579` on October 3.
+   Both local and hosted same-environment source/package
    comparisons agree exactly; Mac-versus-Linux differences are measured, but a
    team server's native setup has not been compared. The May profile remains historical evidence,
    not the intended next-run baseline.

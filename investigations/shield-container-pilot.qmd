@@ -30,6 +30,13 @@ between hand-sourced and installed-package execution within both tested
 environments, with small measured differences across macOS and Linux. A team
 server's native environment has not been compared.
 
+On October 3 the validated diagnostics landed on analyses master at
+[`94ba7298`](https://github.com/tfojo1/jheem_analyses/commit/94ba72984737d71ea9ca8ed102a8add58b48e6f2)
+and container main at
+[`5cf61579`](https://github.com/ncsizemore/jheem-containers/commit/5cf615793a00343d3fcc7202054c63b395322bbc).
+The next experiment compares fresh and resumed traces in one fixed container
+environment. The retained server installation still uses its earlier image.
+
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
 `jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31`, and
@@ -680,9 +687,9 @@ scientific tolerance or proof that MCMC traces will remain identical.
 
 **Limits:** no full native bootstrap, active server run, predecessor reuse,
 convergence, or replay claim follows from this fixed-parameter result. The
-candidate branches are published, but default branches, retained image,
-releases, server checkouts, and active runs are unchanged. This hosted run
-does not export an image for installation.
+diagnostics subsequently landed on the default branches on October 3 as
+recorded above. The retained image, releases, server checkouts, and active runs
+are unchanged. This hosted run does not export an image for installation.
 
 ## Open questions and destination
 
