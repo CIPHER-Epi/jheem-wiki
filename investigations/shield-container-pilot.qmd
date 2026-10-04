@@ -45,9 +45,11 @@ still uses its earlier image.
 
 The [October 4 actual-stage-1 handoff](#operational-delivery) then passed with
 the real stage-specific likelihoods and exact predecessor-parameter transfer.
-Its diagnostics and results report are on both default branches. A retained
-current runtime and representative operator trial remain next; this hosted
-result does not change the installed image or the multi-chain/restart limits.
+Its diagnostics and results report are on both default branches. The
+[current runtime is now retained](#current-runtime-retention) in a separate dated
+release, with verified installation staging. Root installation and a
+representative operator trial remain pending; this does not change the older
+installed image or the multi-chain/restart limits.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -91,8 +93,10 @@ an owner-reviewed follow-up, not a prerequisite for every operator deliverable.
    landed on analyses master `0de5aa3e` and
    [container main `6dd6d3a0`](https://github.com/ncsizemore/jheem-containers/commit/6dd6d3a0a5bc54f8a1b4eb2033f1f82f2e22bc05).
    This test is neither a realistic-duration calibration nor convergence evidence.
-2. **Current-runtime operator trial.** Retain a tested runtime separately from
-   the installed October 1 image. Select committed source, intended manager
+2. **Current-runtime operator trial — runtime retained; installation pending.**
+   The [October 4 release](#current-runtime-retention) preserves a tested runtime
+   separately from the installed October 1 image. Complete the separate
+   installation and account/NAS checks first. Select committed source, intended manager
    releases, a representative single-chain stage, and a fresh output root with
    the model operators. Exercise the existing guide from another account;
    collect setup/start/status/logging feedback, elapsed time and peak memory,
@@ -124,6 +128,44 @@ did not change the server installation. Hosted reports expire after 14 days;
 retaining a deployable runtime remains a separate step. The checkpoint/RNG
 proposal must retain the measured restart limitation until a reviewed correction
 passes the replay check.
+
+### Current-runtime retention and installation preparation (2026-10-04) {#current-runtime-retention}
+
+The non-latest prerelease
+[`shield-pilot-2026.10.04-r37210907071`](https://github.com/ncsizemore/jheem-containers/releases/tag/shield-pilot-2026.10.04-r37210907071)
+retains the exact image exported after the successful
+[hosted run](https://github.com/ncsizemore/jheem-containers/actions/runs/37210907071),
+not a rebuild. It tested analyses `0de5aa3e`, engine `9578726b`, sampler
+`4e0d13e8`, September 9 syphilis/August 26 census inputs, and seed 0. The
+checkpoint/assembly/negative canaries and actual-stage-1 handoff passed again;
+all 173 predecessor parameters transferred exactly. Separate fixed-parameter
+and exact-restart comparisons were not enabled in this retention run; the
+previously measured replay limitation remains open.
+
+Image ID:
+`sha256:27adfb17e60740c188cdd1808ae21d065020e1b0b8e699897813f3e0d6f79ec4`.
+Archive SHA-256:
+`3367d3c135f166ad977bb4a1973eb735501d94b23015e573b91afadc6907ae8b`.
+GitHub's uploaded asset digest matches the verified archive. The release also
+retains the handoff and numeric reports beyond their Actions expiry.
+
+The [wrapper/profile implementation](https://github.com/ncsizemore/jheem-containers/commit/ce418612d9fe52ebff3dcf09b0c0606446b0e048)
+is on container main, with 84 focused checks passing locally and in main CI.
+The [operator guide](https://github.com/tfojo1/jheem_analyses/blob/f8eb26e05f0c2cf4aa601792a6fbb8a31f822c68/applications/SHIELD/CONTAINER-PILOT.md)
+is on analyses master. A verified installation profile binds the exact image,
+manager releases/digests, default seed, and separate output namespace. Conflicting
+image/manager overrides fail before launch. The saved image uses only a unique
+pilot tag, preserving the older installed pilot's tag when loaded.
+
+On shield2 the exact archive and both manager digests were verified in separate
+staging, alongside a clean checkout at the tested analyses SHA. A first-install-only,
+hash-pinned administrative script is prepared. Root installation, actual account
+checks and a short administrator canary remain pending; publication and staging
+do not constitute those acceptance steps. The original October 1 installation
+and active scientific work are unchanged. A representative operator trial still
+requires agreement on its source, inputs, stage/location, predecessor, and fresh
+output root. Administrative setup does not authorize a scientific run as another
+account. See the owning [installation runbook](https://github.com/ncsizemore/jheem-containers/blob/ce418612d9fe52ebff3dcf09b0c0606446b0e048/workloads/shield/RUNBOOK.md#prepare-a-current-runtime-installation).
 
 ## SHIELD reference-workflow checkpoint (2026-09-17)
 
