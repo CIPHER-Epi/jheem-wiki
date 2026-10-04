@@ -325,8 +325,11 @@ parameter settings, not scientific acceptance, full stage-0-to-stage-1 handoff,
 same-seed replay, or native/container agreement. The May control reproduces the
 reported failure but does not identify SHIELD3's old cached file. No likelihood
 formula, calibration registration, or sampler behavior was changed. The reusable
-check, helper tests, and execution guide are prepared locally under
-`jheem_analyses/applications/SHIELD/tests/`; they are not yet merged or a CI gate.
+check, helper tests, and execution guide landed on analyses master on October 3
+in [`94ba7298`](https://github.com/tfojo1/jheem_analyses/commit/94ba72984737d71ea9ca8ed102a8add58b48e6f2).
+The subsequent [hosted comparison](shield-container-pilot.qmd#engine-loading-comparison)
+also scored these fixed vectors with September's manager. This diagnostic is
+available in the owning repository; it is not a required manager-promotion gate.
 The next runtime comparison follows the
 [repeatability plan](shield-container-pilot.qmd#repeatability-plan).
 

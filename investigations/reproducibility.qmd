@@ -152,10 +152,15 @@ negative checks for missing or modified outputs and changed seed. This is a
 useful first run-history implementation, not yet
 the complete output-linked, automatically retained provenance contract below.
 
-The [October 3 validation plan](shield-container-pilot.qmd#repeatability-plan)
+The [October 3 replay experiment](shield-container-pilot.qmd#seed-replay-result)
 distinguishes repeatability through SHIELD's seeded setup from the sampler's
-ignored explicit seed argument. The former remains an experiment, not a result;
-the latter does not require postponing that experiment until a package fix lands.
+ignored explicit seed argument. Two fresh same-seed runs matched exactly on an
+eight-iteration fixture; the resumed trajectory differed at iteration 4 despite
+matched checkpoint seeds and saved state. Rebuilding the starting simulation
+can consume additional RNG draws after a restart. Recording a seed and
+successfully resuming therefore do not establish identical stochastic replay.
+The diagnostic is landed, but a separately reviewed checkpoint/RNG correction
+remains open. No engine or sampler behavior was changed by that experiment.
 
 ## The current filesystem contract
 

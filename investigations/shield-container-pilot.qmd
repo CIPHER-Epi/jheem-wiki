@@ -19,10 +19,11 @@ It is not installed. The later [October 3 comparison](#engine-loading-comparison
 measures fixed-parameter agreement with reconciled source and September inputs;
 it does not validate the earlier May-input setup as a scientific baseline.
 
-The [October 3 repeatability plan](#repeatability-plan) separates the sampler's
-explicit-seed defect from replay through SHIELD's existing seeded setup. No
-same-seed trace comparison has yet passed; testing that behavior need not wait
-for a sampler correction. A local [stage-1 likelihood check](manager-compatibility.qmd#stage1-check)
+The [October 3 replay experiment](#seed-replay-result) found exact agreement
+between two fresh same-seed runs in one fixed image, but a different sampled
+trajectory after restarting from matched checkpoints. The first stored
+divergence was at iteration 4. This is separate from the sampler's explicit-seed
+argument defect. A local [stage-1 likelihood check](manager-compatibility.qmd#stage1-check)
 now passes with September's manager; this does not change the installed image
 or establish native/container agreement. A subsequent
 [engine-loading comparison](#engine-loading-comparison) found exact agreement
@@ -34,8 +35,13 @@ On October 3 the validated diagnostics landed on analyses master at
 [`94ba7298`](https://github.com/tfojo1/jheem_analyses/commit/94ba72984737d71ea9ca8ed102a8add58b48e6f2)
 and container main at
 [`5cf61579`](https://github.com/ncsizemore/jheem-containers/commit/5cf615793a00343d3fcc7202054c63b395322bbc).
-The next experiment compares fresh and resumed traces in one fixed container
-environment. The retained server installation still uses its earlier image.
+The replay diagnostics and concise report subsequently landed on analyses
+master at
+[`bb93142e`](https://github.com/tfojo1/jheem_analyses/commit/bb93142ecc069e4094e3b130c23109babfb98730)
+and container main at
+[`f1cc0092`](https://github.com/ncsizemore/jheem-containers/commit/f1cc0092e90d40a0b18d5e9428b842adc9c8308e).
+Neither engine nor sampler behavior was changed. The retained server installation
+still uses its earlier image.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -566,8 +572,9 @@ changes scientific conclusions remains a separate question.
 
 ## Repeatability validation plan (2026-10-03) {#repeatability-plan}
 
-**Verified evidence:** the published heads remain analyses `4264842c`, engine
-`9578726b`, and sampler `4e0d13e`. A toy cache check rerun on October 3 reproduced
+**Verified evidence:** the initial assessment used analyses `4264842c`, engine
+`9578726b`, and sampler `4e0d13e`. The diagnostics later landed as recorded above.
+A toy cache check rerun on October 3 reproduced
 the ignored explicit seed argument: keeping `seed = 123` but changing prior R
 state from `set.seed(1)` to `set.seed(2)` changes stored chunk seeds; keeping
 `set.seed(1)` but changing the argument to `456` does not. The
@@ -576,21 +583,22 @@ does not forward the argument, and the
 [chunk-seed generator](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/cache.R#L235-L261)
 uses ambient random state. This check does not run a scientific calibration.
 
-**Hypothesis to test:** ordinary SHIELD calls `set.seed(0)` before setup, while
+**Workflow hypothesis:** ordinary SHIELD calls `set.seed(0)` before setup, while
 recorded mode uses its configured seed at the
 [same point](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_calib_setup_and_run.R#L64-L114).
 An otherwise identical setup could therefore recreate the same chunk schedule
-and trace despite the API defect. Neither fresh-run equality nor
-uninterrupted/resumed equality has been demonstrated. Any package correction
-remains separate from characterization of this workflow ([D-024](../decisions.qmd#d-024)).
+and trace despite the API defect. The [subsequent experiment](#seed-replay-result)
+demonstrated fresh-run equality on a bounded fixture, but not equality across
+restarts. Any package correction remains separate from characterization of
+this workflow ([D-024](../decisions.qmd#d-024)).
 
 **Validation matrix:**
 
 | Comparison | Question and evidence |
 |---|---|
 | Fixed parameter vectors, native versus container | The [October 3 result](#engine-loading-comparison) compares hand-sourced and installed-package engines within macOS and Linux, and Mac hand-sourced versus Linux container execution. It covers three vectors at one location, not a team server's native environment or full calibration. |
-| Two fresh container processes with separate empty output roots | Does the same selection reproduce initial parameters, stored chunk seeds, sampled parameter values, and likelihood traces? Add a changed-seed control to check that the configured seed affects sampling. |
-| Uninterrupted versus interrupted/resumed execution | With the same setup, does continuation in a new process preserve the trace across multiple checkpoint chunks? A resume-completes check alone is insufficient. |
+| Two fresh container processes with separate empty output roots | [Passed on the eight-iteration fixture](#seed-replay-result): identical initial parameters, stored chunk seeds, samples, likelihoods, and adaptive state. A changed-seed control changed both the seed schedule and sampled values. |
+| Uninterrupted versus interrupted/resumed execution | [Diverged on the same fixture](#seed-replay-result): matched initial/checkpoint state and seeds, but a different accepted proposal by iteration 4. Both resumptions completed and preserved earlier chunks. |
 | Matched native versus container calibration | After fixed-parameter checks, assess trace agreement with the actual native source-loading path and container package-loading path explicitly recorded. A mismatch requires locating the first divergence, not immediately blaming the sampler. |
 
 Hold source and manager bytes, initial conditions, solver settings, chain setup,
@@ -609,12 +617,12 @@ recorded source-loading path, not a native/container comparison, and did not
 exercise predecessor output reuse or MCMC. See the
 [identities, results, and limits](manager-compatibility.qmd#stage1-check).
 
-The remaining candidate is now reconciled with analyses master
-`4264842c`, retaining the output inspector and diagnostics without changing
-production scientific or loader code. Preserve selections across the
-[whole staged run](reproducibility.qmd#run-preservation), then perform the
-remaining native-server checks and small replay experiments before a representative full
-stage and operator handoff. Existing native runs can contribute evidence only
+The reconciled diagnostics retain production scientific and loader behavior
+from analyses `4264842c`. Preserve selections across the
+[whole staged run](reproducibility.qmd#run-preservation), then use the replay
+counterexample to assess a separately reviewed checkpoint/RNG correction.
+Native-server comparison, a representative full stage, and operator handoff
+remain separate acceptance steps. Existing native runs can contribute evidence only
 to the extent that their loaded inputs and environment are identifiable; do not
 alter them or invent missing launch records to construct a comparison.
 
@@ -690,6 +698,71 @@ convergence, or replay claim follows from this fixed-parameter result. The
 diagnostics subsequently landed on the default branches on October 3 as
 recorded above. The retained image, releases, server checkouts, and active runs
 are unchanged. This hosted run does not export an image for installation.
+
+### Seed and checkpoint replay result (2026-10-03) {#seed-replay-result}
+
+The [hosted replay experiment](https://github.com/ncsizemore/jheem-containers/actions/runs/37161484559)
+completed four isolated calibrations using the real Baltimore stage-0 model and
+likelihood. Each sampled two transmission rates for eight iterations, with
+one chain, no burn-in, no thinning, and four two-iteration checkpoints. The
+same image, source, offline manager bytes, and single-threaded BLAS setting
+were used throughout. The resumed run was interrupted after checkpoints one
+and two, with complete cache state verified while paused. Earlier chunk hashes
+were unchanged after interruption and after completion.
+
+| Comparison | Observed result |
+|---|---|
+| Two fresh runs, configured seed 0 | Exact agreement at full double precision: 173 original model parameters, two initial sampled parameters, chunk seeds, all samples and likelihood/prior values, acceptance counts, and adaptive state. |
+| Changed-seed control, configured seed 1 | Different chunk seeds and sampled values; the configured seed affects this workflow. |
+| Uninterrupted versus twice-resumed, configured seed 0 | The initial values, chunk seeds, and first checkpoint state match. The first stored sample difference is iteration 4, after the first restart. Both resumptions completed successfully. |
+
+At iteration 4, the uninterrupted run retained transmission rates `1.6, 1.6`;
+the resumed run accepted `1.5435453720102092, 1.4921837799750717`. Their log
+likelihoods were `-16484.35126810809` and `-16475.77615942093`, an absolute
+difference of about 8.575. This is a different accepted proposal, not the small
+cross-platform rounding differences measured above. The comparison correctly
+failed the optional workflow; the existing operational canaries and focused
+tests passed. The downloaded reports independently reproduce that result.
+
+**Localized mechanism:** the sampler
+[retains its current simulation between chunks in one process](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/cache.R#L350-L413),
+but starts a resumed process without it. It then
+[rebuilds the starting simulation after setting the chunk seed](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/adaptive_blockwise_metropolis.R#L296-L348),
+before drawing proposals. In the tested engine,
+[simulation metadata seed selection](https://github.com/CIPHER-Epi/jheem2/blob/9578726b012a2ee380b380ef0203733d1bd81163/R/JHEEM_simulation.R#L1620-L1624)
+reads `calibrated.parameters`, whereas the kernel exposes
+[`calibrated.parameter.names`](https://github.com/CIPHER-Epi/jheem2/blob/9578726b012a2ee380b380ef0203733d1bd81163/R/JHEEM_kernel.R#L567-L573).
+A local instrumented check of three real SHIELD fixed-parameter simulations
+observed each constructor advancing R's RNG by its metadata seed draw.
+
+The owning repository's
+[sampler-only reproducer and concise report](https://github.com/tfojo1/jheem_analyses/blob/bb93142ecc069e4094e3b130c23109babfb98730/applications/SHIELD/tests/REPLAY-COMPARISON.md)
+isolate this mechanism: adding one random draw to a deterministic toy simulation
+breaks uninterrupted/resumed equality, while preserving RNG state around only
+its extra starting call restores equality. This is evidence for an extra
+RNG-consuming warm-start call, not a general solution for stochastic simulations.
+Changing engine metadata seeding or sampler continuation requires an
+owner-reviewed proposal and regression checks; neither package was patched.
+Repairing the separate explicit seed argument alone would not address this path.
+
+**Tested identities:** analyses `cd53da8e`, container source `221ab6f8`, engine
+`9578726b`, sampler `4e0d13e`, R 4.4.2/Linux x86-64/OpenBLAS, and image
+`sha256:c2101eb594e4160a83c6f7113ba16fdb7690ea69be7428e2e5f98f1c1d5b3648`.
+Inputs were `syphilis-manager-v2026.09.09` (SHA-256
+`c3e3c983d6b4e9c961f735f9c59d45483bd63cfa715cf75c1fae874da2d129e6`)
+and `data-managers-v2026.08.26` census (SHA-256
+`f8c710684ccfdfb3a5c8e6f4b54caf0417ab67afb82b89ab3259c4b8151e1053`).
+Full refs and rerun instructions are in the report. CI's JSON/log artifacts
+expire after 14 days; preserve evidence separately when needed beyond that period.
+
+**Limits and next step:** this establishes a bounded fresh-run pass and a
+counterexample to identical traces across restarts. It does not assess
+convergence, full stages, multiple chains, cross-server equality, or the
+scientific validity of an existing calibration. Operational resumption remains
+usable within its documented limits. Prepare a focused checkpoint/RNG proposal
+for package-owner review before claiming restart-invariant replay. The
+diagnostics and report are on the default branches; installed images, active
+calibrations, and server checkouts are unchanged.
 
 ## Open questions and destination
 
