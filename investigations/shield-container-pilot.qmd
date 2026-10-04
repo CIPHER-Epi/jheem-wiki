@@ -40,16 +40,17 @@ master at
 [`bb93142e`](https://github.com/tfojo1/jheem_analyses/commit/bb93142ecc069e4094e3b130c23109babfb98730)
 and container main at
 [`f1cc0092`](https://github.com/ncsizemore/jheem-containers/commit/f1cc0092e90d40a0b18d5e9428b842adc9c8308e).
-Neither engine nor sampler behavior was changed. The retained server installation
-still uses its earlier image.
+Neither engine nor sampler behavior was changed. At that checkpoint the server
+installation still used its earlier image.
 
 The [October 4 actual-stage-1 handoff](#operational-delivery) then passed with
 the real stage-specific likelihoods and exact predecessor-parameter transfer.
 Its diagnostics and results report are on both default branches. The
 [current runtime is now retained](#current-runtime-retention) in a separate dated
-release, with verified installation staging. Root installation and a
-representative operator trial remain pending; this does not change the older
-installed image or the multi-chain/restart limits.
+release and installed separately on shield2. Both account access checks and the
+isolated two-stage administrator NAS smoke passed, including numerical output
+inspection and verified skip/reuse. A representative operator trial remains
+pending; the older installation and multi-chain/restart limits are unchanged.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
@@ -93,10 +94,10 @@ an owner-reviewed follow-up, not a prerequisite for every operator deliverable.
    landed on analyses master `0de5aa3e` and
    [container main `6dd6d3a0`](https://github.com/ncsizemore/jheem-containers/commit/6dd6d3a0a5bc54f8a1b4eb2033f1f82f2e22bc05).
    This test is neither a realistic-duration calibration nor convergence evidence.
-2. **Current-runtime operator trial — runtime retained; installation pending.**
+2. **Current-runtime operator trial — installation/admin smoke passed.**
    The [October 4 release](#current-runtime-retention) preserves a tested runtime
-   separately from the installed October 1 image. Complete the separate
-   installation and account/NAS checks first. Select committed source, intended manager
+   separately from the installed October 1 image. Account/NAS checks and the
+   isolated administrator smoke have passed on shield2. Select committed source, intended manager
    releases, a representative single-chain stage, and a fresh output root with
    the model operators. Exercise the existing guide from another account;
    collect setup/start/status/logging feedback, elapsed time and peak memory,
@@ -129,7 +130,7 @@ retaining a deployable runtime remains a separate step. The checkpoint/RNG
 proposal must retain the measured restart limitation until a reviewed correction
 passes the replay check.
 
-### Current-runtime retention and installation preparation (2026-10-04) {#current-runtime-retention}
+### Current-runtime retention and server acceptance (2026-10-04) {#current-runtime-retention}
 
 The non-latest prerelease
 [`shield-pilot-2026.10.04-r37210907071`](https://github.com/ncsizemore/jheem-containers/releases/tag/shield-pilot-2026.10.04-r37210907071)
@@ -151,21 +152,40 @@ retains the handoff and numeric reports beyond their Actions expiry.
 
 The [wrapper/profile implementation](https://github.com/ncsizemore/jheem-containers/commit/ce418612d9fe52ebff3dcf09b0c0606446b0e048)
 is on container main, with 84 focused checks passing locally and in main CI.
-The [operator guide](https://github.com/tfojo1/jheem_analyses/blob/f8eb26e05f0c2cf4aa601792a6fbb8a31f822c68/applications/SHIELD/CONTAINER-PILOT.md)
-is on analyses master. A verified installation profile binds the exact image,
+The [operator guide](https://github.com/tfojo1/jheem_analyses/blob/355aedbbe7d8f3c8108b2677ddf8228737fff87b/applications/SHIELD/CONTAINER-PILOT.md)
+is on analyses master and selects the new installed path for new work, retaining
+the original path for older runs. A verified installation profile binds the exact image,
 manager releases/digests, default seed, and separate output namespace. Conflicting
 image/manager overrides fail before launch. The saved image uses only a unique
 pilot tag, preserving the older installed pilot's tag when loaded.
 
 On shield2 the exact archive and both manager digests were verified in separate
-staging, alongside a clean checkout at the tested analyses SHA. A first-install-only,
-hash-pinned administrative script is prepared. Root installation, actual account
-checks and a short administrator canary remain pending; publication and staging
-do not constitute those acceptance steps. The original October 1 installation
-and active scientific work are unchanged. A representative operator trial still
-requires agreement on its source, inputs, stage/location, predecessor, and fresh
-output root. Administrative setup does not authorize a scientific run as another
-account. See the owning [installation runbook](https://github.com/ncsizemore/jheem-containers/blob/ce418612d9fe52ebff3dcf09b0c0606446b0e048/workloads/shield/RUNBOOK.md#prepare-a-current-runtime-installation).
+staging, alongside a clean checkout at the tested analyses SHA. The hash-pinned
+first-install script then installed `/home/jheem-shared/shield-container-20261004`
+alongside October 1. Its receipt records completion at 16:13:55 UTC. Both intended
+operator accounts passed rootless image loading, read-only cache and container
+NAS-write checks, with older image aliases unchanged. The new default output
+root is `/mnt/jheem_nas_share/tmp/shield-container-r37210907071/<username>/`.
+
+An isolated administrator exercise then used the installed wrapper's
+`setup`, `start`, `status`, `logs`, and `pipeline` commands. Both two-iteration
+smoke stages completed: the first in 89.1 seconds, the pipeline that skipped it
+and ran the second in 91.7 seconds. The largest observed first-stage cgroup
+memory peak was 11.7 GB; second-stage peak memory was not captured. These are
+bounded operational observations, not full-calibration performance measurements.
+Both simsets contained two simulations with 173 finite parameters and finite
+selected population, incidence, total-diagnosis and primary/secondary-diagnosis
+totals. Summary/simset hashes, the predecessor receipt digest, shared source
+archive, image, package refs, manager digests, seed 0 and one BLAS thread were
+verified. Repeating the pipeline verified and skipped both stages without
+sampling or changing any attempt/input/output JSON receipt.
+
+This server smoke reuses stage-0 likelihoods for its two tiny stages; it is not
+the real stage-1 diagnostic described above, an independent operator exercise,
+or scientific acceptance. The original October 1 installation and active
+scientific work are unchanged. A representative operator trial still requires
+agreement on its source, inputs, stage/location, predecessor, and fresh output
+root. See the owning [installation runbook](https://github.com/ncsizemore/jheem-containers/blob/main/workloads/shield/RUNBOOK.md#prepare-a-current-runtime-installation).
 
 ## SHIELD reference-workflow checkpoint (2026-09-17)
 
