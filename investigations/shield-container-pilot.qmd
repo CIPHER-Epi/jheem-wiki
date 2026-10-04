@@ -1,7 +1,7 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-03
+date-modified: 2026-10-04
 ---
 
 **Status:** Opt-in pilot merged into both owning repositories (2026-10-01).
@@ -43,6 +43,12 @@ and container main at
 Neither engine nor sampler behavior was changed. The retained server installation
 still uses its earlier image.
 
+The [October 4 actual-stage-1 handoff](#operational-delivery) then passed with
+the real stage-specific likelihoods and exact predecessor-parameter transfer.
+Its diagnostics and results report are on both default branches. A retained
+current runtime and representative operator trial remain next; this hosted
+result does not change the installed image or the multi-chain/restart limits.
+
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
 `jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31`, and
@@ -57,6 +63,67 @@ The cross-repository [reproducibility contract](reproducibility.qmd) describes
 source, data, environment, run records, and storage beyond SHIELD. Manager
 selection and promotion checks are detailed in
 [Manager Selection and Compatibility](manager-compatibility.qmd).
+
+## Operational delivery sequence (2026-10-04) {#operational-delivery}
+
+*Working implementation sequence, not a claim of additional server acceptance.*
+[D-025](../decisions.qmd#d-025) separates preserved execution, recoverable
+provenance, and identical stochastic replay. The replay counterexample remains
+an owner-reviewed follow-up, not a prerequisite for every operator deliverable.
+
+1. **Actual stage-1 predecessor handoff — passed.** The diagnostic
+   [analyses `d23deca5`](https://github.com/tfojo1/jheem_analyses/commit/d23deca51b33f18bcbf3c726bf7b9264141caab0)
+   copies `calib.10.1.stage0` and `calib.10.1.stage1` into isolated test codes with
+   two iterations and no thinning. Likelihoods, sampled parameter sets, aliases,
+   solver settings, managers, and predecessor weighting stay unchanged.
+   Completed-state inspection requires the actual MSM diagnosis likelihood term,
+   finite stored samples/likelihoods/priors, and exact copying of model parameters
+   from the predecessor summary. Output lineage and simset inspection follow,
+   then a repeated pipeline must verify and skip both completed stages. The
+   [hosted run](https://github.com/ncsizemore/jheem-containers/actions/runs/37203984715)
+   passed with [container source `979c0093`](https://github.com/ncsizemore/jheem-containers/commit/979c00930ddcd8523d3503a5d6e5c18a44498024).
+   Downloaded reports verified all 173 transferred parameters exactly, stage 0's
+   88 and stage 1's 87 sampled variables, six and twelve registered likelihood
+   terms respectively, and two completed simulations per stage. Stored total
+   likelihoods, priors, parameters, and selected outcome totals were finite;
+   predecessor/output digests and verify/skip on repetition passed. Diagnostics
+   and the [short results report](https://github.com/tfojo1/jheem_analyses/blob/0de5aa3e65bd057ac92aa6f00dee57f03c092828/applications/SHIELD/tests/STAGE1-HANDOFF.md)
+   landed on analyses master `0de5aa3e` and
+   [container main `6dd6d3a0`](https://github.com/ncsizemore/jheem-containers/commit/6dd6d3a0a5bc54f8a1b4eb2033f1f82f2e22bc05).
+   This test is neither a realistic-duration calibration nor convergence evidence.
+2. **Current-runtime operator trial.** Retain a tested runtime separately from
+   the installed October 1 image. Select committed source, intended manager
+   releases, a representative single-chain stage, and a fresh output root with
+   the model operators. Exercise the existing guide from another account;
+   collect setup/start/status/logging feedback, elapsed time and peak memory,
+   completed output/lineage checks, and the preserved source/input/runtime
+   identities. Keep active scientific runs and their history unchanged.
+   Hosted preparation does not require server NAS access; live server acceptance
+   still requires the actual shared-storage and account checks.
+3. **Full-calibration support.** Stage 3 currently has four chains, while the
+   recorded launcher deliberately refuses more than one. Specify per-chain
+   execution, completion/assembly, restart behavior, and writer coordination
+   before implementing a multi-chain adapter. A native handoff is an alternative
+   only after its inputs, outputs, and environment are explicitly verified.
+   Do not describe single-chain acceptance as full-workflow readiness.
+4. **Artifact-led provenance recovery.** Reconcile adjacent receipts and
+   digest-led lookup with the current recorded run tree. Add automatic,
+   retryable retention and demonstrate recovery from a copied simset without
+   knowledge of its original directory. Metadata and source retention, large
+   scientific artifacts, manager bytes, and runtime preservation are distinct
+   obligations; a recorded identifier is not proof that its bytes remain
+   recoverable. See the [provenance design](reproducibility.qmd#artifact-led-discovery).
+
+Image retention/publication, server installation, and a scientific run are
+separate steps. Neither a hosted check nor a new image changes the installed
+runtime automatically. The handoff run tested image
+`sha256:4eae3c47f8a2a1920aacd84d5ac463529abc3f2bf7581b63ea255c16899764b6`
+with September 9 syphilis/August 26 census inputs, seed 0, one BLAS thread, and
+no execution-time network. It uploaded reports, not an installable image, and
+did not change the server installation. Hosted reports expire after 14 days;
+retaining a deployable runtime remains a separate step. The checkpoint/RNG
+proposal must retain the measured restart limitation until a reviewed correction
+passes the replay check.
 
 ## SHIELD reference-workflow checkpoint (2026-09-17)
 

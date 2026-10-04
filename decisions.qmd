@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-10-03
+date-modified: 2026-10-04
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,30 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-025 · Deliver preserved execution and recoverable provenance independently of exact replay {#d-025}
+
+*2026-10-04. Working implementation decision; refines D-019, D-020, and D-024.*
+The bounded replay experiment passed fresh/fresh equality but found a different
+trajectory after restart. Preserve that counterexample and pursue a focused,
+owner-reviewed checkpoint/RNG correction separately; do not make a general
+sampler investigation a prerequisite for every operational deliverable.
+
+Distinguish three capabilities: preserving a run's source/runtime/inputs,
+recovering its history from an output, and reproducing an identical stochastic
+trajectory. Prioritize a current-source SHIELD operator trial and durable
+artifact-to-record recovery. Keep the restart limitation explicit; successful
+continuation is neither identical replay nor proof of scientific validity.
+Multi-chain support remains a separate requirement before recommending the
+container for full calibrations. Read-only monitoring does not inherently require
+exact replay; sampling hooks and automatic stopping still need checkpoint-aware
+review and regression checks.
+
+HIV-manager work moves through contributor use and maintenance before another
+broad expansion; syphilis alignment follows that experience. This is delivery
+sequencing, not permission to change scientific formulas or claim the broader
+program is team-adopted. See the [operational milestones](investigations/shield-container-pilot.qmd#operational-delivery)
+and [roadmap](roadmap.qmd).
 
 ## D-024 · Freeze staged runs and measure repeatability separately from the seed API {#d-024}
 

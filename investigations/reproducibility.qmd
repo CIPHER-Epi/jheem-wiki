@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-10-03
+date-modified: 2026-10-04
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -161,6 +161,12 @@ can consume additional RNG draws after a restart. Recording a seed and
 successfully resuming therefore do not establish identical stochastic replay.
 The diagnostic is landed, but a separately reviewed checkpoint/RNG correction
 remains open. No engine or sampler behavior was changed by that experiment.
+
+The [October 4 delivery sequence](shield-container-pilot.qmd#operational-delivery)
+prioritizes useful preserved execution and artifact-led recovery independently
+of exact replay ([D-025](../decisions.qmd#d-025)). A receipt can truthfully describe
+a run with known stochastic limitations. Its value still depends on recovering
+the record and necessary bytes, not merely printing their identifiers.
 
 ## The current filesystem contract
 

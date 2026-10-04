@@ -1,7 +1,7 @@
 ---
 title: "Calibration Observability Investigation"
 date: 2026-08-26
-date-modified: 2026-09-27
+date-modified: 2026-10-04
 ---
 
 **Status:** Evidence-backed investigation; recommendation proposed, not adopted or
@@ -20,6 +20,14 @@ mixing while MCMC is running, followed by an explainable early stop when a
 configured number of parameters exceed a threshold. The initial design discussion
 was exploratory; the diagnostic, thresholds, cadence, and stop semantics remain to
 be specified.
+
+**Sequencing refinement (2026-10-04):** The replay investigation now provides a
+bounded fresh-run pass and a restart counterexample. Read-only progress
+inspection need not wait for identical replay, provided concurrent cache reads
+and stale/missing state are handled honestly. Parameter-sidecar publication,
+sampler hooks, and automatic stopping remain separate changes with checkpoint
+and policy checks. Monitoring is not a third active delivery track under the
+[current sequence](../decisions.qmd#d-025).
 
 ## Assessment
 
