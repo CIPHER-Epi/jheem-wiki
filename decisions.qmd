@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-10-04
+date-modified: 2026-10-05
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,27 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-026 · Build the SHIELD container toward real calibrations; snapshot engine source — refines D-023, D-024, and D-025 {#d-026}
+
+*2026-10-05. Working decision.* A SHIELD container usable for real calibration
+workflows is now a requested deliverable, with same-seed reproducibility a stated
+interest. Work therefore closes the gaps between the pilot and that workflow
+before adding further checks to the single-chain path that already runs. In
+order: engine source, multi-chain stage 3, the whole location list, outputs in
+the team's analysis path, and durable retention of snapshots and records.
+
+The team loads `jheem2` from source, so the container treats the engine like
+analysis source. A clean committed checkout is captured once per pipeline,
+built once per commit into a cached library without kept source references,
+recorded, and reused on resume. The image keeps R, third-party packages, and
+slower-moving support packages. This implements D-024's engine-preservation
+requirement without migrating the team to package mode.
+
+Same-seed claims are stated per comparison: exact for fresh runs within one
+runtime, statistical across runtimes, and not yet for resumed runs (D-025).
+Acceptance criteria for a container-versus-native comparison are agreed before
+it runs. See the [pilot's current state](investigations/shield-container-pilot.qmd#operational-delivery).
 
 ## D-025 · Deliver preserved execution and recoverable provenance independently of exact replay {#d-025}
 

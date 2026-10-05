@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-10-04
+date-modified: 2026-10-05
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -319,11 +319,13 @@ release name without retained and verified contents, is not sufficient.
 
 Native SHIELD's [source-mode bootstrap](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_source_code.R#L197-L224)
 loads a sibling `jheem2` checkout. That engine needs an identified snapshot and
-its loading/build environment recorded just as analysis source does. The container
-instead [installs an exact engine revision](https://github.com/ncsizemore/jheem-containers/blob/9d0869d4f84cdb0cc5673d13c1491fd26aee343b/workloads/shield/Dockerfile)
-into the runtime image; preserving engine identity does not require the same
-loading mechanism. Equivalence between these paths remains a test, not an
-assumption. The [existing analysis snapshots](shield-container-pilot.qmd#separate-source)
+its loading/build environment recorded just as analysis source does. The pilot
+container currently [installs an exact engine revision](https://github.com/ncsizemore/jheem-containers/blob/9d0869d4f84cdb0cc5673d13c1491fd26aee343b/workloads/shield/Dockerfile)
+into the runtime image. Because the team loads the engine from source, the
+container is moving to a captured engine snapshot built once per commit
+([D-026](../decisions.qmd#d-026)). Installed and hand-sourced engines agreed
+exactly at fixed parameters within one environment; equivalence on full runs
+remains a test, not an assumption. The [existing analysis snapshots](shield-container-pilot.qmd#separate-source)
 implement part of this boundary for the opt-in pilot; universal native-run
 isolation and automatic archival remain open.
 
@@ -384,7 +386,9 @@ changes. Preserve the necessary source, environments, and artifact bytes, not
 only their identifiers. Parent-artifact references belong in the provenance
 design now; generalized transmutation support and historical migrations are
 deferred. The current SHIELD predecessor checks are a narrower implementation,
-not a general cross-model compatibility guarantee.
+not a general cross-model compatibility guarantee. Durable retention of source
+snapshots and run records is the enabling work. Today they sit with the pilot's
+outputs in a temporary NAS directory.
 
 ### Capture and archive
 

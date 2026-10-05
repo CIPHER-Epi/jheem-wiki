@@ -1,810 +1,135 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-04
+date-modified: 2026-10-05
 ---
 
-**Status:** Opt-in pilot merged into both owning repositories (2026-10-01).
-The retained image passes hosted checkpoint/resume, assembly, stage-lineage,
-and negative output-verification checks. A separately captured source snapshot
-also completed a two-stage NAS smoke on shield2 without rebuilding that image
-([October 1 source-selection update](#separate-source)). Another operator's
-runbook exercise and a representative full stage with the corrected image
-remain open. This does not establish deterministic replay or scientific
-equivalence.
+**Status (2026-10-05):** Opt-in pilot on both owning default branches and
+installed on one team server. It runs single-chain stages for one location at a
+time from the team's committed analysis source, with frozen inputs and run
+records. It does not yet run multi-chain stage 3, follow the team's
+source-loaded engine, or launch a whole city list, so it is not yet usable for a
+full calibration. A container usable for the team's real calibration workflows
+is now the requested deliverable ([D-026](../decisions.qmd#d-026)). No
+team member has run it yet.
 
-The [October 2 current-source candidate](#current-source-comparison) also passes
-hosted checkpoint/resume, two-stage assembly, and numerical output inspection.
-It is not installed. The later [October 3 comparison](#engine-loading-comparison)
-measures fixed-parameter agreement with reconciled source and September inputs;
-it does not validate the earlier May-input setup as a scientific baseline.
+This page keeps the current state and the evidence still in force. The full
+dated record from 2026-09-17 to 2026-10-04 is preserved at
+[wiki commit `bbe401b`](https://github.com/CIPHER-Epi/jheem-wiki/blob/bbe401bfaf1b3f3be6648abb5f9367e7ba1c17c4/investigations/shield-container-pilot.qmd).
+The cross-repository [reproducibility contract](reproducibility.qmd) and
+[manager selection](manager-compatibility.qmd) pages cover the wider design.
+Implementation, tests, and runbooks live in `jheem_analyses` and
+`jheem-containers`.
 
-The [October 3 replay experiment](#seed-replay-result) found exact agreement
-between two fresh same-seed runs in one fixed image, but a different sampled
-trajectory after restarting from matched checkpoints. The first stored
-divergence was at iteration 4. This is separate from the sampler's explicit-seed
-argument defect. A local [stage-1 likelihood check](manager-compatibility.qmd#stage1-check)
-now passes with September's manager; this does not change the installed image
-or establish native/container agreement. A subsequent
-[engine-loading comparison](#engine-loading-comparison) found exact agreement
-between hand-sourced and installed-package execution within both tested
-environments, with small measured differences across macOS and Linux. A team
-server's native environment has not been compared.
+## Current state {#current-state}
 
-On October 3 the validated diagnostics landed on analyses master at
-[`94ba7298`](https://github.com/tfojo1/jheem_analyses/commit/94ba72984737d71ea9ca8ed102a8add58b48e6f2)
-and container main at
-[`5cf61579`](https://github.com/ncsizemore/jheem-containers/commit/5cf615793a00343d3fcc7202054c63b395322bbc).
-The replay diagnostics and concise report subsequently landed on analyses
-master at
-[`bb93142e`](https://github.com/tfojo1/jheem_analyses/commit/bb93142ecc069e4094e3b130c23109babfb98730)
-and container main at
-[`f1cc0092`](https://github.com/ncsizemore/jheem-containers/commit/f1cc0092e90d40a0b18d5e9428b842adc9c8308e).
-Neither engine nor sampler behavior was changed. At that checkpoint the server
-installation still used its earlier image.
+| Capability | State (2026-10-05) |
+|---|---|
+| Recorded runs | Opt-in `SHIELD_RECORDED_RUN=true` path in `jheem_analyses`: declared source and package revisions, immutable manager releases verified by SHA-256, explicit seed, non-destructive `fresh`/`resume`. The ordinary launcher is unchanged when the flag is unset. |
+| Run records | Per calibration: `inputs.json`, `outputs.json` (sizes and digests of the summary and simulation set), one record per attempt, and preceding-stage lineage. Completed stages are reused only after their files are re-verified. |
+| Analysis source | A clean committed checkout is captured per pipeline and mounted read-only; continuations reuse it ([D-023](../decisions.qmd#d-023)). |
+| Engine (`jheem2`) | Installed in the image at `9578726b`. The team loads jheem2 from source; snapshotting it like analysis source is next ([D-026](../decisions.qmd#d-026)). |
+| Stages | Single-chain stages, alone or as an ordered pipeline that continues on rerun. Recorded mode refuses multi-chain calibrations (stage 3). |
+| Installation | Two dated installations on shield2 (2026-10-01 and 2026-10-04), each verified, with both intended operator accounts checked and an administrator smoke run. No operator runs yet. |
+| Hosted checks | Build, offline preflight, kill-and-resume, summary and assembly, two-stage lineage, numerical output inspection, missing/modified-output and changed-seed rejection, and a real stage-0 → stage-1 predecessor handoff. |
 
-The [October 4 actual-stage-1 handoff](#operational-delivery) then passed with
-the real stage-specific likelihoods and exact predecessor-parameter transfer.
-Its diagnostics and results report are on both default branches. The
-[current runtime is now retained](#current-runtime-retention) in a separate dated
-release and installed separately on shield2. Both account access checks and the
-isolated two-stage administrator NAS smoke passed, including numerical output
-inspection and verified skip/reuse. A representative operator trial remains
-pending; the older installation and multi-chain/restart limits are unchanged.
+## Toward real calibrations {#operational-delivery}
 
-**Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
-the `codex/shield-source-readiness` review branch at `accd7b64dd0ab1f38f5ccad993a643c3c7544de2`,
-`jheem-containers@262c733d5c71ec4aa480dde4131880002105dc31`, and
-`bayesian.simulations@4e0d13e85857396bb0e6e2ac1d244775b2145f75` on
-2026-09-22. The September 17 checkpoint below records the earlier source
-investigation; the September 22 update distinguishes newer application behavior.
-The 2026-09-29 section is verified against `jheem_analyses@e0580817`
-(`codex/shield-recorded-contract`), `jheem2@ccb1f9bf`, and
-`jheem-containers@c3f8c9a` (PR #24).
+The pilot's checks concentrate on single-chain stages that already run
+natively. The remaining gaps are those between the pilot and the team's actual
+workflow, in order:
 
-The cross-repository [reproducibility contract](reproducibility.qmd) describes
-source, data, environment, run records, and storage beyond SHIELD. Manager
-selection and promotion checks are detailed in
-[Manager Selection and Compatibility](manager-compatibility.qmd).
+1. **Engine from a source snapshot.** Capture the team's committed jheem2 checkout
+   per pipeline, build it once per commit into a cached library without kept
+   source references, record it, and reuse it on resume. Installed and
+   hand-sourced engines agreed exactly at fixed parameters
+   ([below](#engine-loading-comparison)).
+2. **Multi-chain stage 3.** Set up once, run each chain as its own resumable
+   process, and assemble only after every chain completes, with per-chain records
+   and exclusive setup and assembly.
+3. **Whole city list.** Launch a pipeline per location with a concurrency cap
+   matching the team's launcher.
+4. **Outputs in the team's analysis path.** Write where the team's analysis
+   scripts read, or document how to point them at container outputs.
+5. **Durable retention.** Source snapshots and records currently sit with the
+   outputs on the NAS under a temporary directory. Later derived runs depend on
+   them ([derived lineage](reproducibility.qmd#derived-lineage)).
 
-## Operational delivery sequence (2026-10-04) {#operational-delivery}
+The same-seed demonstration on real stages follows (see the
+[validation plan](#repeatability-plan)). Shared writers across accounts still
+need coordination beyond the wrapper's same-account check.
 
-*Working implementation sequence, not a claim of additional server acceptance.*
-[D-025](../decisions.qmd#d-025) separates preserved execution, recoverable
-provenance, and identical stochastic replay. The replay counterexample remains
-an owner-reviewed follow-up, not a prerequisite for every operator deliverable.
-
-1. **Actual stage-1 predecessor handoff — passed.** The diagnostic
-   [analyses `d23deca5`](https://github.com/tfojo1/jheem_analyses/commit/d23deca51b33f18bcbf3c726bf7b9264141caab0)
-   copies `calib.10.1.stage0` and `calib.10.1.stage1` into isolated test codes with
-   two iterations and no thinning. Likelihoods, sampled parameter sets, aliases,
-   solver settings, managers, and predecessor weighting stay unchanged.
-   Completed-state inspection requires the actual MSM diagnosis likelihood term,
-   finite stored samples/likelihoods/priors, and exact copying of model parameters
-   from the predecessor summary. Output lineage and simset inspection follow,
-   then a repeated pipeline must verify and skip both completed stages. The
-   [hosted run](https://github.com/ncsizemore/jheem-containers/actions/runs/37203984715)
-   passed with [container source `979c0093`](https://github.com/ncsizemore/jheem-containers/commit/979c00930ddcd8523d3503a5d6e5c18a44498024).
-   Downloaded reports verified all 173 transferred parameters exactly, stage 0's
-   88 and stage 1's 87 sampled variables, six and twelve registered likelihood
-   terms respectively, and two completed simulations per stage. Stored total
-   likelihoods, priors, parameters, and selected outcome totals were finite;
-   predecessor/output digests and verify/skip on repetition passed. Diagnostics
-   and the [short results report](https://github.com/tfojo1/jheem_analyses/blob/0de5aa3e65bd057ac92aa6f00dee57f03c092828/applications/SHIELD/tests/STAGE1-HANDOFF.md)
-   landed on analyses master `0de5aa3e` and
-   [container main `6dd6d3a0`](https://github.com/ncsizemore/jheem-containers/commit/6dd6d3a0a5bc54f8a1b4eb2033f1f82f2e22bc05).
-   This test is neither a realistic-duration calibration nor convergence evidence.
-2. **Current-runtime operator trial — installation/admin smoke passed.**
-   The [October 4 release](#current-runtime-retention) preserves a tested runtime
-   separately from the installed October 1 image. Account/NAS checks and the
-   isolated administrator smoke have passed on shield2. Select committed source, intended manager
-   releases, a representative single-chain stage, and a fresh output root with
-   the model operators. Exercise the existing guide from another account;
-   collect setup/start/status/logging feedback, elapsed time and peak memory,
-   completed output/lineage checks, and the preserved source/input/runtime
-   identities. Keep active scientific runs and their history unchanged.
-   Hosted preparation does not require server NAS access; live server acceptance
-   still requires the actual shared-storage and account checks.
-3. **Full-calibration support.** Stage 3 currently has four chains, while the
-   recorded launcher deliberately refuses more than one. Specify per-chain
-   execution, completion/assembly, restart behavior, and writer coordination
-   before implementing a multi-chain adapter. A native handoff is an alternative
-   only after its inputs, outputs, and environment are explicitly verified.
-   Do not describe single-chain acceptance as full-workflow readiness.
-4. **Artifact-led provenance recovery.** Reconcile adjacent receipts and
-   digest-led lookup with the current recorded run tree. Add automatic,
-   retryable retention and demonstrate recovery from a copied simset without
-   knowledge of its original directory. Metadata and source retention, large
-   scientific artifacts, manager bytes, and runtime preservation are distinct
-   obligations; a recorded identifier is not proof that its bytes remain
-   recoverable. See the [provenance design](reproducibility.qmd#artifact-led-discovery).
-
-Image retention/publication, server installation, and a scientific run are
-separate steps. Neither a hosted check nor a new image changes the installed
-runtime automatically. The handoff run tested image
-`sha256:4eae3c47f8a2a1920aacd84d5ac463529abc3f2bf7581b63ea255c16899764b6`
-with September 9 syphilis/August 26 census inputs, seed 0, one BLAS thread, and
-no execution-time network. It uploaded reports, not an installable image, and
-did not change the server installation. Hosted reports expire after 14 days;
-retaining a deployable runtime remains a separate step. The checkpoint/RNG
-proposal must retain the measured restart limitation until a reviewed correction
-passes the replay check.
-
-### Current-runtime retention and server acceptance (2026-10-04) {#current-runtime-retention}
+### Retained runtime and installation (2026-10-04) {#current-runtime-retention}
 
 The non-latest prerelease
 [`shield-pilot-2026.10.04-r37210907071`](https://github.com/ncsizemore/jheem-containers/releases/tag/shield-pilot-2026.10.04-r37210907071)
-retains the exact image exported after the successful
+holds the exact image exported by its passing
 [hosted run](https://github.com/ncsizemore/jheem-containers/actions/runs/37210907071),
-not a rebuild. It tested analyses `0de5aa3e`, engine `9578726b`, sampler
-`4e0d13e8`, September 9 syphilis/August 26 census inputs, and seed 0. The
-checkpoint/assembly/negative canaries and actual-stage-1 handoff passed again;
-all 173 predecessor parameters transferred exactly. Separate fixed-parameter
-and exact-restart comparisons were not enabled in this retention run; the
-previously measured replay limitation remains open.
-
-Image ID:
-`sha256:27adfb17e60740c188cdd1808ae21d065020e1b0b8e699897813f3e0d6f79ec4`.
-Archive SHA-256:
+with analyses `0de5aa3e`, engine `9578726b`, sampler `4e0d13e8`, September 9
+syphilis and August 26 census inputs, and seed 0. Image ID
+`sha256:27adfb17e60740c188cdd1808ae21d065020e1b0b8e699897813f3e0d6f79ec4`;
+archive SHA-256
 `3367d3c135f166ad977bb4a1973eb735501d94b23015e573b91afadc6907ae8b`.
-GitHub's uploaded asset digest matches the verified archive. The release also
-retains the handoff and numeric reports beyond their Actions expiry.
 
-The [wrapper/profile implementation](https://github.com/ncsizemore/jheem-containers/commit/ce418612d9fe52ebff3dcf09b0c0606446b0e048)
-is on container main, with 84 focused checks passing locally and in main CI.
-The [operator guide](https://github.com/tfojo1/jheem_analyses/blob/355aedbbe7d8f3c8108b2677ddf8228737fff87b/applications/SHIELD/CONTAINER-PILOT.md)
-is on analyses master and selects the new installed path for new work, retaining
-the original path for older runs. A verified installation profile binds the exact image,
-manager releases/digests, default seed, and separate output namespace. Conflicting
-image/manager overrides fail before launch. The saved image uses only a unique
-pilot tag, preserving the older installed pilot's tag when loaded.
+It is installed on shield2 at `/home/jheem-shared/shield-container-20261004`,
+beside the 2026-10-01 installation, with outputs under
+`/mnt/jheem_nas_share/tmp/shield-container-r37210907071/<username>/`. An
+isolated administrator run of the installed wrapper completed two two-iteration
+stages (89 and 92 seconds, largest observed memory 11.7 GB). Output digests,
+lineage, and identities verified, and a repeated pipeline skipped both stages
+without changing any record. These smoke stages reuse the stage-0 likelihood;
+they are operational checks, not scientific acceptance. See the
+[installation runbook](https://github.com/ncsizemore/jheem-containers/blob/main/workloads/shield/RUNBOOK.md#prepare-a-current-runtime-installation)
+and [operator guide](https://github.com/tfojo1/jheem_analyses/blob/master/applications/SHIELD/CONTAINER-PILOT.md).
 
-On shield2 the exact archive and both manager digests were verified in separate
-staging, alongside a clean checkout at the tested analyses SHA. The hash-pinned
-first-install script then installed `/home/jheem-shared/shield-container-20261004`
-alongside October 1. Its receipt records completion at 16:13:55 UTC. Both intended
-operator accounts passed rootless image loading, read-only cache and container
-NAS-write checks, with older image aliases unchanged. The new default output
-root is `/mnt/jheem_nas_share/tmp/shield-container-r37210907071/<username>/`.
+## Source selection {#separate-source}
 
-An isolated administrator exercise then used the installed wrapper's
-`setup`, `start`, `status`, `logs`, and `pipeline` commands. Both two-iteration
-smoke stages completed: the first in 89.1 seconds, the pipeline that skipped it
-and ran the second in 91.7 seconds. The largest observed first-stage cgroup
-memory peak was 11.7 GB; second-stage peak memory was not captured. These are
-bounded operational observations, not full-calibration performance measurements.
-Both simsets contained two simulations with 173 finite parameters and finite
-selected population, incidence, total-diagnosis and primary/secondary-diagnosis
-totals. Summary/simset hashes, the predecessor receipt digest, shared source
-archive, image, package refs, manager digests, seed 0 and one BLAS thread were
-verified. Repeating the pipeline verified and skipped both stages without
-sampling or changing any attempt/input/output JSON receipt.
+Routine analysis edits don't need an image rebuild ([D-023](../decisions.qmd#d-023)).
+First use of a calibration code captures a clean committed checkout; all its
+locations in that output root share it, and a pipeline selects its stages
+together. The archive and per-file hashes are kept under `run_sources/` beside the
+records, verified before reuse, and mounted read-only. Dirty source, missing or
+altered snapshots, incompatible selections, and changed saved inputs are refused.
+A whole-repository snapshot takes about 580 MiB. On shield2, two calibration
+definitions absent from the image completed with NAS state while the original
+checkout was changed mid-run; both stages kept their captured source
+([hosted check](https://github.com/ncsizemore/jheem-containers/actions/runs/36921240029),
+[technical reference](https://github.com/ncsizemore/jheem-containers/blob/main/workloads/shield/SOURCE-SNAPSHOTS.md)).
 
-This server smoke reuses stage-0 likelihoods for its two tiny stages; it is not
-the real stage-1 diagnostic described above, an independent operator exercise,
-or scientific acceptance. The original October 1 installation and active
-scientific work are unchanged. A representative operator trial still requires
-agreement on its source, inputs, stage/location, predecessor, and fresh output
-root. See the owning [installation runbook](https://github.com/ncsizemore/jheem-containers/blob/main/workloads/shield/RUNBOOK.md#prepare-a-current-runtime-installation).
+Natively, each stage re-reads the live checkouts, so a multi-day pipeline can
+mix code or data that changed between stages. A container pipeline uses one
+captured selection for every stage and location.
 
-## SHIELD reference-workflow checkpoint (2026-09-17)
+## Reproducibility evidence {#repeatability-plan}
 
-A failed SHIELD stage-3 calibration was initially presented as a shared-storage
-interruption because the launcher caught any `run.calibration()` error, replaced
-its message with a write-interruption explanation, and retried. Direct checks of
-the output roots and lower-level file operations did not reproduce a storage
-failure. The same calibration then failed against a local output root, and the
-failure was traced to a likelihood term with a zero denominator. This incident
-joins three reproducibility questions that were previously being treated
-separately: whether the real error remains observable, whether the scientific
-inputs and environment can be reconstructed, and whether an interrupted
-calibration follows the same stochastic path when resumed.
+Same-seed claims depend on the comparison ([D-024](../decisions.qmd#d-024),
+[D-025](../decisions.qmd#d-025)):
 
-Current `jheem_analyses` `master` changes the future-growth ratio denominator from
-`start` to `start + 1` in
-[`55bd55c6`](https://github.com/tfojo1/jheem_analyses/commit/55bd55c6975c09063c8c62828bf52f6a9da31eb3).
-That makes the immediate division finite but also defines scientific behavior for
-zero and small baselines. Engineering work may reproduce the edge cases, preserve
-the original error, and add characterization or non-finite-likelihood checks. A
-different formula, pseudocount, exclusion rule, or expected value should not be
-selected through an infrastructure change; the intended behavior needs explicit
-scientific review before it becomes a regression assertion.
-
-The sampler currently lacks a coherent explicit-seed contract. At
-[`bayesian.simulations@4e0d13e`](https://github.com/tfojo1/bayesian.simulations/commit/4e0d13e85857396bb0e6e2ac1d244775b2145f75):
-
-- `create.mcmc.cache(seed = ...)` validates `seed` but does not pass it to
-  `do.create.cache()`, whose signature requires it;
-- `do.create.chain.cache.controls(..., seed)` accepts the value but generates
-  per-chunk seeds with `runif()` from ambient R state rather than from that
-  argument; and
-- `jheem2::set.up.calibration()` exposes no seed argument, so current application
-  setup relies on prior global RNG state.
-
-Per-chunk seed storage was introduced in
-[`b170ce7`](https://github.com/tfojo1/bayesian.simulations/commit/b170ce7e5c265fa7540a2847a8bc894fa797dd2c),
-after the `34840866` revision currently installed by the container base lock.
-Consequently, the existing container canary proves that a partial cache can be
-continued to its remaining chunk; it does not prove that an explicit seed controls
-the schedule, that interrupted and uninterrupted traces are equal, or that the
-same request is reproducible across the team's servers.
-
-Two review branches establish useful but incomplete evidence:
-
-- [`jheem_analyses@accd7b64`](https://github.com/tfojo1/jheem_analyses/commit/accd7b64dd0ab1f38f5ccad993a643c3c7544de2)
-  stages automatic provenance, immutable source declarations, read-only manager
-  caches, truthful failure/resume behavior, and a bounded SHIELD canary. It split
-  from `master` at `ea111ea3` and must be reconciled with later application work,
-  including the likelihood change, before it can be proposed for ordinary use.
-- [`jheem-containers@262c733`](https://github.com/ncsizemore/jheem-containers/commit/262c733d5c71ec4aa480dde4131880002105dc31)
-  builds a pinned SHIELD image and has completed a real-engine preflight plus a
-  forced-interruption/resume canary in CI. The image still pins the older sampler,
-  the canary is a tiny stage-0 path rather than the failing stage-3 path, and no
-  uninterrupted-versus-resumed or cross-server equality comparison is made.
-
-These are validation assets, not yet evidence that SHIELD calibration is
-reproducible. The 2026-09-17 sequence prioritized a small, executable sampler
-seed demonstration and focused correction before SHIELD branch reconciliation.
-The narrower container-pilot sequence is updated below; it does not remove the
-need to test the sampler behavior behind a deterministic-replay claim. The
-[October 3 refinement](#repeatability-plan) distinguishes testing the current
-workflow from correcting the explicit seed argument.
-
-## SHIELD container-pilot update (2026-09-22)
-
-The team is evaluating containerization of SHIELD as an operational deliverable.
-That question is narrower than whether an earlier calibration can be reproduced
-exactly. The [existing container spike](https://github.com/ncsizemore/jheem-containers/blob/262c733d5c71ec4aa480dde4131880002105dc31/workloads/shield/README.md)
-builds a pinned image and exercises a small real-engine calibration through a
-forced interruption and checkpoint continuation in hosted CI. It has not yet
-run on a team server, completed production-sized simset assembly there, or
-compared uninterrupted and resumed scientific traces.
-
-The spike pins `jheem_analyses@accd7b64`, while the verified active branch is
-`master@16eff985`, 71 commits ahead of the common base with the staged
-`codex/shield-source-readiness` branch. The active SHIELD tree now has a
-[three-tier model-test workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml)
-and a [calibration launcher](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_calib_setup_and_run.R)
-that prints the original error and stops on many non-storage failures. Those
-changes supersede parts of the staged branch, but ordinary setup still defaults
-to clearing state and uses a fixed `set.seed(0)` before calibration. The
-[source bootstrap](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/shield_source_code.R)
-still requires a sibling `jheem2` checkout on `dev` in source mode, and can pull
-when interactive. A recorded container run needs an explicit, non-mutating
-source and run-mode contract; the older branch supplies candidate pieces, not a
-merge-ready replacement for the current application.
-
-The new test workflow is useful characterization, not yet a dependable green
-gate: the [2026-09-22 run](https://github.com/tfojo1/jheem_analyses/actions/runs/35762822719)
-failed in the static tier and skipped the later tiers. Its
-[README](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md)
-says some tests intentionally fail to preserve open code-review findings. At
-least one static test asserts that the `+1` growth-penalty denominator should be
-removed and suggests alternatives; because that is a scientific formula choice,
-it should be resolved by the scientific owners, not silently changed as
-container-readiness work.
-
-A clean local checkout of the same pinned analyses commit reproduced 11 static
-assertion failures and 3 static skips. Running the unit-file subset independently
-returned 6 assertion failures, 4 errors, and 4 skips; missing test-bootstrap
-inputs account for some of those errors and skips, so these counts are not a
-model-defect count. The workflow chains static → unit → integration with `needs`,
-which means a persistently red static tier prevents the model tier from running.
-Conversely, the
-[test runner](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/run_tests.R#L94-L114)
-exits nonzero only for failed assertions or errors: if required bootstrap stages
-are unavailable and tests only skip, a tier can appear green without exercising
-its intended model path. Before using this workflow as a container acceptance
-gate, separate open diagnostic findings from must-pass checks and make missing
-required integration prerequisites fail explicitly. Text matching for a local
-`set.seed()` call and the growth-penalty formula test are examples that need a
-contract-level or domain-reviewed assertion rather than an automatic code edit.
-
-A bounded pilot should therefore establish, in order: a pinned image built
-against current SHIELD source; identified manager assets and source revisions;
-non-destructive fresh/resume behavior; successful real-engine preflight and a
-small checkpoint continuation; then a retained run on a team server that checks
-mounts, file ownership, error logs, runtime, and output inspection. Full assembly
-and repeated-run comparisons are separate acceptance steps. The sampler seed
-finding remains recorded and should be tested before claiming deterministic
-replay or equivalent results across servers.
-
-## Recorded-run source checkpoint (2026-09-23)
-
-[`jheem_analyses@5b377e8`](https://github.com/tfojo1/jheem_analyses/commit/5b377e8)
-is on the isolated
-[`codex/shield-recorded-contract` branch](https://github.com/tfojo1/jheem_analyses/tree/codex/shield-recorded-contract),
-not `master`. It adds an opt-in `SHIELD_RECORDED_RUN=true` route through the
-current source bootstrap and calibration launcher. That route requires declared
-source commit identities, immutable dated manager releases, verified offline
-manager assets, separate input and output roots, and an explicit seed. Fresh
-mode refuses existing calibration state; resume requires a matching input
-receipt and readable checkpoint/progress before MCMC. A focused cache change
-allows verified offline assets to load from a read-only cache without a writer
-lock. The default ordinary route remains selected without the opt-in flag.
-The branch changes no likelihood formula or model parameter. Its
-[pilot contract and caveats](https://github.com/tfojo1/jheem_analyses/blob/5b377e8/applications/SHIELD/RECORDED-RUN-PILOT.md)
-remain review material, not supported production instructions.
-
-This branch addresses the **prepared-runtime and input-identity** portion of
-the broader [run-record contract](reproducibility.qmd#proposed-target-contract).
-Its local `inputs.json` is not the staged automatic attempt history, an
-output-linked simset receipt, or a durable archive. The container pilot should
-prove that this narrow route can execute and continue safely; it must not make
-the separate provenance and sampler work appear complete. A supported team
-workflow should eventually supply the technical declarations behind the
-existing calibration command rather than require operators to manage another
-set of identifiers by hand.
-
-Focused runtime and cache tests passed locally; the existing SHIELD static
-suite still had 12 diagnostic failures and lacked local bootstrap data for its
-full path. The current modular launcher is deliberately rejected in recorded
-mode because it clears calibration state. The older container canary calls
-that modular launcher and expects an older runtime interface and stage-0
-fixture, so merely changing its analyses commit would neither run nor validate
-this branch. The next gate is to reconcile the container preflight and canary
-with the current recorded entrypoint, run a must-pass hosted smoke, and only
-then attempt a retained team-server pilot. No deterministic-replay or
-production-calibration claim follows from the source branch alone.
-
-## Container canary and shield2 pilot (2026-09-29)
-
-The recorded-run branch was rebased onto current `master`. Two source changes
-followed. The recorded state check had rebuilt the calibration directory as
-`mcmc_runs/<version>/<location>/<code>`, but `jheem2@ccb1f9b` reorders it to
-`<version>/<code>/<location>`, so `resume` would have looked in the wrong
-place; the check now asks jheem2 for the directory once jheem2 is loaded.
-And a two-iteration `container.smoke.stage0` calibration (the real SHIELD model
-and stage-0 likelihood, two parameters) is registered only when a recorded run
-sets `SHIELD_ENABLE_CONTAINER_SMOKE=true`.
-
-The container build in `jheem-containers` PR #24 was pointed at that source.
-Its hosted CI now builds the recorded image, runs preflight (declared source
-revisions, immutable manager releases, verified manager digests), starts a
-fresh calibration, kills it once the first checkpoint is durable, and resumes
-it in a separate process until the second checkpoint is durable, checking
-that the first was not rewritten. It deliberately stops there. A 2-iteration
-run peaks above the 16 GB hosted runner's memory while building the MCMC
-summary (the kernel killed R at 15.5 GB resident), so summary and assembly are
-server tests. Two test defects surfaced and were fixed: a digest comparison
-that failed on an attribute, and a checkpoint check that required the control
-file to be strictly newer than the chunk. Kernel timestamps are coarse, so the
-control saved right after a chunk can share its timestamp.
-
-The image CI tested (exported as an artifact, image ID `214b9677…`) was loaded
-into rootless Podman on shield2 under an administrator's account:
-
-| Run | Local-disk state | NAS state |
+| Comparison | Measured | Next |
 |---|---|---|
-| Canary calibration, uninterrupted through summary and assembly | passed, 342 s | passed, 368 s |
-| Kill after the first checkpoint, resume to the second | passed | passed |
-| Memory: loading / sampling / summary and assembly | about 5.9 / 10.3 / 28 GB | about 5.9 / 10.3 / 28.5 GB |
+| Two fresh runs, same runtime and seed | Identical: initial values, chunk seeds, samples, likelihoods, adaptive state (eight-iteration fixture) | Repeat on a real stage |
+| Uninterrupted vs interrupted and resumed | Diverged at iteration 4 ([below](#seed-replay-result)) | Owner-reviewed checkpoint/RNG proposal |
+| Fixed parameters: installed vs hand-sourced engine | Identical within macOS and within Linux | — |
+| Fixed parameters: Mac vs Linux | Up to about 1e-12 relative ([below](#engine-loading-comparison)) | — |
+| Container vs native calibration | Not yet run | Compare stored chunk seeds first; agree statistical acceptance in advance |
 
-Chunk files are about 265 MB each and take about 54 s to write; the global
-control is about 154 MB. Writing a chunk takes longer than a sampling iteration
-at this size. The simulation set is 270 MB. The stage-0 run below shows these
-sizes, and the summary and assembly memory, were inflated by the image's
-package installation, since fixed.
-
-Server prerequisites observed on the RHEL 9 hosts, recorded in the server
-administration repository:
-
-- Podman is installed and Docker is not. Rootless runs use `--userns=keep-id`
-  so outputs keep the user as owner; local bind mounts need an SELinux relabel.
-- A rootless container is stopped about 10 seconds after its user's last login
-  session ends unless lingering is enabled for that user
-  (`loginctl enable-linger`). A pilot container was lost this way before
-  lingering was enabled.
-- Containers reach the CIFS-mounted NAS only with the `virt_use_samba` SELinux
-  boolean enabled on the host, and write to it only when the container keeps
-  the user's `jheem` group (`--group-add keep-groups`); without it, writes are
-  refused. Both prerequisites were enabled for this pilot on shield2 only.
-
-## Realistic stage on shield2 (2026-09-30)
-
-`calib.9.28.stage0` for C.12580 (15,000 iterations, 30 chunks) ran in the same
-image on shield2 with NAS state, one BLAS thread, and the ordinary launcher's
-checkpoint settings, alongside the team's completed native run of the same
-stage and location on shield1:
-
-| | Container, shield2 | Native, shield1 |
-|---|---|---|
-| Result | exit 0; summary and 300-simulation set written | complete |
-| Time per 500-iteration chunk | median 27.6 min (25.9–29.4) | median 29.9 min (28.8–30.9), 10 locations sharing the server |
-| Sampling | 13 h 46 min at about 10.5 GB | about 15 h |
-| Summary and assembly | about 12 min, peak 35.4 GB | not measured |
-| Chunk file | about 305 MB | about 44 MB |
-| Simulation set | 1.54 GB | 1.28 GB |
-
-Runtime and stability are comparable. The image's analyses revision is
-slightly newer than the one the native run started from, so likelihood values
-are not compared.
-
-The chunk difference was not in the number of simulations. In the container's
-first chunk, the first stored simulation serialized to about 5.6 GB against
-about 20 MB natively. The cause was the image installing the team packages
-with kept source references. Each jheem2 R6 object stored in a simulation
-(specification, solver, and run metadata) has methods whose source reference
-points at the package source file, and that file's text was an unforced lazy-load
-promise; saving it serialized about 2.8 GB of the package's lazy-load state per
-object. Native runs source jheem2 under `Rscript`, which keeps no source
-references. R's default package install doesn't keep them either.
-
-The image now installs `distributions`, `bayesian.simulations`, `locations`, and
-jheem2 with `R CMD INSTALL --without-keep.source`, fails its build if any of
-them keeps source references, and pins `bayesian.simulations` and
-`distributions` to the commits the team servers run (the base image had carried
-an older `bayesian.simulations` without its July and August 2025 fixes). The
-hosted canary now fails if its first chunk exceeds 100 MB. The same canary on
-shield2 with NAS state (`jheem-containers@93bf24e`):
-
-| | Before the fix | After the fix |
-|---|---|---|
-| Elapsed | 368 s | 101 s |
-| Peak memory (summary and assembly) | 28.5 GB | 11.1 GB |
-| Checkpoint chunk | 266 MB | 5.4 MB |
-| Simulation set (2 simulations) | 270 MB | 9.6 MB |
-
-The earlier 28 GB and 35 GB peaks therefore described the image, not SHIELD. A
-full stage has not been rerun with the fixed image.
-
-## Integration checkpoint and next sequence (2026-10-01)
-
-The September 30 implementation adds input/output lineage, per-attempt records,
-and sequential single-chain stages
-([analyses `373faf27`](https://github.com/tfojo1/jheem_analyses/commit/373faf2775f584093ac16c17ce18432959c609d9),
-[containers `ad92324`](https://github.com/ncsizemore/jheem-containers/commit/ad92324f7d742d2059a31aac65a9b51e1d23c528)).
-The [hosted canary](https://github.com/ncsizemore/jheem-containers/actions/runs/36776425076)
-now completes summary and assembly, checks the records, and runs a two-stage
-pipeline. The operator wrapper and runbook are in the container repository.
-This newer path has not yet been exercised by another operator on a team server.
-
-A negative check found a boundary defect: deleting the summary
-and simulation-set files while retaining `outputs.json` still lets the pipeline
-report all stages complete. The preceding-stage resolver hashes the record but
-does not verify the files it describes. Completion and lineage checks therefore
-needed to verify record identity and referenced output sizes and digests before
-reusing a stage. A successful ordinary canary did not cover that failure mode.
-
-That defect is now fixed in
-[`jheem_analyses@06505412`](https://github.com/tfojo1/jheem_analyses/commit/06505412ff4ad870ba0263361b791ba5d53737de),
-integrated into `master` through
-[`3f463e2a`](https://github.com/tfojo1/jheem_analyses/commit/3f463e2ab274e4d5e24decdf82f294a91b628857).
-The matching container implementation was integrated into `main` through
-[`4b9f83db`](https://github.com/ncsizemore/jheem-containers/commit/4b9f83dbab3f784aa177947e2c27925d784eae10).
-The source branch includes current application changes and verified latest-loader
-integration; this increment changes no likelihood formula or sampler behavior.
-
-[Run 36815091235](https://github.com/ncsizemore/jheem-containers/actions/runs/36815091235)
-passed the offline runtime/cache tests, real-engine interruption/resume,
-summary and assembly, and a two-stage pipeline. Missing simsets, same-size
-modified simsets, and a changed requested seed were each rejected. Restoring
-the original files and inputs allowed verified reuse. Focused tests also cover
-stale preceding-stage records and interrupted setup without a checkpoint.
-The ordinary SHIELD static suite still fails on existing findings and skips
-later tiers; these operational checks do not resolve its scientific assertions.
-
-The exact tested image is retained in the non-latest
-[`shield-pilot-2026.10.01-r36815091235` prerelease](https://github.com/ncsizemore/jheem-containers/releases/tag/shield-pilot-2026.10.01-r36815091235),
-beyond the seven-day Actions artifact lifetime. The release contains the image
-archive and `IMAGE.txt` with its identity and source revisions. Its published
-archive SHA-256 matches the tested export:
-`01e344d5948945851f397a41e2ec24b5f77878e2335b5d8960eb5a5a3a81e60c`.
-This retains the runtime, not scientific outputs or their run records; canary
-logs and records remain in their temporary CI artifact.
-
-### Operator handoff (2026-10-01)
-
-The [operator guide](https://github.com/tfojo1/jheem_analyses/blob/72922ef9f54e72ef57d9a31d9368e687f77aff7b/applications/SHIELD/CONTAINER-PILOT.md)
-now lives beside SHIELD in `jheem_analyses`, linked from its server guide and
-recorded-runtime reference. Operators use an installed wrapper; they need no
-container-repository checkout. The
-[administrator runbook](https://github.com/ncsizemore/jheem-containers/blob/717875b7d8fbb2f69ce52b5f519fd3c819e22c56/workloads/shield/RUNBOOK.md)
-stays in `jheem-containers` and separates installation/account verification from
-the subsequent independent operator exercise. Default-branch publication is not
-evidence that the intended server accounts are ready.
-
-This handoff retains the tested image's analyses snapshot `06505412`. Newer
-master changes include STI-screening modifier behavior
-([`3f9e2019`](https://github.com/tfojo1/jheem_analyses/commit/3f9e2019068a8d9e2cb6eb94426fdd947a4d9756))
-and widening `TRATE_DELTA` from 1.5 to 3
-([`207672f2`](https://github.com/tfojo1/jheem_analyses/commit/207672f2c1fa9dbf588a9fbafa4307ab8e9dc5ce)); the image does not include
-them. Trying its operational mechanics is separate from selecting code and
-inputs for a scientific calibration. The guide explicitly says not to delay
-ordinary full calibrations: multi-chain stage 3 and native handoff remain
-unsupported.
-
-The wrapper now rejects a fresh start when only a previous run-record directory
-exists, as well as when calibration state exists, and directs recovery toward
-preserving evidence and selecting a separate state root. Four executable shell
-tests cover existing state, receipt-only setup, an unrecorded pipeline, and
-resume without a checkpoint; they verify no container is launched and files
-are preserved. Fast shell/contract checks now also run on main-branch pushes,
-without building or promoting an image. The first hosted
-[handoff check](https://github.com/ncsizemore/jheem-containers/actions/runs/36885991550)
-passed.
-
-Next:
-
-1. Have another team member launch, interrupt, resume, and locate outputs from
-   the runbook. Run one representative full stage with the corrected image to
-   measure its production-size memory and output sizes. The earlier cross-server
-   timings establish feasibility, not a controlled speed or equivalence result.
-2. Complete the stage-3 boundary: either support and verify multiple chains or
-   document and test the handoff from isolated container outputs to the native
-   workflow. Recorded mode currently refuses multi-chain calibrations. Shared
-   writers also require a cross-process locking strategy, beyond the wrapper's
-   same-account container check.
-
-The October 1 sequence proposed a sampler correction before same-seed trace
-comparisons. The [October 3 plan](#repeatability-plan) refines that order: measure
-repeatability through the current seeded workflow first, while keeping the
-explicit seed-argument defect and any correction separate. Successful checkpoint
-continuation alone remains insufficient evidence of trace equality.
-
-## Separate source from the runtime (2026-10-01) {#separate-source}
-
-The wrapper now preserves analysis code separately from the retained image
-([containers `b1a40dc`](https://github.com/ncsizemore/jheem-containers/commit/b1a40dc072dc0cf3983f74b36fa9b683b6fe19b8),
-[D-023](../decisions.qmd#d-023)). First use of a calibration code captures a clean
-committed checkout; all its locations in that run root share the selection.
-A pipeline selects its stages together. New codes can use newer source without
-an image build, while subsequent stages and continuations retain their original
-source, image ID, manager releases, and seed. The
-[operator guide](https://github.com/tfojo1/jheem_analyses/blob/5e441ea6fd58368cce5f2558de29a6b212930649/applications/SHIELD/CONTAINER-PILOT.md)
-describes this without requiring a container-repository checkout.
-
-The saved archive and per-file hashes live under `run_sources/`, beside records
-and outputs. Both container paths to the snapshot are read-only. The wrapper
-verifies saved content before reuse and checks specification/registry startup
-against installed packages before detached sampling. Dirty source, incompatible
-stage selections, missing snapshots, and explicit changes to saved inputs are
-refused. Whole-repository snapshots currently occupy about 580 MiB including
-archive and materialized files; NAS capture adds startup I/O. CIFS mount-wide
-permissions are supported without relying on per-file `chmod`.
-
-Twenty-eight fast checks cover the helper, wrapper mounts and startup refusal,
-source drift, integrity failures, and existing-state preservation; the
-[hosted check](https://github.com/ncsizemore/jheem-containers/actions/runs/36921240029)
-passed. On shield2,
-two new tiny calibration definitions absent from the retained image completed
-summary, assembly, and preceding-stage lineage with NAS state. Changing the
-original test checkout while the pipeline ran did not change either stage's
-saved source. This used an isolated committed fixture based on `06505412`, not
-the latest scientific model. Repeating the pipeline verified both stages' output
-files and skipped completed work. The
-[test definitions](https://github.com/ncsizemore/jheem-containers/blob/b1a40dc072dc0cf3983f74b36fa9b683b6fe19b8/workloads/shield/tests/snapshot_calibration.R)
-and [technical reference](https://github.com/ncsizemore/jheem-containers/blob/b1a40dc072dc0cf3983f74b36fa9b683b6fe19b8/workloads/shield/SOURCE-SNAPSHOTS.md)
-are in the owning repository.
-
-The current-source trial at analyses `03e3eea5` stopped before MCMC: the registry
-refers to `calib.9.23.stage2` before registering it
-([early reference](https://github.com/tfojo1/jheem_analyses/blob/03e3eea538d862e84dfd22b3300d56c7ecf11d4c/applications/SHIELD/shield_calib_register.R#L83),
-[later definition](https://github.com/tfojo1/jheem_analyses/blob/03e3eea538d862e84dfd22b3300d56c7ecf11d4c/applications/SHIELD/shield_calib_register.R#L153)).
-The same startup failure occurred with a direct mount of the clean checkout,
-without the snapshot helper, against the retained engine. The container work
-does not change that registration. A current-source operator
-trial needs a working selection agreed with the model owners. Ordinary SHIELD
-also now selects promoted syphilis data by default
-([`03e3eea5`](https://github.com/tfojo1/jheem_analyses/commit/03e3eea538d862e84dfd22b3300d56c7ecf11d4c));
-the recorded pilot retains its explicit manager selection. New source does not
-implicitly update those inputs.
-
-These results exercise different source selections. The September 30 full
-`calib.9.28.stage0` run predates the registry change introduced in
-[`0591d626`](https://github.com/tfojo1/jheem_analyses/commit/0591d626ebfde257f81cc60785bfcacd0c44a1e8).
-The retained image's successful hosted canary uses `06505412`; the later NAS
-source-preservation test deliberately uses a fixture based on that same earlier
-source. Neither establishes that the latest calibration definitions can start.
-Both the ordinary modular launcher and the recorded startup check source the
-whole registry, so an out-of-order definition can stop startup even when that
-older calibration was not requested.
-
-A native `calib.10.1.stage0` run was separately observed progressing beyond
-4,000 iterations on October 1. A read-only server audit at 23:34 UTC explains
-the registration difference: its checkout is at `03e3eea5` with an uncommitted
-deletion of exactly the ten-line early duplicate. Removing those lines from the
-published file produces the audited working file's SHA-256 exactly. Its modification
-time precedes the R process start by about seven seconds. The inspected launcher,
-source bootstrap, specification, and likelihood files match their committed
-versions. This is a working-source difference, not evidence that the container
-introduced a new registration rule. The audit describes files at inspection;
-it is not a contemporaneous source receipt from the native launch.
-
-The native log and audited engine identify jheem2 `9578726b`. The
-[published engine comparison](https://github.com/CIPHER-Epi/jheem2/compare/ccb1f9bfe40844143dbcec65ffd27829aa39d7ef...9578726b012a2ee380b380ef0203733d1bd81163)
-changes only spline functional forms; the audited registration implementation
-and source-mode bootstrap match that commit. Those newer spline fixes still
-require runtime alignment before reproducing the current calibration. The audit
-also identified a [legacy manager fallback](manager-compatibility.qmd#observed-legacy-fallback)
-to an older released artifact. Recording the existing source correction and
-agreeing on engine and manager selections precede a current-source container
-trial; no scientific source or running calibration was changed by the audit.
-
-The shared installation and two intended accounts passed administrator checks:
-image loading, persistent user services, shared-input readability, and container
-NAS writes. This is not yet an independent operator's calibration exercise.
-The installed wrapper also verified and skipped both completed NAS test stages.
-Startup locks serialize launches but do not provide
-general lifetime or cross-account writer coordination. Multi-chain stage 3,
-native handoff, corrected-image full-stage measurement, deterministic replay,
-and automatic archival of source/records/results remain open.
-
-## Current-source comparison candidate (2026-10-02) {#current-source-comparison}
-
-The audited registry correction is now recorded on a
-[candidate analyses branch](https://github.com/tfojo1/jheem_analyses/commit/041498235821ad7bf0a743be9035a44f2c740f4b).
-It removes only the premature duplicate, producing the audited registry bytes
-exactly; no remaining calibration definition or likelihood formula changes.
-The candidate runtime selects jheem2 `9578726b`, and its optional
-`native-2026-10-01` test-input profile identifies the May 5 syphilis artifact,
-August 26 census artifact, and seed 0. The retained installed image and its
-defaults are unchanged. This selection reproduces the identified native inputs
-for comparison, not a recommendation about which data should be used in future
-calibrations.
-
-Validation separates three questions:
-
-1. **Execution and preservation:** can the current model start, checkpoint,
-   resume, assemble simsets, and retain verified input/output and stage-lineage
-   records?
-2. **Readable numerical contents:** do completed simsets contain the expected
-   stage and location, finite parameter values, and finite population, incidence,
-   and diagnosis totals for selected years? The candidate
-   [inspector](https://github.com/tfojo1/jheem_analyses/blob/eab6beb0a3131607b978b8f42bc1c87b9592c1a2/applications/SHIELD/R/shield_output_checks.R)
-   reports actual values and descriptive ranges. Its initial outcome view sums
-   across demographic strata; it is not a stratified equivalence test.
-3. **Native/container numerical comparison — planned:** hold source, manager
-   bytes, initial conditions, solver settings, and saved parameter values
-   constant, then compare trajectories and individual likelihood contributions.
-   Relevant stratified outputs belong in this comparison because agreement in
-   aggregate totals can hide different subgroup results. Report absolute and
-   relative differences and establish justified numerical tolerances before
-   treating the result as an acceptance gate.
-
-The first two levels passed in
-[hosted run 37000162439](https://github.com/ncsizemore/jheem-containers/actions/runs/37000162439),
-using container source `9d0869d4`, analyses `eab6beb0`, engine `9578726b`, and the
-native-input profile above. Each Baltimore canary stage produced two simulations
-with 173 finite stored parameters. Population, incidence, total diagnoses, and
-primary/secondary diagnoses were finite, with no negative totals, for 2010,
-2015, 2020, 2025, and 2030. Only two transmission parameters vary in the canary;
-the second stage exercises predecessor reuse, not the full scientific stage-1
-calibration. Missing/modified simsets and changed-input reuse were rejected.
-Both downloaded numerical reports parse as JSON without modifying the files.
-The tested image was exported as a time-limited Actions artifact; it has not
-replaced the retained release or installed image.
-
-**Later October 2 update:** ordinary SHIELD now selects September 9 and includes
-the same registry correction in
-[`38b20dcf`](https://github.com/tfojo1/jheem_analyses/commit/38b20dcfa1e879c46e5489b0a52ffa1045e91582).
-An [operator-reported stage-1 failure](manager-compatibility.qmd#stage1-fallback)
-also confirms the practical consequence of loading an unintended older manager.
-The May-input canary remains evidence about that historical configuration,
-not the baseline for the intended next calibration. First reconcile the
-candidate with current master, verify September's manager against the actual
-stage-1 likelihood setup, and then use that selection for prospective
-native/container comparisons. The passed two-stage canary did not exercise
-the scientific stage-1 likelihood.
-
-The shared [loader hardening and identity logging](manager-compatibility.qmd#loader-hardening)
-subsequently landed on analyses master at `336df26d`, without deploying a new
-image or changing server checkouts. The broader candidate's numerical-output
-inspection remains separate from that landing.
-
-Full calibration comparisons follow those fixed-parameter checks and examine
-parameter and outcome distributions and sampling diagnostics. The two-iteration
-CI canary does not establish convergence. The bounded replay tests below compare
-matched same-seed traces separately; they do not require different-seed
-calibrations or serialized simset files to be identical. Whether a newer manager
-changes scientific conclusions remains a separate question.
-
-## Repeatability validation plan (2026-10-03) {#repeatability-plan}
-
-**Verified evidence:** the initial assessment used analyses `4264842c`, engine
-`9578726b`, and sampler `4e0d13e`. The diagnostics later landed as recorded above.
-A toy cache check rerun on October 3 reproduced
-the ignored explicit seed argument: keeping `seed = 123` but changing prior R
-state from `set.seed(1)` to `set.seed(2)` changes stored chunk seeds; keeping
-`set.seed(1)` but changing the argument to `456` does not. The
-[public constructor](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/run_interface.R#L181-L217)
-does not forward the argument, and the
-[chunk-seed generator](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/cache.R#L235-L261)
-uses ambient random state. This check does not run a scientific calibration.
-
-**Workflow hypothesis:** ordinary SHIELD calls `set.seed(0)` before setup, while
-recorded mode uses its configured seed at the
-[same point](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_calib_setup_and_run.R#L64-L114).
-An otherwise identical setup could therefore recreate the same chunk schedule
-and trace despite the API defect. The [subsequent experiment](#seed-replay-result)
-demonstrated fresh-run equality on a bounded fixture, but not equality across
-restarts. Any package correction remains separate from characterization of
-this workflow ([D-024](../decisions.qmd#d-024)).
-
-**Validation matrix:**
-
-| Comparison | Question and evidence |
-|---|---|
-| Fixed parameter vectors, native versus container | The [October 3 result](#engine-loading-comparison) compares hand-sourced and installed-package engines within macOS and Linux, and Mac hand-sourced versus Linux container execution. It covers three vectors at one location, not a team server's native environment or full calibration. |
-| Two fresh container processes with separate empty output roots | [Passed on the eight-iteration fixture](#seed-replay-result): identical initial parameters, stored chunk seeds, samples, likelihoods, and adaptive state. A changed-seed control changed both the seed schedule and sampled values. |
-| Uninterrupted versus interrupted/resumed execution | [Diverged on the same fixture](#seed-replay-result): matched initial/checkpoint state and seeds, but a different accepted proposal by iteration 4. Both resumptions completed and preserved earlier chunks. |
-| Matched native versus container calibration | After fixed-parameter checks, assess trace agreement with the actual native source-loading path and container package-loading path explicitly recorded. A mismatch requires locating the first divergence, not immediately blaming the sampler. |
-
-Hold source and manager bytes, initial conditions, solver settings, chain setup,
-iteration count, burn-in, thinning, and checkpoint frequency constant. Record
-R/package versions, loading mode, RNG settings, and runtime identity. Compare
-scientific values rather than whole serialized files containing timestamps or
-runtime metadata. Exact same-environment trace equality and justified numerical
-tolerances across environments are different acceptance claims; a bounded pass
-is not proof of convergence or every multi-chain configuration.
-
-**Compatibility checkpoint:** on October 3, the actual registered stage-1
-likelihood passed a local Baltimore check with September's intended manager:
-12 finite components at three fixed parameter vectors. May's manager reproduced
-the missing-outcome failure during likelihood construction. This check used the
-recorded source-loading path, not a native/container comparison, and did not
-exercise predecessor output reuse or MCMC. See the
-[identities, results, and limits](manager-compatibility.qmd#stage1-check).
-
-The reconciled diagnostics retain production scientific and loader behavior
-from analyses `4264842c`. Preserve selections across the
-[whole staged run](reproducibility.qmd#run-preservation), then use the replay
-counterexample to assess a separately reviewed checkpoint/RNG correction.
-Native-server comparison, a representative full stage, and operator handoff
-remain separate acceptance steps. Existing native runs can contribute evidence only
-to the extent that their loaded inputs and environment are identifiable; do not
-alter them or invent missing launch records to construct a comparison.
-
-The deliverable is a short comparison report stating what matched, what differed,
-and what was not tested, backed by repeatable scripts in the owning repositories.
-Later model derivation follows the separate
-[parent-artifact lineage requirement](reproducibility.qmd#derived-lineage);
-generalized transmutation is not a prerequisite for these tests.
+The sampler's explicit seed argument is still ignored (chunk seeds come from the
+ambient R state), but SHIELD calls `set.seed()` before setup, so a fixed workflow
+can still repeat. The native launcher seeds at a different point than the recorded
+one, so chunk seeds may differ even with the same seed value. In that case a
+container-vs-native comparison can only be statistical. Across runtimes, tiny
+numerical differences can flip an accept/reject decision, after which traces
+separate. Native comparison targets must be runs that didn't resume mid-stage.
 
 ### Engine-loading comparison (2026-10-03) {#engine-loading-comparison}
 
-Two fresh macOS/R 4.4.2 processes evaluated the real Baltimore stage-1 likelihood
-with identical September syphilis and August census manager bytes. One used
-`jheem2@9578726b` installed from source into an isolated library; the other used
-that revision's existing `R/tests/source_jheem2_package.R` loader. Both consumed
-the same saved parameter doubles. The reconciled
-[diagnostic candidate](https://github.com/tfojo1/jheem_analyses/commit/94ba72984737d71ea9ca8ed102a8add58b48e6f2)
-is analyses `94ba7298`, with scientific source unchanged from master `4264842c`.
-
-| Compared values across three parameter vectors | Observed agreement |
-|---|---|
-| Population, incidence, total diagnoses, and primary/secondary diagnoses: 2010–2030 annually, retaining 11 ages × 3 races × 3 sex groups (24,948 values) | Exact at full double precision |
-| Twelve stage-1 likelihood components per vector (36 values), plus three totals | Exact at full double precision |
-
-The hand-sourced side used a disposable analyses copy with one diagnostic
-bootstrap substitution: the recorded `pkgload::load_all()` call invoked the
-existing engine source script instead. All other tracked SHIELD/commoncode
-file hashes matched. This keeps manager selection offline and isolated while
-exercising the different engine-loading mechanism; it is not a new production
-loading option or a test of the ordinary native bootstrap in full. The comparator
-retains 17-significant-digit values and rejects mismatched source, input, or
-parameter identities. Its tests include detecting a one-ULP difference.
-
-The paired Linux check also completed in
-[hosted run 37153878619](https://github.com/ncsizemore/jheem-containers/actions/runs/37153878619),
-using container source `eff598ab` and image
-`sha256:2819cc3ec51ff7ffaf8804ec82212bcc2fe6248ff02748feb76711830ba924a2`.
-It used two fresh processes in one Ubuntu 24.04.1/R 4.4.2 image, read-only
-source/manager mounts, and no network. Both loading modes agreed exactly on
-the same 24,948 outcome values, 36 components, and three totals. The downloaded
-reports, not only workflow status, were checked.
-
-The full workflow also passed checkpoint/resume, two-stage summary/assembly,
-numerical output inspection, and missing/modified-output and changed-seed
-rejection. Each tiny canary stage produced two simulations with 173 finite
-parameters and finite selected outcome totals. This is operational continuation
-and integrity evidence: the canary's second stage still uses the stage-0
-likelihood, and uninterrupted-versus-resumed trace equality was not compared.
-
-The Linux parameter fixture's digest matched the Mac fixture byte-for-byte,
-allowing an additional cross-platform comparison: Linux installed-package
-versus Mac hand-sourced execution, with matched scientific sources and manager
-bytes. Values were not identical across platforms:
+The real Baltimore stage-1 likelihood was evaluated at three fixed parameter
+vectors with identical manager bytes, recording 24,948 stratified outcome values
+(four outcomes, 2010–2030, age × race × sex), 36 likelihood components, and three
+totals. Installed-package and hand-sourced jheem2 `9578726b` agreed exactly
+within macOS and within a Linux image
+([run 37153878619](https://github.com/ncsizemore/jheem-containers/actions/runs/37153878619)).
+Across platforms they differed slightly:
 
 | Quantity | Largest absolute difference | Largest relative difference |
 |---|---:|---:|
@@ -815,97 +140,57 @@ bytes. Values were not identical across platforms:
 | Likelihood component | $4.34\times10^{-10}$ | $1.34\times10^{-13}$ |
 | Total log likelihood | $1.64\times10^{-9}$ | $4.65\times10^{-14}$ |
 
-Relative differences divide by the larger absolute value in each pair; the
-absolute and relative maxima need not occur in the same cell. For scale, the
-largest population difference occurred at values near 120,557. The environments
-also differ in BLAS and compiler/platform details; the specific cause of each
-numerical difference was not isolated. These measurements are not an adopted
-scientific tolerance or proof that MCMC traces will remain identical.
-
-**Limits:** no full native bootstrap, active server run, predecessor reuse,
-convergence, or replay claim follows from this fixed-parameter result. The
-diagnostics subsequently landed on the default branches on October 3 as
-recorded above. The retained image, releases, server checkouts, and active runs
-are unchanged. This hosted run does not export an image for installation.
+The environments differ in BLAS and compiler/platform details; individual causes
+were not isolated. These are measurements, not an adopted tolerance.
 
 ### Seed and checkpoint replay result (2026-10-03) {#seed-replay-result}
 
-The [hosted replay experiment](https://github.com/ncsizemore/jheem-containers/actions/runs/37161484559)
-completed four isolated calibrations using the real Baltimore stage-0 model and
-likelihood. Each sampled two transmission rates for eight iterations, with
-one chain, no burn-in, no thinning, and four two-iteration checkpoints. The
-same image, source, offline manager bytes, and single-threaded BLAS setting
-were used throughout. The resumed run was interrupted after checkpoints one
-and two, with complete cache state verified while paused. Earlier chunk hashes
-were unchanged after interruption and after completion.
+Four isolated runs of the real Baltimore stage-0 model sampled two transmission
+rates for eight iterations with four two-iteration checkpoints, in one image with
+the same source and inputs
+([run 37161484559](https://github.com/ncsizemore/jheem-containers/actions/runs/37161484559)).
+Two fresh seed-0 runs matched exactly; seed 1 changed chunk seeds and samples.
+An uninterrupted run and a twice-resumed run matched through the first
+checkpoint, then accepted different proposals at iteration 4 (log likelihoods
+−16484.35 vs −16475.78). Earlier checkpoints were unchanged and both runs completed.
 
-| Comparison | Observed result |
-|---|---|
-| Two fresh runs, configured seed 0 | Exact agreement at full double precision: 173 original model parameters, two initial sampled parameters, chunk seeds, all samples and likelihood/prior values, acceptance counts, and adaptive state. |
-| Changed-seed control, configured seed 1 | Different chunk seeds and sampled values; the configured seed affects this workflow. |
-| Uninterrupted versus twice-resumed, configured seed 0 | The initial values, chunk seeds, and first checkpoint state match. The first stored sample difference is iteration 4, after the first restart. Both resumptions completed successfully. |
+**Mechanism:** a resumed process rebuilds its starting simulation after setting
+the chunk seed and before drawing proposals; an uninterrupted process keeps it in
+memory. In jheem2 `9578726b`, simulation metadata reads `calibrated.parameters`
+while the kernel exposes `calibrated.parameter.names`
+([`JHEEM_simulation.R`](https://github.com/CIPHER-Epi/jheem2/blob/9578726b012a2ee380b380ef0203733d1bd81163/R/JHEEM_simulation.R#L1620-L1624),
+[`JHEEM_kernel.R`](https://github.com/CIPHER-Epi/jheem2/blob/9578726b012a2ee380b380ef0203733d1bd81163/R/JHEEM_kernel.R#L567-L573)),
+so the rebuild draws a random metadata seed and shifts the proposal stream. A
+sampler-only reproducer and short report are in
+[`REPLAY-COMPARISON.md`](https://github.com/tfojo1/jheem_analyses/blob/bb93142ecc069e4094e3b130c23109babfb98730/applications/SHIELD/tests/REPLAY-COMPARISON.md).
+Neither package was changed; a correction needs owner review. Resumed runs remain
+operationally valid but are not trace-identical to uninterrupted ones.
 
-At iteration 4, the uninterrupted run retained transmission rates `1.6, 1.6`;
-the resumed run accepted `1.5435453720102092, 1.4921837799750717`. Their log
-likelihoods were `-16484.35126810809` and `-16475.77615942093`, an absolute
-difference of about 8.575. This is a different accepted proposal, not the small
-cross-platform rounding differences measured above. The comparison correctly
-failed the optional workflow; the existing operational canaries and focused
-tests passed. The downloaded reports independently reproduce that result.
+## Earlier findings still in force
 
-**Localized mechanism:** the sampler
-[retains its current simulation between chunks in one process](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/cache.R#L350-L413),
-but starts a resumed process without it. It then
-[rebuilds the starting simulation after setting the chunk seed](https://github.com/tfojo1/bayesian.simulations/blob/4e0d13e85857396bb0e6e2ac1d244775b2145f75/R/adaptive_blockwise_metropolis.R#L296-L348),
-before drawing proposals. In the tested engine,
-[simulation metadata seed selection](https://github.com/CIPHER-Epi/jheem2/blob/9578726b012a2ee380b380ef0203733d1bd81163/R/JHEEM_simulation.R#L1620-L1624)
-reads `calibrated.parameters`, whereas the kernel exposes
-[`calibrated.parameter.names`](https://github.com/CIPHER-Epi/jheem2/blob/9578726b012a2ee380b380ef0203733d1bd81163/R/JHEEM_kernel.R#L567-L573).
-A local instrumented check of three real SHIELD fixed-parameter simulations
-observed each constructor advancing R's RNG by its metadata seed draw.
+- **Install packages without kept source references.** With kept references, each
+  stored simulation serialized about 5.6 GB of package state (about 20 MB
+  natively), inflating checkpoints from about 5 MB to 266 MB and canary peak
+  memory from 11 to 28.5 GB. The image build now fails if any team package keeps
+  them, and the canary fails on oversized checkpoints.
+- **Runtime parity.** A full 15,000-iteration stage-0 run on shield2 (before that
+  fix) took a median 27.6 min per 500-iteration checkpoint against 29.9 min
+  natively on shield1 (2026-09-30).
+- **Server prerequisites** (RHEL 9, rootless Podman, SELinux enforcing): lingering
+  per user, or rootless containers stop about 10 seconds after logout;
+  `virt_use_samba` to reach the CIFS NAS; and keeping the user's `jheem` group in
+  the container to write there.
+- **The ordinary SHIELD test workflow** is not a gate. It fails at its static tier
+  in every run (56 failures and 3 cancellations in the last 59 runs as of
+  2026-10-05), mixing open review findings with checks, and skips later tiers.
+- **Growth-penalty denominator.** The `start + 1` change is a scientific choice
+  for zero and small baselines, for the model owners rather than infrastructure work.
 
-The owning repository's
-[sampler-only reproducer and concise report](https://github.com/tfojo1/jheem_analyses/blob/bb93142ecc069e4094e3b130c23109babfb98730/applications/SHIELD/tests/REPLAY-COMPARISON.md)
-isolate this mechanism: adding one random draw to a deterministic toy simulation
-breaks uninterrupted/resumed equality, while preserving RNG state around only
-its extra starting call restores equality. This is evidence for an extra
-RNG-consuming warm-start call, not a general solution for stochastic simulations.
-Changing engine metadata seeding or sampler continuation requires an
-owner-reviewed proposal and regression checks; neither package was patched.
-Repairing the separate explicit seed argument alone would not address this path.
+## Open questions
 
-**Tested identities:** analyses `cd53da8e`, container source `221ab6f8`, engine
-`9578726b`, sampler `4e0d13e`, R 4.4.2/Linux x86-64/OpenBLAS, and image
-`sha256:c2101eb594e4160a83c6f7113ba16fdb7690ea69be7428e2e5f98f1c1d5b3648`.
-Inputs were `syphilis-manager-v2026.09.09` (SHA-256
-`c3e3c983d6b4e9c961f735f9c59d45483bd63cfa715cf75c1fae874da2d129e6`)
-and `data-managers-v2026.08.26` census (SHA-256
-`f8c710684ccfdfb3a5c8e6f4b54caf0417ab67afb82b89ab3259c4b8151e1053`).
-Full refs and rerun instructions are in the report. CI's JSON/log artifacts
-expire after 14 days; preserve evidence separately when needed beyond that period.
-
-**Limits and next step:** this establishes a bounded fresh-run pass and a
-counterexample to identical traces across restarts. It does not assess
-convergence, full stages, multiple chains, cross-server equality, or the
-scientific validity of an existing calibration. Operational resumption remains
-usable within its documented limits. Prepare a focused checkpoint/RNG proposal
-for package-owner review before claiming restart-invariant replay. The
-diagnostics and report are on the default branches; installed images, active
-calibrations, and server checkouts are unchanged.
-
-## Open questions and destination
-
-- Which realistic stage and location should follow the canary, and what
-  runtime and memory difference from the ordinary launcher is acceptable?
-- Which current model checks can become a reliable must-pass operational
-  subset, and which assertions require scientific review?
-- After same-image equality is tested, which scientific outputs and tolerances
-  define equivalence across materially different numerical platforms?
-- What scientific behavior is intended for the future-growth penalty when its
-  baseline is zero or near zero?
-
-The runtime adapter, container build, tests, and server runbook belong in
-`jheem_analyses` and `jheem-containers`. This page remains the cross-repository
-investigation until a retained server pilot uses a current pinned image and the
-owning repositories document its supported path; then it can be reduced to
-the durable contract and result.
+- What statistical criteria define acceptable agreement between container and
+  native calibrations?
+- Where should source snapshots and run records be retained durably?
+- Which current SHIELD checks can become a reliable must-pass subset, and which
+  need scientific review?
+- What behavior is intended for the growth penalty at a zero or near-zero baseline?

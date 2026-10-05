@@ -30,7 +30,7 @@ repo's internals, it probably belongs in that repo.
 | [Modernization Roadmap](roadmap.qmd) | What's in flight, in what order — the working tracker. |
 | [Calibration Observability Investigation](investigations/calibration-observability.qmd) | What does the running calibration cache expose, what is safe to observe, and what should the first slice be? |
 | [Analysis Reproducibility Investigation](investigations/reproducibility.qmd) | What determines a run, how outputs and paths behave today, and how automatic receipts could survive unavailable shared storage? |
-| [SHIELD Calibration and Container Pilot](investigations/shield-container-pilot.qmd) | What has the SHIELD canary proved, and what must a bounded server pilot verify? |
+| [SHIELD Calibration and Container Pilot](investigations/shield-container-pilot.qmd) | What the SHIELD container does today, what remains before real calibrations, and what same-seed runs reproduce. |
 | [Manager Selection and Compatibility](investigations/manager-compatibility.qmd) | How are manager versions selected and rolled back, and what should gate promotion to active models? |
 | [HIV Surveillance Manager CI](investigations/hiv-surveillance-manager-ci.qmd) | Graduated: what the HIV manager CI established, where its docs now live, and what remains open. |
 | [Spec Framework Notes](spec-framework-notes.qmd) | How does the jheem2 specification framework actually behave? |

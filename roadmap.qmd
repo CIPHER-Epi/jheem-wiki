@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-10-04
+date-modified: 2026-10-05
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -13,19 +13,13 @@ The ecosystem is a barbell. One end: a scientifically sophisticated core (`jheem
 The sequencing is also informed by earlier exploratory refactoring analysis
 (archived [here](archive/index.qmd)). Reconstructing an earlier calibration
 remains an explicit publication need, with SHIELD as the first reference workflow
-([D-019](decisions.qmd)). Two narrower deliverables now have direct team interest:
-a SHIELD container pilot and CI for assembling the HIV surveillance manager
-([D-020](decisions.qmd#d-020)).
-Neither is equivalent to a claim of end-to-end reproducibility or raw-data-to-final
-automation. The sampler seed-argument defect remains open, but does not by itself
-disprove repeatability through SHIELD's preceding `set.seed()` call. Bounded
-fresh-run and resume comparisons preceded any sampler correction
-([D-024](decisions.qmd#d-024)): two fresh same-seed runs matched on an
-eight-iteration fixture, but resuming changed its trajectory. Identical replay
-across restarts is not supported by the measured result. Calibration
-observability and functional-form documentation remain open. The broader program
-is still a working engineering proposal rather than a team-adopted plan
-([D-017](decisions.qmd)).
+([D-019](decisions.qmd)). As of October 2026 the team's direct interest is a
+**SHIELD container usable for real calibration workflows**, with same-seed
+reproducibility as a stated concern ([D-026](decisions.qmd#d-026)). The HIV
+surveillance-manager CI is shipped and in use-and-maintain mode. Same-seed runs
+are identical when started fresh in one runtime, but not yet across a resume or
+across runtimes ([D-025](decisions.qmd#d-025)). The broader program is still a
+working engineering proposal rather than a team-adopted plan ([D-017](decisions.qmd)).
 
 ### Practice baseline (updated 2026-10-01)
 
@@ -34,7 +28,7 @@ Per-repo engineering practice, as verifiable facts. This table is the program's 
 | Repo | README | Tests | CI | Release discipline |
 |---|---|---|---|---|
 | `jheem2` | — | 100 recursive test/reprex/profiling artifacts; 0 automated gate | — | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
-| `jheem_analyses` | no root README | syphilis structural validation; HIV comparison and consumer checks; SHIELD static/unit/model and recorded-runtime checks | manager build/promote workflows; Linux/Windows release-cache tests; ordinary SHIELD model workflow still stops at the failing static tier | versioned, digest-verified manager releases (syphilis, HIV); ordinary latest loading also verifies identity |
+| `jheem_analyses` | no root README | syphilis structural validation; HIV comparison and consumer checks; SHIELD static/unit/model and recorded-runtime checks | manager build/promote workflows; Linux/Windows release-cache tests; ordinary SHIELD model workflow red in every run (56 failures, 3 cancelled of the last 59, 2026-10-05) | versioned, digest-verified manager releases (syphilis, HIV); ordinary latest loading also verifies identity |
 | `bayesian.simulations` | — | — | — | — |
 | `distributions` | — | — | — | — |
 | `locations` | ✅ | ✅ | ✅ | — |
@@ -45,13 +39,10 @@ Per-repo engineering practice, as verifiable facts. This table is the program's 
 | `jheem-simulations` | ✅ | n/a | n/a | semver GitHub Releases with documented deprecations |
 
 The modeling core still has much less automated protection than the delivery
-platform, but it is no longer accurate to say that only syphilis-manager CI exists
-there. The new SHIELD suite contains deliberately failing findings; a red run does
-not currently distinguish a new regression from those open findings, and later
-tiers are skipped when the static tier fails. See the
-[workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml),
-[suite status](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md),
-and [2026-09-22 run](https://github.com/tfojo1/jheem_analyses/actions/runs/35762822719).
+platform. The SHIELD model suite mixes deliberately failing review findings with
+checks, so a red run doesn't distinguish a new regression, and its later tiers
+are skipped ([workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml),
+[suite status](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md)).
 
 ## Sequence
 
@@ -61,67 +52,38 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Hosted at `CIPHER-Epi/jheem-wiki` ([D-011](decisions.qmd)); public since 2026-08-19 at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) ([D-016](decisions.qmd)) |
-| 2 | **Free wins on `dev`** — register `protected.numeric.vector` S3 methods; untrack `src/*.o`; fix stale DESCRIPTION | **Done** (2026-08-18) | Landed as jheem2 `dev` commits `12bc63c`…`474abc3`. Dispatch verified under `Rscript`; man pages regenerated. Version set per [D-012](decisions.qmd) (an initial 1.11.2 bump was corrected to 1.12.3.9000). Follow-ups: retire the Shiny export-everything workaround once `jheem2_interactive` updates; run container golden tests when `jheem-base` next bumps its jheem2 ref |
-| 3 | **Toy fixture spike** — minimal self-contained spec + trivial data manager | **Done — GO** (2026-08-19) | A fully self-contained toy model runs in **0.37 s** with sane dynamics; recipe, working script, and 3 engine bugs found: [Toy Fixture Spike](toy-fixture-spike.qmd). Follow-ups: fix degenerate-case bugs on `dev`; wrap the script as a package fixture when package/CI feasibility is evaluated; the data-manager half comes with the likelihood demo |
-| 4 | **Calibration observability and online stopping** — establish the architecture, then implement one bounded vertical slice | **Read-only inspection eligible; stopping remains separate** (2026-10-04) | Routine runs target the shared servers. The [investigation](investigations/calibration-observability.qmd) measured 1.89 GB SHIELD and 17.89 GB EHE caches and recommends small parameter-only checkpoint sidecars rather than repeated science-chunk reads. Read-only progress inspection need not wait for identical replay; sampler publication/hooks and stopping still need concurrent-read, checkpoint, and policy review. Not a third active implementation track ([D-025](decisions.qmd#d-025)). |
-| 5 | **Functional-form documentation** — inventory and explain the forms used by model specifications, with runnable examples where practical | Queued | Requested bounded documentation work; final API and examples belong in `jheem2`, while an evidence-backed investigation may be staged here ([D-018](decisions.qmd)) |
-| 6 | **Model-manager compatibility and rollback** — select immutable manager versions and gate promotion against active consumers | **Loader safety and stage-1 diagnostic landed** (2026-10-03) | Master `336df26d` stops failed online resolution without cached substitution and logs verified identities, with Linux/Windows tests. Ordinary SHIELD selects September 9. The actual stage-1 likelihood passes locally and in the hosted comparison with that manager: 12 finite components at three parameter vectors. May's manager reproduces the missing-outcome failure. The diagnostic landed in master `94ba7298`; a required promotion gate and broader location coverage remain open. Earlier MSM value differences remain a separate scientific question. See [results and limits](investigations/manager-compatibility.qmd#stage1-check). |
-| 7 | **SHIELD runtime and reproducibility** — establish a bounded container pilot, then test stronger replay claims | **Current runtime installed; administrator NAS smoke passed** (2026-10-04) | A dated non-latest release preserves the exact tested image and real stage-1 handoff reports. It is separately installed on shield2 with September inputs; both operator accounts passed image/cache/NAS access checks. An isolated administrator two-stage smoke completed with finite simsets, verified output hashes, source/runtime/input identities and predecessor lineage; repetition verified/skipped both stages without changing receipts. The older installation and active scientific work are unchanged. Hosted real stage-1 transfer checks passed; the server smoke uses stage-0 likelihoods twice and is not scientific acceptance. Fresh same-seed traces matched, but resumed execution diverged at iteration 4. A representative operator trial, native-server comparison, multi-chain stage 3, writer coordination and automatic archival remain open. See [retained runtime and acceptance](investigations/shield-container-pilot.qmd#current-runtime-retention) and [replay result](investigations/shield-container-pilot.qmd#seed-replay-result). |
-| 8 | **HIV surveillance-manager CI** — assemble, check, and promote the manager from identified section artifacts | **Automatic publication and exact loading verified; contributor handoff next** (2026-10-01) | A master build published `hiv-surveillance-manager-v2026.10.01`: 603 structural and ten consumer checks passed; no values differed across 408 arrays. Online and offline exact loading passed without changing latest. Ordinary latest-loading now uses the same verified release cache (`7f687a8a`), with Linux/Windows tests. Next exercise a real contributor update and deliberate review/promotion. Section-to-final only; see the [investigation](investigations/hiv-surveillance-manager-ci.qmd). |
+| 1 | **Wiki bootstrap** — repo, renderer, map + decisions + roadmap, archive | **Done** (2026-08-18) | Public at [cipher-epi.github.io/jheem-wiki](https://cipher-epi.github.io/jheem-wiki/) ([D-011](decisions.qmd), [D-016](decisions.qmd)) |
+| 2 | **Free wins on `dev`** — S3 registration, untracked objects, DESCRIPTION | **Done** (2026-08-18) | jheem2 `dev` `12bc63c`…`474abc3`; version per [D-012](decisions.qmd) |
+| 3 | **Toy fixture spike** | **Done — GO** (2026-08-19) | Self-contained toy model runs in 0.37 s; three engine bugs found ([Toy Fixture Spike](toy-fixture-spike.qmd)) |
+| 4 | **Calibration observability and online stopping** | **Paused**; read-only inspection eligible (2026-10-04) | Recommends small parameter-only checkpoint sidecars ([investigation](investigations/calibration-observability.qmd)); not a third active track |
+| 5 | **Functional-form documentation** | Queued | Requested; API and examples belong in `jheem2` ([D-018](decisions.qmd)) |
+| 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
+| 7 | **SHIELD container for real calibrations** | **Pilot installed; real-workflow gaps open** (2026-10-05) | Single-chain stages with frozen source, inputs and run records; installed on shield2, no operator runs yet. Next: engine source snapshot, multi-chain stage 3, city list, output path, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
+| 8 | **HIV surveillance-manager CI** | **Shipped; use and maintain** (2026-10-01) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; awaiting a real contributor update ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
 
 ### Next
 
-The immediate work is two bounded delivery tracks, updated 2026-10-04
-([D-025](decisions.qmd#d-025)):
+Two active tracks, updated 2026-10-05 ([D-026](decisions.qmd#d-026)):
 
-1. **Useful SHIELD operator execution.** The short actual-stage-1 predecessor
-   handoff has passed; next exercise a representative single-chain stage with
-   another operator on the team's server. The older two-stage canary uses stage-0
-   likelihoods twice; fixed-parameter stage-1 checks do not reuse predecessor
-   outputs. The landed handoff diagnostic copies the real registrations,
-   shortening them without changing scientific fields, and checks exact transfer
-   of all 173 predecessor parameters. The separately tested runtime with intended
-   September inputs is now [retained, installed and administrator-tested](investigations/shield-container-pilot.qmd#current-runtime-retention).
-   Agree the representative stage/location, source, inputs, predecessor and fresh
-   output root before an operator trial; do not reuse the original
-   installation's older engine/input defaults. Record
-   source, image, managers, elapsed time, memory, completed outputs, and operator
-   feedback. Keep runs isolated from existing scientific work. Close the
-   multi-chain stage-3 gap before recommending the container for full
-   calibrations; shared writers need lifetime coordination beyond startup locks.
-   See [milestones and acceptance boundaries](investigations/shield-container-pilot.qmd#operational-delivery).
-2. **Recoverable provenance.** Given a completed simset, retrieve a readable run
-   history and its source/input/runtime identities without knowing its original
-   directory. Reconcile the staged adjacent-receipt/digest-index implementation
-   with current recorded outputs, then add automatic, retryable retention of
-   records and source snapshots. Demonstrate lookup from a copied artifact,
-   including temporary archive unavailability; do not depend on manual commits
-   or an always-mounted NAS. Retention of large science outputs and runtime/input
-   bytes must remain explicit rather than inferred from their hashes. See
-   [artifact-led discovery](investigations/reproducibility.qmd#artifact-led-discovery).
+1. **SHIELD container for real calibrations.** In order: snapshot the team's
+   source-loaded engine like analysis source; multi-chain stage 3 (set up once,
+   resumable chains, assemble after all complete); a pipeline per location for
+   the whole city list; outputs in the team's analysis path; durable retention of
+   snapshots and records. See [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
+2. **Same-seed reproducibility on real stages.** Compare stored chunk seeds
+   between container and native runs first; then two fresh container runs of one
+   real stage (expected identical); then container versus native with statistical
+   acceptance agreed in advance. See the [evidence so far](investigations/shield-container-pilot.qmd#repeatability-plan).
 
-**Bounded follow-ups:** prepare the checkpoint/RNG proposal for owner review,
-backed by the existing replay counterexample. Exact replay is not a universal
-dependency of these delivery tracks; its limitations remain explicit. Keep HIV
-CI in contributor-use and maintenance mode: support a real section update,
-review its report, deliberately promote an accepted candidate, and refresh the
-shared-drive copy. Syphilis alignment follows that experience
-([D-022](decisions.qmd#d-022)), rather than starting another broad pipeline now.
-
-The SHIELD result establishes fresh same-seed equality only on its bounded
-fixture, and contradicts identical traces across its tested restarts. Neither
-track yet establishes general replay or a durable output-to-record archive.
-Upstream raw-to-section lineage, sampler behavior, and scientific likelihood
-questions remain separate work; infrastructure changes must not silently decide
-them. The [HIV](investigations/hiv-surveillance-manager-ci.qmd) and
-[SHIELD](investigations/shield-container-pilot.qmd) pages hold the current evidence
-and acceptance boundaries.
-
-Later transmutation or recalibration should produce a new record linked to its
-identified parent artifacts, preserving the original run's history. Include
-that relationship in the [provenance design](investigations/reproducibility.qmd#derived-lineage)
-now; generalized cross-model conversion remains deferred.
+**Bounded follow-ups:** share the resume finding with the package owner for a
+reviewed checkpoint/RNG proposal. Load immutable manager releases cache-first, so
+launches don't depend on GitHub availability or tokens. Separate known failing
+SHIELD checks from must-pass ones. HIV CI stays in use-and-maintain mode;
+syphilis alignment follows real HIV use ([D-022](decisions.qmd#d-022)). Later
+derived runs link to their parent artifacts
+([derived lineage](investigations/reproducibility.qmd#derived-lineage));
+artifact-led recovery builds on retention
+([artifact-led discovery](investigations/reproducibility.qmd#artifact-led-discovery)).
 
 - **Package-mode and CI feasibility** — use the toy fixture and the actual
   `jheem_analyses` loading path to measure what prevents `library(jheem2)`, what a
@@ -133,7 +95,7 @@ now; generalized cross-model conversion remains deferred.
 - **Select the reference application** whose complete path — raw data → data manager → calibration → simset → container extraction → portal/manuscript artifact — becomes the paved road other applications later migrate through ([D-015](decisions.qmd)). Leading candidate: Ryan White (active, published, portal-facing, already the worked example in [Application Anatomy](application-anatomy.qmd)).
 - **NAMESPACE export sweep** — team specs call non-exported jheem2 functions unqualified. At `jheem_analyses@426f03d1`, the EHE spec calls `create.logistic.taper.functional.form`; at `jheem2@90b68ad`, that function is defined but not exported. This blocks `library(jheem2)` for spec sourcing. The sweep unblocks package mode as the default workflow and shrinks the per-session C++ recompile / toolchain-sensitivity surface. (The originally cited example, `create.solver.metadata`, had become exported by `jheem2@90b68ad` — caught by an external re-audit; a reminder that unpinned claims rot, per [D-014](decisions.qmd).)
 - **Fix the `populate_outcomes_array` C++ undefined behavior** — no longer merely latent: at `jheem-containers@9c846bf`, the container runtime hot-patches this function in production via `assignInNamespace` (`base/common/custom_simulation.R:122`), so the platform already carries a live workaround for a bug filed as deferred. Fix on `dev` once the package/CI verification net exists, gate with the container golden suite, then retire the patch. A sanitizer pass (ASan/UBSan) over the C++ follows once CI exists.
-- **Automatic run history and provenance receipts** — reconcile the staged SHIELD receipt with current application and sampler work, then inspect it on the bounded server pilot. A readable summary plus validated JSON should record engine/analyses commits, support-package versions, data-manager identities, image or environment identity, run configuration, seeds, and output digests. Capture remains local-first; archival is automatic and retryable, and promoted artifacts must resolve back to their receipt ([D-015](decisions.qmd)).
+- **Automatic run history and provenance receipts** — container runs now write input, output, attempt, and lineage records. Remaining: a readable summary, records for native runs, and automatic, retryable archival so promoted artifacts resolve back to their receipt ([D-015](decisions.qmd)).
 - **Gate the unguarded `browser()` calls** at `JHEEM_engine.R` ~4597/~4647 — they fire during *normal* intervention runs under `Rscript` (harmless but noisy; outputs verified bit-identical). The correct `if (debug)` pattern already exists at line ~1739.
 - **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.
 - **`@examples` on the top ~50 exports**, chosen by usage-grep of `jheem_analyses`/`jheem2_interactive` — doubles as API curation (public vs. `@keywords internal`).
@@ -149,7 +111,7 @@ now; generalized cross-model conversion remains deferred.
 
 - **Structural decomposition of jheem2** ([D-003](decisions.qmd)) — revisit after API curation and tests; extraction becomes cheap and optional rather than heroic.
 - **Platform org-ownership migration** and a **second operator** able to run at least one delivery workflow end-to-end (bus-factor mitigation; coupled to [D-010](decisions.qmd)).
-- Retire source-mode loading of jheem2 in favor of `library()` + `devtools::load_all()`.
+- Retire source-mode loading of jheem2 in favor of `library()` + `devtools::load_all()`. Not a prerequisite for preserved runs ([D-024](decisions.qmd#d-024)).
 - Format-versioned data-manager representation (reduce serialized-R6 fragility).
 - Release hygiene for jheem2: git tags on master version bumps, a NEWS.md, and (once CI exists) a version-monotonicity check ([D-012](decisions.qmd)).
 - Hygiene sweep: `browser()` calls behind a debug flag, condition-object error capture replacing `.GlobalEnv` writes, `R/tests` and `R/beta_code` moved out of `R/`.
@@ -165,6 +127,7 @@ now; generalized cross-model conversion remains deferred.
 ## Standing risks
 
 - **Planning outpacing shipping:** documentation and planning feel like progress without changing anything. Mitigation: wiki work is time-boxed and tied to a named next implementation increment and acceptance check; the public status changes only as evidence lands.
+- **Verification outpacing use:** a pilot can accumulate checks faster than anyone uses it. Mitigation: build toward the workflow the team actually runs, including its hardest stage, and track use as well as checks.
 - **Fixture turns out hard:** fallback recorded in [D-008](decisions.qmd).
 - **Continuity:** the effort must tolerate interruptions — small merges, state recorded in this wiki, and a current map from which anyone can re-orient.
 - **Two-speed masking:** platform polish must not substitute for core legibility; both ends of the barbell move.
