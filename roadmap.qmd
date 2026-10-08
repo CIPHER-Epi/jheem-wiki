@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-10-05
+date-modified: 2026-10-08
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -16,9 +16,10 @@ remains an explicit publication need, with SHIELD as the first reference workflo
 ([D-019](decisions.qmd)). As of October 2026 the team's direct interest is a
 **SHIELD container usable for real calibration workflows**, with same-seed
 reproducibility as a stated concern ([D-026](decisions.qmd#d-026)). The HIV
-surveillance-manager CI is shipped and in use-and-maintain mode. Same-seed runs
-are identical when started fresh in one runtime, but not yet across a resume or
-across runtimes ([D-025](decisions.qmd#d-025)). The broader program is still a
+surveillance-manager CI is shipped and in use-and-maintain mode. A real stage-0
+calibration was bit-identical natively and in the container on one server, and
+across two container runs; a resumed run still diverges from an uninterrupted
+one ([D-025](decisions.qmd#d-025)). The broader program is still a
 working engineering proposal rather than a team-adopted plan ([D-017](decisions.qmd)).
 
 ### Practice baseline (updated 2026-10-01)
@@ -58,22 +59,23 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 4 | **Calibration observability and online stopping** | **Paused**; read-only inspection eligible (2026-10-04) | Recommends small parameter-only checkpoint sidecars ([investigation](investigations/calibration-observability.qmd)); not a third active track |
 | 5 | **Functional-form documentation** | Queued | Requested; API and examples belong in `jheem2` ([D-018](decisions.qmd)) |
 | 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
-| 7 | **SHIELD container for real calibrations** | **Pilot installed; real-workflow gaps open** (2026-10-05) | Single-chain stages with frozen source, inputs and run records; installed on shield2, no operator runs yet. Next: engine source snapshot, multi-chain stage 3, city list, output path, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
+| 7 | **SHIELD container for real calibrations** | **Installed; analysis merge and operator trial pending** (2026-10-08) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: merge analysis-side changes, first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; use and maintain** (2026-10-01) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; awaiting a real contributor update ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
 
 ### Next
 
-Two active tracks, updated 2026-10-05 ([D-026](decisions.qmd#d-026)):
+Two active tracks, updated 2026-10-08 ([D-026](decisions.qmd#d-026)):
 
-1. **SHIELD container for real calibrations.** In order: snapshot the team's
-   source-loaded engine like analysis source; multi-chain stage 3 (set up once,
-   resumable chains, assemble after all complete); a pipeline per location for
-   the whole city list; outputs in the team's analysis path; durable retention of
-   snapshots and records. See [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
-2. **Same-seed reproducibility on real stages.** Compare stored chunk seeds
-   between container and native runs first; then two fresh container runs of one
-   real stage (expected identical); then container versus native with statistical
-   acceptance agreed in advance. See the [evidence so far](investigations/shield-container-pilot.qmd#repeatability-plan).
+1. **SHIELD container for real calibrations.** Engine source snapshots,
+   multi-chain stage 3, location lists, and the output path are built and
+   installed on shield2. Next: merge the analysis-side changes to the default
+   branch, a first operator trial with real calibrations, then durable retention
+   of snapshots and records. See [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
+2. **Same-seed reproducibility on real stages.** A real stage-0 calibration was
+   bit-identical natively and in the container, and across two container runs
+   ([comparison](investigations/shield-container-pilot.qmd#native-comparison)).
+   Next: compare later stages as the team runs them. See the
+   [evidence so far](investigations/shield-container-pilot.qmd#repeatability-plan).
 
 **Bounded follow-ups:** share the resume finding with the package owner for a
 reviewed checkpoint/RNG proposal. Load immutable manager releases cache-first, so

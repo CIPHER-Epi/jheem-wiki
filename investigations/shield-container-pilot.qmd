@@ -1,17 +1,18 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-05
+date-modified: 2026-10-08
 ---
 
-**Status (2026-10-05):** Opt-in pilot on both owning default branches and
-installed on one team server. It runs single-chain stages for one location at a
-time from the team's committed analysis source, with frozen inputs and run
-records. It does not yet run multi-chain stage 3, follow the team's
-source-loaded engine, or launch a whole city list, so it is not yet usable for a
-full calibration. A container usable for the team's real calibration workflows
-is now the requested deliverable ([D-026](../decisions.qmd#d-026)). No
-team member has run it yet.
+**Status (2026-10-08):** Opt-in pilot installed on one team server. It runs
+the team's calibration stages for a list of locations, including four-chain
+stage 3, from the operator's committed `jheem_analyses` and `jheem2` checkouts,
+with frozen inputs and run records. A real stage-0 calibration for two locations
+gave bit-identical results natively and in the container, and in two container
+runs ([below](#native-comparison)). The analysis-side changes await merge to
+the `jheem_analyses` default branch before a first operator trial; no team member
+has run it yet. A container usable for the team's real calibration workflows is
+the requested deliverable ([D-026](../decisions.qmd#d-026)).
 
 This page keeps the current state and the evidence still in force. The full
 dated record from 2026-09-17 to 2026-10-04 is preserved at
@@ -23,41 +24,56 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 
 ## Current state {#current-state}
 
-| Capability | State (2026-10-05) |
+| Capability | State (2026-10-08) |
 |---|---|
 | Recorded runs | Opt-in `SHIELD_RECORDED_RUN=true` path in `jheem_analyses`: declared source and package revisions, immutable manager releases verified by SHA-256, explicit seed, non-destructive `fresh`/`resume`. The ordinary launcher is unchanged when the flag is unset. |
-| Run records | Per calibration: `inputs.json`, `outputs.json` (sizes and digests of the summary and simulation set), one record per attempt, and preceding-stage lineage. Completed stages are reused only after their files are re-verified. |
+| Run records | Per calibration: `inputs.json` (including the engine commit), `outputs.json` (sizes and digests of the summary and simulation set), one record per attempt and phase (setup, each chain, assembly), per-chain logs, and preceding-stage lineage. Completed stages are reused only after their files are re-verified. |
 | Analysis source | A clean committed checkout is captured per pipeline and mounted read-only; continuations reuse it ([D-023](../decisions.qmd#d-023)). |
-| Engine (`jheem2`) | Installed in the image at `9578726b`. The team loads jheem2 from source; snapshotting it like analysis source is next ([D-026](../decisions.qmd#d-026)). |
-| Stages | Single-chain stages, alone or as an ordered pipeline that continues on rerun. Recorded mode refuses multi-chain calibrations (stage 3). |
-| Installation | Two dated installations on shield2 (2026-10-01 and 2026-10-04), each verified, with both intended operator accounts checked and an administrator smoke run. No operator runs yet. |
-| Hosted checks | Build, offline preflight, kill-and-resume, summary and assembly, two-stage lineage, numerical output inspection, missing/modified-output and changed-seed rejection, and a real stage-0 → stage-1 predecessor handoff. |
+| Engine (`jheem2`) | The sibling `jheem2` checkout is captured clean and committed like analysis source, built once per commit and image into a cached library without kept source references, recorded, and reused on resume. A run stops if the loaded engine differs from the recorded commit ([D-026](../decisions.qmd#d-026), [containers #25](https://github.com/ncsizemore/jheem-containers/pull/25)). |
+| Stages | Ordered pipelines per location that continue on rerun. Multi-chain stages run in phases: setup once, each chain as its own resumable process in parallel, and assembly only after every chain completes ([#26](https://github.com/ncsizemore/jheem-containers/pull/26)). Four-chain stage 3 has run on small fixtures only. |
+| Location lists | One pipeline per location with a concurrency cap (default five), surviving logout and stoppable as a batch ([#27](https://github.com/ncsizemore/jheem-containers/pull/27)). |
+| Outputs | A separate per-user output root on the NAS. The wrapper prints the `JHEEM_ROOT_DIR` setting that points the team's analysis scripts at it from a server, Mac, or Windows ([#28](https://github.com/ncsizemore/jheem-containers/pull/28)). |
+| Installation | Current: `shield-container-20261008` on shield2 ([below](#current-installation)). The 2026-10-01 and 2026-10-04 installations remain for any runs started with them. No operator runs yet. |
+| Hosted checks | Build, offline preflight, kill-and-resume, summary and assembly, two-stage lineage, numerical output inspection, missing/modified-output and changed-seed rejection, a real stage-0 → stage-1 predecessor handoff, and a four-chain stage. |
 
 ## Toward real calibrations {#operational-delivery}
 
-The pilot's checks concentrate on single-chain stages that already run
-natively. The remaining gaps are those between the pilot and the team's actual
-workflow, in order:
+The gaps between the pilot and the team's workflow, as ordered on 2026-10-05,
+and their state on 2026-10-08:
 
-1. **Engine from a source snapshot.** Capture the team's committed jheem2 checkout
-   per pipeline, build it once per commit into a cached library without kept
-   source references, record it, and reuse it on resume. Installed and
-   hand-sourced engines agreed exactly at fixed parameters
-   ([below](#engine-loading-comparison)).
-2. **Multi-chain stage 3.** Set up once, run each chain as its own resumable
-   process, and assemble only after every chain completes, with per-chain records
-   and exclusive setup and assembly.
-3. **Whole city list.** Launch a pipeline per location with a concurrency cap
-   matching the team's launcher.
-4. **Outputs in the team's analysis path.** Write where the team's analysis
-   scripts read, or document how to point them at container outputs.
-5. **Durable retention.** Source snapshots and records currently sit with the
-   outputs on the NAS under a temporary directory. Later derived runs depend on
-   them ([derived lineage](reproducibility.qmd#derived-lineage)).
+1. **Engine from a source snapshot.** Done. A new engine commit runs without an
+   image rebuild, and a continuation keeps its saved engine after the checkout
+   moves.
+2. **Multi-chain stage 3.** Done; exercised with four chains on small fixtures,
+   not yet on a real stage 3.
+3. **Whole city list.** Done.
+4. **Outputs in the team's analysis path.** Done by pointing analysis scripts at
+   the container's output root. Writing to the team's main root by default
+   remains an option.
+5. **Durable retention.** Open. Source and engine snapshots and records sit with
+   the outputs on the NAS under a temporary directory. Later derived runs depend
+   on them ([derived lineage](reproducibility.qmd#derived-lineage)).
 
-The same-seed demonstration on real stages follows (see the
-[validation plan](#repeatability-plan)). Shared writers across accounts still
-need coordination beyond the wrapper's same-account check.
+Before a first operator trial, the analysis-side phases and smoke fixtures
+(branch `shield-multichain`) need to reach the `jheem_analyses` default branch,
+with the updated operator guide. The container runs the team's committed code
+as it is; it reproduces native behavior, including failures, rather than
+changing it. Shared writers across accounts still need coordination beyond the
+wrapper's same-account check.
+
+### Current installation (2026-10-08) {#current-installation}
+
+`/home/jheem-shared/shield-container-20261008` on shield2 pairs the retained
+October 4 image below, unchanged, with the wrapper and helpers from
+[`jheem-containers@87eae47d`](https://github.com/ncsizemore/jheem-containers/tree/87eae47d62e584e89292af0f6e7af00319a09704/workloads/shield).
+Its payload is verified by a checksum manifest, and both intended operator
+accounts passed access and container checks. An isolated administrator batch
+from a clean checkout (`jheem_analyses` `a10b2a67`, `jheem2` `008897e8`) ran two
+locations through three smoke stages, ending in a four-chain stage 3, in
+10 minutes. Records carried the engine and analysis commits, seed, manager
+digests, and stage lineage. A repeated pipeline verified and skipped every stage
+without changing any record or output. Smoke stages are operational checks, not
+scientific acceptance.
 
 ### Retained runtime and installation (2026-10-04) {#current-runtime-retention}
 
@@ -107,19 +123,46 @@ Same-seed claims depend on the comparison ([D-024](../decisions.qmd#d-024),
 
 | Comparison | Measured | Next |
 |---|---|---|
-| Two fresh runs, same runtime and seed | Identical: initial values, chunk seeds, samples, likelihoods, adaptive state (eight-iteration fixture) | Repeat on a real stage |
+| Two fresh runs, same runtime and seed | Identical: initial values, chunk seeds, samples, likelihoods, adaptive state (eight-iteration fixture); a real stage-0 calibration for two locations ([below](#native-comparison)) | — |
 | Uninterrupted vs interrupted and resumed | Diverged at iteration 4 ([below](#seed-replay-result)) | Owner-reviewed checkpoint/RNG proposal |
 | Fixed parameters: installed vs hand-sourced engine | Identical within macOS and within Linux | — |
 | Fixed parameters: Mac vs Linux | Up to about 1e-12 relative ([below](#engine-loading-comparison)) | — |
-| Container vs native calibration | Not yet run | Compare stored chunk seeds first; agree statistical acceptance in advance |
+| Container vs native calibration | Bit-identical for a real stage-0 calibration, two locations, one server ([below](#native-comparison)) | Later stages as the team runs them |
 
 The sampler's explicit seed argument is still ignored (chunk seeds come from the
 ambient R state), but SHIELD calls `set.seed()` before setup, so a fixed workflow
-can still repeat. The native launcher seeds at a different point than the recorded
-one, so chunk seeds may differ even with the same seed value. In that case a
-container-vs-native comparison can only be statistical. Across runtimes, tiny
-numerical differences can flip an accept/reject decision, after which traces
-separate. Native comparison targets must be runs that didn't resume mid-stage.
+can still repeat. For the stage compared below, native and container runs stored
+identical chunk seeds. On other hardware or
+platforms, tiny numerical differences can flip an accept/reject decision, after
+which traces separate; a comparison there may only be statistical. Native
+comparison targets must be runs that didn't resume mid-stage.
+
+### Container vs native calibration (2026-10-08) {#native-comparison}
+
+On shield2, `calib.10.5.stage0.1x` ran for Baltimore (`C.12580`) and Seattle
+(`C.42660`) three ways, from the same committed sources (`jheem_analyses`
+`a10b2a67`, `jheem2` `008897e8`), manager bytes (September 9 syphilis, August 26
+census), and seed 0: natively with the team's launcher (R 4.5.2, source-loaded
+engine, RHEL FlexiBLAS with OpenBLAS), and twice in the container (R 4.4.2,
+engine built from the captured checkout, Ubuntu OpenBLAS 0.3.26). For both
+locations, all three runs were bit-identical in:
+
+- the stored chunk seeds and starting sampler state;
+- all 40 checkpoints (samples, log likelihoods, priors, acceptances);
+- every field of the MCMC summary and the parameters of all 250 saved
+  simulations;
+- all 52 outcomes by year and simulation, and population by year × age × race ×
+  sex (1,509,750 values).
+
+| Location | Native sampling time | Container sampling times |
+|---|---:|---:|
+| Baltimore | 19 h 37 min | 19 h 55 min, 19 h 39 min |
+| Seattle | 18 h 12 min | 17 h 41 min, 17 h 56 min |
+
+This is one stage-0 variant on one server. The different R versions and BLAS
+builds produced no difference there; the Mac-vs-Linux measurements
+[below](#engine-loading-comparison) show exact agreement is not guaranteed across
+platforms. Later stages, including a real stage 3, have not been compared.
 
 ### Engine-loading comparison (2026-10-03) {#engine-loading-comparison}
 
@@ -173,9 +216,9 @@ operationally valid but are not trace-identical to uninterrupted ones.
   natively), inflating checkpoints from about 5 MB to 266 MB and canary peak
   memory from 11 to 28.5 GB. The image build now fails if any team package keeps
   them, and the canary fails on oversized checkpoints.
-- **Runtime parity.** A full 15,000-iteration stage-0 run on shield2 (before that
-  fix) took a median 27.6 min per 500-iteration checkpoint against 29.9 min
-  natively on shield1 (2026-09-30).
+- **Runtime parity.** Container sampling time was within about 3% of native on
+  the same server ([above](#native-comparison)), confirming an earlier
+  cross-server observation (2026-09-30).
 - **Server prerequisites** (RHEL 9, rootless Podman, SELinux enforcing): lingering
   per user, or rootless containers stop about 10 seconds after logout;
   `virt_use_samba` to reach the CIFS NAS; and keeping the user's `jheem` group in
@@ -188,8 +231,8 @@ operationally valid but are not trace-identical to uninterrupted ones.
 
 ## Open questions
 
-- What statistical criteria define acceptable agreement between container and
-  native calibrations?
+- Does exact agreement hold for later stages, including a real four-chain stage 3,
+  and what statistical criteria apply where it can't (another server or platform)?
 - Where should source snapshots and run records be retained durably?
 - Which current SHIELD checks can become a reliable must-pass subset, and which
   need scientific review?
