@@ -9,9 +9,8 @@ the team's calibration stages for a list of locations, including four-chain
 stage 3, from the operator's committed `jheem_analyses` and `jheem2` checkouts,
 with frozen inputs and run records. A real stage-0 calibration for two locations
 gave bit-identical results natively and in the container, and in two container
-runs ([below](#native-comparison)). The analysis-side changes await merge to
-the `jheem_analyses` default branch before a first operator trial; no team member
-has run it yet. A container usable for the team's real calibration workflows is
+runs ([below](#native-comparison)). The analysis-side changes and operator guide
+are on the `jheem_analyses` default branch ([`2ae81bd6`](https://github.com/tfojo1/jheem_analyses/commit/2ae81bd689fca1dda9118a7a0f2097866d83bad2)); no team member has run it yet. A container usable for the team's real calibration workflows is
 the requested deliverable ([D-026](../decisions.qmd#d-026)).
 
 This page keeps the current state and the evidence still in force. The full
@@ -54,9 +53,9 @@ and their state on 2026-10-08:
    the outputs on the NAS under a temporary directory. Later derived runs depend
    on them ([derived lineage](reproducibility.qmd#derived-lineage)).
 
-Before a first operator trial, the analysis-side phases and smoke fixtures
-(branch `shield-multichain`) need to reach the `jheem_analyses` default branch,
-with the updated operator guide. The container runs the team's committed code
+The analysis-side phases, smoke fixtures, and updated operator guide reached the
+`jheem_analyses` default branch on 2026-10-08 ([`2ae81bd6`](https://github.com/tfojo1/jheem_analyses/commit/2ae81bd689fca1dda9118a7a0f2097866d83bad2)); a first operator trial
+with real calibrations is next. The container runs the team's committed code
 as it is; it reproduces native behavior, including failures, rather than
 changing it. Shared writers across accounts still need coordination beyond the
 wrapper's same-account check.
