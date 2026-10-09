@@ -1,10 +1,10 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-08
+date-modified: 2026-10-09
 ---
 
-**Status (2026-10-08):** Opt-in pilot installed on one team server. It runs
+**Status (2026-10-09):** Opt-in pilot installed on one team server. It runs
 the team's calibration stages for a list of locations, including four-chain
 stage 3, from the operator's committed `jheem_analyses` and `jheem2` checkouts,
 with frozen inputs and run records. A real stage-0 calibration for two locations
@@ -23,7 +23,7 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 
 ## Current state {#current-state}
 
-| Capability | State (2026-10-08) |
+| Capability | State (2026-10-09) |
 |---|---|
 | Recorded runs | Opt-in `SHIELD_RECORDED_RUN=true` path in `jheem_analyses`: declared source and package revisions, immutable manager releases verified by SHA-256, explicit seed, non-destructive `fresh`/`resume`. The ordinary launcher is unchanged when the flag is unset. |
 | Run records | Per calibration: `inputs.json` (including the engine commit), `outputs.json` (sizes and digests of the summary and simulation set), one record per attempt and phase (setup, each chain, assembly), per-chain logs, and preceding-stage lineage. Completed stages are reused only after their files are re-verified. |
@@ -32,7 +32,7 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 | Stages | Ordered pipelines per location that continue on rerun. Multi-chain stages run in phases: setup once, each chain as its own resumable process in parallel, and assembly only after every chain completes ([#26](https://github.com/ncsizemore/jheem-containers/pull/26)). Four-chain stage 3 has run on small fixtures only. |
 | Location lists | One pipeline per location with a concurrency cap (default five), surviving logout and stoppable as a batch ([#27](https://github.com/ncsizemore/jheem-containers/pull/27)). |
 | Outputs | A separate per-user output root on the NAS. The wrapper prints the `JHEEM_ROOT_DIR` setting that points the team's analysis scripts at it from a server, Mac, or Windows ([#28](https://github.com/ncsizemore/jheem-containers/pull/28)). |
-| Installation | Current: `shield-container-20261008` on shield2 ([below](#current-installation)). The 2026-10-01 and 2026-10-04 installations remain for any runs started with them. No operator runs yet. |
+| Installation | Current: `shield-container-20261009` on shield2, with the October 8 census ([below](#current-installation)). The 2026-10-01, 2026-10-04, and 2026-10-08 installations remain for any runs started with them. No operator runs yet. |
 | Hosted checks | Build, offline preflight, kill-and-resume, summary and assembly, two-stage lineage, numerical output inspection, missing/modified-output and changed-seed rejection, a real stage-0 → stage-1 predecessor handoff, and a four-chain stage. |
 
 ## Toward real calibrations {#operational-delivery}
@@ -60,7 +60,33 @@ as it is; it reproduces native behavior, including failures, rather than
 changing it. Shared writers across accounts still need coordination beyond the
 wrapper's same-account check.
 
-### Current installation (2026-10-08) {#current-installation}
+### Current installation (2026-10-09) {#current-installation}
+
+`/home/jheem-shared/shield-container-20261009` on shield2 uses the non-latest
+prerelease
+[`shield-pilot-2026.10.09-r37958480247`](https://github.com/ncsizemore/jheem-containers/releases/tag/shield-pilot-2026.10.09-r37958480247),
+the image exported by its passing
+[hosted run](https://github.com/ncsizemore/jheem-containers/actions/runs/37958480247) (canary, four-chain stage, and actual
+stage-1 handoff) with analyses `ec1e8213`. Its inputs are the census made current
+on 2026-10-08, published as the immutable release
+[`census-manager-v2026.10.08`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.10.08)
+(SHA-256 `fc45487d…`), and the September 9 syphilis manager. The image was rebuilt
+from the same digest-pinned base and package commits; on shield2 all 869 compiled
+libraries match the October 4 image byte for byte, with the same R version. It
+writes to its own output namespace. One host-side helper that still refused the
+new census tag was replaced before any run, and the installation record notes it.
+An isolated administrator batch (analyses `2537b6b6`, `jheem2` `008897e8`) ran two
+locations through the smoke stages, ending in a four-chain stage 3, in 10 minutes;
+records carried the October census digest, and a repeated pipeline verified and
+skipped every stage without changing any file.
+
+The census update adds 2024–2025 county population totals and changes county
+death totals. Across SHIELD's 32 configured cities, it leaves the kernel's
+data-derived inputs identical for 18 of the 26 cities that build, and changes only
+general-mortality coefficients for 8 (largest relative difference 3.1×10⁻⁵). The
+other six fail kernel setup identically with either census.
+
+### Previous installation (2026-10-08) {#previous-installation}
 
 `/home/jheem-shared/shield-container-20261008` on shield2 pairs the retained
 October 4 image below, unchanged, with the wrapper and helpers from

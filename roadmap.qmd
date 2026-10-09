@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-10-08
+date-modified: 2026-10-09
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -59,7 +59,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 4 | **Calibration observability and online stopping** | **Paused**; read-only inspection eligible (2026-10-04) | Recommends small parameter-only checkpoint sidecars ([investigation](investigations/calibration-observability.qmd)); not a third active track |
 | 5 | **Functional-form documentation** | Queued | Requested; API and examples belong in `jheem2` ([D-018](decisions.qmd)) |
 | 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
-| 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-08) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
+| 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-09) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; use and maintain** (2026-10-01) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; awaiting a real contributor update ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
 
 ### Next
