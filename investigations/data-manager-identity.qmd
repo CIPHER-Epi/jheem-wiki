@@ -1,0 +1,275 @@
+---
+title: "Data-Manager Identity and Tracking"
+date: 2026-10-12
+date-modified: 2026-10-12
+---
+
+**Status (2026-10-12): Design guide. Phase 0 is shipped for container runs;
+Phases 1–3 are proposed.** Requested by the team on 2026-10-09: make
+specifications, likelihoods, calibrations, and saved simulation sets aware of
+which data managers (name and version) they used, including several managers at
+once and different releases at different points of a process. This page fixes
+the target design, its phases, and their acceptance criteria, so the work stays
+consistent across sessions.
+
+**Verified against:** jheem2 `dev`
+[`85b73171`](https://github.com/CIPHER-Epi/jheem2/tree/85b731715bf3eaf81021141b142ebdf53230707e),
+jheem_analyses
+[`08a250c3`](https://github.com/tfojo1/jheem_analyses/tree/08a250c347eb50b24907c091f6fdbdadb93c70d6),
+and jheem-containers
+[`39649e9f`](https://github.com/ncsizemore/jheem-containers/tree/39649e9f50e20ff25adc53b691fdf61bbd7266cd).
+Measurements are from shield2 on 2026-10-09.
+
+**Candidate durable home:** the engine contract (identity, capture, recorded
+inputs, comparison) in jheem2 documentation; loading and the release store in
+the jheem_analyses and jheem-containers READMEs. **Graduation:** when Phase 2
+ships, this page shrinks to a summary with links, and the adopted behavior is
+recorded in the decision log.
+
+Related: [reproducibility contract](reproducibility.qmd),
+[manager selection and compatibility](manager-compatibility.qmd),
+[SHIELD container pilot](shield-container-pilot.qmd#current-installation), and
+[D-027](../decisions.qmd#d-027).
+
+## Goal {#goal}
+
+The work is complete when these hold:
+
+- **R1 Record.** Every artifact whose numbers depend on manager data records which
+  manager releases it read: kernels (and so every simulation set), instantiated
+  likelihoods, and calibrations.
+- **R2 Identify.** A manager's identity is its content (a digest of the loaded
+  file), with the release tag as a label when known. A manager changed in memory
+  after loading is marked as changed.
+- **R3 Detect.** Deriving something new from an artifact (rerunning its
+  simulations, transmuting it, or starting the next calibration stage) compares
+  the managers in memory with the recorded ones and reports differences.
+- **R4 Declare.** A run's managers are immutable releases declared in its committed
+  analysis code, so code and data move together and container and native runs of
+  one commit use the same data ([D-027](../decisions.qmd#d-027)).
+- **R5 No behavior change.** Numeric outputs are unchanged, analysts take no new
+  steps, and artifacts saved before the change still load and run.
+- **R6 Several managers.** Identities are kept per manager, so a run that reads the
+  census and surveillance managers, or different releases at different stages,
+  records each.
+
+Not in scope: changing scientific code or likelihood definitions; replacing the
+existing references to manager globals; a general artifact registry; stopping
+runs on a mismatch by default.
+
+## How data reaches results today {#binding-points}
+
+| When data is read | Example | Where the result is kept | Release recorded? |
+|---|---|---|---|
+| While analysis code is sourced | SHIELD likelihood instructions read national 1970–1993 totals ([`shield_likelihoods.R:229`](https://github.com/tfojo1/jheem_analyses/blob/08a250c347eb50b24907c091f6fdbdadb93c70d6/applications/SHIELD/shield_likelihoods.R#L229)) | In-memory instructions | No |
+| Kernel construction | `create.jheem.kernel()` evaluates each element's value or functional-form function ([`JHEEM_kernel.R:156-160`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/JHEEM_kernel.R#L156-L160), [`SPECIFICATION_model_specification.R:5042-5108`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/SPECIFICATION_model_specification.R#L5042-L5108)). SHIELD registers 26 such functions reading the census and surveillance managers. Kernels are rebuilt on every call; nothing caches them. | The kernel, saved inside every simulation set | No |
+| Likelihood instantiation | Observations are pulled ([`LIKELIHOODS_basic_likelihood.R:929`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/LIKELIHOODS_basic_likelihood.R#L929)); outcome-location mappings read the default manager ([`JHEEM_outcome_location_mappings.R:143`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/JHEEM_outcome_location_mappings.R#L143)) | The instantiated likelihood, saved in the calibration's control file | Indirectly (below) |
+| Calibration registration and setup | `register.calibration.info()` keeps a reference to the default manager ([`CALIBRATION_main.R:1576`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/CALIBRATION_main.R#L1576)); setup instantiates the likelihood from it (line 488) | The likelihood closure serializes the calibration settings, including the whole manager (line 608) | Only through the loader's attribute on the embedded manager |
+| Deriving from saved artifacts | `rerun.simulations()` builds a new kernel from the managers in memory ([`JHEEM_simulation.R:119`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/JHEEM_simulation.R#L119)); transmutation builds a kernel for the target version ([`JHEEM_transmutation.R:326`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/JHEEM_transmutation.R#L326)). Interventions reuse the saved kernel (`JHEEM_simulation.R:2302`), but runtime quantity functions can still read globals. | Nothing; whatever is in memory is used | No |
+| Analysis | Plots and analysis-time likelihoods read the default manager | Not kept | No |
+
+Observed scale and consequences:
+
+- **Managers have no content identity.** The object holds a name (for example
+  `syphilis.manager_section3`, a build label), a description, creation and
+  last-modified timestamps, and a code iteration. Eight methods change it in place
+  and update the last-modified time
+  ([`DATA_MANAGER_data_manager.R`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/DATA_MANAGER_data_manager.R#L618)).
+  The analyses loader attaches the release tag and SHA-256 as an R attribute
+  ([`cache_manager.R:89`](https://github.com/tfojo1/jheem_analyses/blob/08a250c347eb50b24907c091f6fdbdadb93c70d6/commoncode/cache_manager.R#L89)),
+  which jheem2 never reads.
+- **Code uses timestamps as versions.** Two SHIELD helpers branch on
+  `SURVEILLANCE.MANAGER$last.modified.date >= 2026-08-01`
+  ([`shield_specification_helpers.R:138,202`](https://github.com/tfojo1/jheem_analyses/blob/08a250c347eb50b24907c091f6fdbdadb93c70d6/applications/SHIELD/R/shield_specification_helpers.R#L138)).
+- **Globals are pervasive.** jheem_analyses has 845 references to
+  `CENSUS.MANAGER` or `SURVEILLANCE.MANAGER` in 85 R files. jheem2 has no
+  hard-coded globals, but 32 of its function signatures default to
+  `get.default.data.manager()`.
+- **Calibrations embed one manager and omit the other.** For a SHIELD stage-0
+  calibration of one city, `global_control.Rdata` was 132.7 MB on disk. It holds
+  the whole syphilis manager (2,471.5 MB serialized; the likelihood is 38.1 MB, the
+  engine 42.9 MB, and the calibration settings without the manager 0.8 MB). Loading
+  it took 9.5 s and about 2.9 GB of memory in every process that loads it. The
+  census manager, which supplies population, fertility, mortality, and migration,
+  is recorded nowhere in calibrations or simulation sets.
+- **Releases change mid-pipeline unnoticed.** One city's native pipeline ran
+  stages 0–1 before 2026-10-09 and stages 2–3 with the syphilis release of
+  2026-10-09; only log lines show it.
+- **A census update changes inputs selectively.** The 2026-10-08 census left the
+  kernel's data-derived inputs identical for 18 of 26 SHIELD cities and changed
+  only general-mortality coefficients for 8 (largest relative difference
+  3.1×10⁻⁵) ([evidence](shield-container-pilot.qmd#current-installation)).
+
+## Design principles {#principles}
+
+1. **Data is an input, like code** ([D-027](../decisions.qmd#d-027)). It is
+   selected per run, frozen within it, and recorded, not built into a runtime.
+2. **Identity is content; tags are labels.** A digest says what was read; a release
+   tag says where it came from.
+3. **Record where data is read, not where a run starts.** Most reads happen during
+   kernel construction and likelihood instantiation.
+4. **Capture through the manager itself.** Every read goes through a manager method
+   or active binding, so instrumenting the class records reads made through
+   globals without editing analysis code.
+5. **Additive and backward compatible.** Saved kernels, likelihoods, and
+   simulation metadata are non-portable R6 objects that carry their own methods,
+   so objects saved earlier never gain new methods. New information is stored in
+   private fields and read through package-level functions that treat a missing
+   field as "not recorded".
+6. **Report first, enforce later.** Differences produce warnings by default;
+   stopping is an explicit option.
+
+## Design {#design}
+
+### 1. Identity on the manager (jheem2) {#identity}
+
+A private field holds a small provenance record, readable through a package
+function (`get.data.manager.provenance(manager)`):
+
+| Field | Set by | Meaning |
+|---|---|---|
+| `file` | `load.data.manager()` | Base name of the loaded file |
+| `md5` | `load.data.manager()`, using `tools::md5sum` from base R | Content identity, always available for loaded managers |
+| `sha256`, `release`, `repository` | The caller, through a new optional `provenance` argument to `load.data.manager()`; the analyses loader passes its verified resolution | Release identity, when known |
+| `loaded.at` | `load.data.manager()` | Load time |
+| `modified` | `FALSE` at load; set to `TRUE` by each of the eight methods that change contents | The identity no longer describes the contents |
+
+jheem2 imports no hashing package. MD5 identifies content for this purpose
+(integrity checking of releases already uses SHA-256 in the loader and store) and
+costs one extra read of the file at load. Copies inherit the source's record;
+managers created in memory have no `file` or digest. Two records match when their
+SHA-256 (or, failing that, MD5) agree and neither is modified.
+
+### 2. Capturing reads (jheem2) {#capture}
+
+- **Hook.** A private `note.read()` call at the top of each read method (`pull`,
+  `pull.age.robust`, the `get.*` lookups, `unhash.*`) and in each active binding
+  except the provenance itself, including `data` and `last.modified.date`.
+- **Scopes.** An internal `capture.data.manager.reads(expr)` evaluates `expr` and
+  returns its value with the provenance records of every manager read,
+  deduplicated. Nested scopes all receive a read.
+- **Where scopes open:** around kernel construction (`JHEEM.KERNEL` initialization),
+  likelihood instantiation (`do.instantiate.likelihood()`), and the whole of
+  `set.up.calibration()`.
+- **Loaded, not only read.** Reads during sourcing (such as the SHIELD national
+  totals) happen outside any scope. jheem2 also keeps a list of the managers loaded
+  in the session, and calibration setup records it separately as `loaded`, a
+  superset that covers source-time reads.
+
+### 3. Recording on artifacts (jheem2) {#recording}
+
+- **Kernel:** a private field `i.data.inputs` with the records read during
+  construction. Every simulation set carries its kernel, so it carries these too.
+- **Likelihood:** the same field; a joint likelihood holds the union of its parts.
+- **Calibration:** `set.up.calibration()` writes `data_inputs.dcf` (base R
+  `write.dcf`, human-readable) in the calibration directory, listing `read` and
+  `loaded` managers, and keeps the same list in the calibration settings. Native
+  runs get this with no change to launchers.
+- **Access:** `get.data.inputs(x)` for a kernel, simulation set, likelihood, or
+  calibration directory; `NULL` for artifacts saved before Phase 1.
+- **Container runs** already record census and syphilis tags and digests in
+  `inputs.json`; the jheem2 records let those be cross-checked.
+
+### 4. Detecting differences (Phase 2, jheem2) {#detection}
+
+- `compare.data.inputs(recorded, current)` reports, per manager, a changed
+  release, a manager changed in memory, or a manager missing on either side.
+- Policy option `jheem2.data.change`: `"warn"` (default), `"stop"`, or `"ignore"`.
+- **Checked when:**
+  - `rerun.simulations()` builds a new kernel: compare it with the saved kernel;
+  - `set.up.calibration()` has preceding codes: compare current inputs with the
+    preceding calibration's `data_inputs.dcf` or its simulation set's kernel.
+    This would have flagged the mixed-release pipeline at stage 2;
+  - transmutation: compare managers shared by the parent and target, and record
+    the parent's inputs on the new artifact;
+  - optionally, analysis-time likelihood instantiation against a calibration's
+    record.
+- A deliberate change proceeds and is recorded: the new artifact lists its own
+  inputs and, for later stages and transmutations, its parent's.
+
+### 5. Declared releases (Phase 0 shipped; generalized in Phase 3) {#declared-releases}
+
+- **Today:** SHIELD declares its syphilis release in `shield_source_code.R`
+  (`SYPHILIS.MANAGER.RELEASE.TAG`, line 44). Container runs use that declaration,
+  saved with the run, and take releases from a shared, append-only store of
+  verified releases on the NAS ([D-027](../decisions.qmd#d-027)). Native census
+  loading follows cached-metadata files with no release name, so container runs
+  keep census fixed per installation.
+- **Next:** declare every manager an application reads in one place in committed
+  code (a short list of manager file and release), read by the application's
+  source code and by the container wrapper. Census needs dated, immutable releases
+  first, which is the census manager-build request. The native loader could then
+  prefer the shared store over personal cached copies, giving one canonical store.
+
+### 6. Names for managers (Phase 3, optional) {#roles}
+
+`register.data.manager(name, manager)` and `get.data.manager(name)`, with the
+current default manager as one name. Specifications and likelihood instructions
+may declare the names they need, for preflight checks and documentation.
+Moving analysis helpers from globals to names is incremental and is not required
+for recording or detection.
+
+### Manager embedded in calibration controls {#embedded-manager}
+
+Keep it for now: for managers without retained immutable releases, it is the only
+kept copy of the data a calibration used. Once every manager a calibration reads
+is a retained release, setup can record identities instead and drop about 2.5 GB
+of serialized manager from each control (132.7 MB on disk per city and stage,
+9.5 s and 2.9 GB of memory at each chain start). Deciding when is an open
+question below.
+
+## Phases {#phases}
+
+| Phase | Scope | Repositories | Acceptance | State (2026-10-12) |
+|---|---|---|---|---|
+| 0 | Container runs take the syphilis release declared in committed code; shared verified store; census as an immutable release | jheem-containers, jheem_analyses | [D-027](../decisions.qmd#d-027); installation accepted with the declared release recorded | Shipped for container runs |
+| 1 | Identity on managers; capture of reads; records on kernels, simulation sets, likelihoods, calibrations; loader passes release identity | jheem2, jheem_analyses | Gates below; new artifacts name census and syphilis releases with the loader's digests; earlier artifacts load and run | Proposed |
+| 2 | Comparison and warnings at rerun, next stage, and transmutation | jheem2 | A rerun after a census change warns and names it; a stage whose syphilis release differs from its predecessor's warns | Proposed |
+| 3 | Declarations for every manager (census releases first); optional names; store-first loading; decide on embedded managers | jheem_analyses, jheem-containers, jheem2 | Container and native runs of one commit record identical inputs for every manager | Proposed |
+
+### Phase 1 verification gates {#gates}
+
+- **Unit:** extend the [toy fixture](../toy-fixture-spike.qmd) with a small data
+  manager and a value function that reads it. Check that reads are captured, that
+  changing the manager marks it modified, that records survive saving and loading
+  kernels and likelihoods, and that objects without records still work.
+- **No numeric change:**
+  - SHIELD kernel inputs for the 26 configured cities that build are identical
+    with and without capture, using the comparison method of 2026-10-09;
+  - fixed-parameter likelihoods are identical;
+  - a short container calibration is bit-identical to one without the change.
+- **Records:** a native `set.up.calibration()` writes `data_inputs.dcf` naming the
+  census and syphilis managers with the digests the loader verified.
+- **Where tests run:** jheem2 has no automated test gate. Options: run its tests
+  in the jheem-containers CI, which already builds jheem2 at a chosen commit, or
+  add a minimal workflow to jheem2.
+
+## Rollout and risks {#rollout}
+
+- **The team loads jheem2 from `dev` source.** A `dev` commit reaches every new
+  session at once. Phase 1 changes no outputs and prints nothing, so it can land
+  once the gates pass. Phase 2 adds visible warnings, so the operator guides should
+  explain them when it lands.
+- **Conflicts.** Put new code in its own file (for example
+  `R/DATA_MANAGER_provenance.R`), with small hooks in existing files, to avoid
+  colliding with active engine work.
+- **Cost.** One extra pass over each loaded manager file (about 100 MB for census
+  or syphilis); constant-time bookkeeping per read; a few hundred bytes per
+  recorded artifact.
+- **Compatibility.** Objects saved before Phase 1 keep their old methods and lack
+  the new fields; the package-level accessors return `NULL` for them.
+- **Analysis code.** Replacing the two timestamp checks with checks for the data
+  they need is the analysts' choice; the design does not depend on it.
+
+## Open questions {#open-questions}
+
+1. **Mismatch default:** warn (proposed) or stop.
+2. **Hashing in jheem2:** base-R MD5 plus loader-supplied SHA-256 (proposed), or a
+   new hashing dependency.
+3. **Where jheem2's tests run** (see the gates).
+4. **Session-level `loaded` records:** proposed, to cover reads during sourcing;
+   kept separate from `read`.
+5. **Declaration format** for every manager per application, and how census gets
+   dated releases.
+6. **When calibration controls stop embedding the manager.**
+7. **Store-first loading** for native runs, making the shared store canonical.

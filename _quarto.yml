@@ -26,6 +26,8 @@ website:
             text: Analysis Reproducibility
           - href: investigations/shield-container-pilot.qmd
             text: SHIELD Container Pilot
+          - href: investigations/data-manager-identity.qmd
+            text: Data-Manager Identity
           - href: investigations/manager-compatibility.qmd
             text: Manager Compatibility
           - href: investigations/hiv-surveillance-manager-ci.qmd
