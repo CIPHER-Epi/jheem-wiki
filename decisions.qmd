@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-10-05
+date-modified: 2026-10-12
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,25 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-027 · Treat data managers as run inputs selected by committed source — refines D-024 and D-026 {#d-027}
+
+*2026-10-12. Working decision.* Two syphilis-manager releases and a census update
+reached SHIELD within four days. With managers fixed per container installation,
+each update needed a new tested image release and an administrator installation,
+and container runs lagged native ones in the meantime.
+
+Decision: data managers are inputs, like analysis source, not part of the
+runtime. A run uses the release its committed code declares (for SHIELD,
+`SYPHILIS.MANAGER.RELEASE.TAG`), so code and data move together in one commit and
+container and native runs of that commit agree. The selection is saved with the
+run, so continuations and later stages keep it after the checkout moves. Releases
+are immutable, verified by digest, and kept in a shared append-only store on the
+NAS rather than per output folder, which avoids duplicate copies and gives one
+canonical location. Census remains fixed per installation until it has dated,
+declared releases. The runtime release tests the runtime; checking a manager
+against its consumers belongs to the manager's promotion path. See the
+[pilot's current state](investigations/shield-container-pilot.qmd#current-installation).
 
 ## D-026 · Build the SHIELD container toward real calibrations; snapshot engine source — refines D-023, D-024, and D-025 {#d-026}
 

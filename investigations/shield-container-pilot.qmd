@@ -1,13 +1,13 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-09
+date-modified: 2026-10-12
 ---
 
-**Status (2026-10-09):** Opt-in pilot installed on one team server. It runs
+**Status (2026-10-12):** Opt-in pilot installed on one team server. It runs
 the team's calibration stages for a list of locations, including four-chain
 stage 3, from the operator's committed `jheem_analyses` and `jheem2` checkouts,
-with frozen inputs and run records. A real stage-0 calibration for two locations
+with the syphilis manager that committed code names, frozen inputs, and run records. A real stage-0 calibration for two locations
 gave bit-identical results natively and in the container, and in two container
 runs ([below](#native-comparison)). The analysis-side changes and operator guide
 are on the `jheem_analyses` default branch ([`2ae81bd6`](https://github.com/tfojo1/jheem_analyses/commit/2ae81bd689fca1dda9118a7a0f2097866d83bad2)); no team member has run it yet. A container usable for the team's real calibration workflows is
@@ -23,7 +23,7 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 
 ## Current state {#current-state}
 
-| Capability | State (2026-10-09) |
+| Capability | State (2026-10-12) |
 |---|---|
 | Recorded runs | Opt-in `SHIELD_RECORDED_RUN=true` path in `jheem_analyses`: declared source and package revisions, immutable manager releases verified by SHA-256, explicit seed, non-destructive `fresh`/`resume`. The ordinary launcher is unchanged when the flag is unset. |
 | Run records | Per calibration: `inputs.json` (including the engine commit), `outputs.json` (sizes and digests of the summary and simulation set), one record per attempt and phase (setup, each chain, assembly), per-chain logs, and preceding-stage lineage. Completed stages are reused only after their files are re-verified. |
@@ -32,7 +32,8 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 | Stages | Ordered pipelines per location that continue on rerun. Multi-chain stages run in phases: setup once, each chain as its own resumable process in parallel, and assembly only after every chain completes ([#26](https://github.com/ncsizemore/jheem-containers/pull/26)). Four-chain stage 3 has run on small fixtures only. |
 | Location lists | One pipeline per location with a concurrency cap (default five), surviving logout and stoppable as a batch ([#27](https://github.com/ncsizemore/jheem-containers/pull/27)). |
 | Outputs | A separate per-user output root on the NAS. The wrapper prints the `JHEEM_ROOT_DIR` setting that points the team's analysis scripts at it from a server, Mac, or Windows ([#28](https://github.com/ncsizemore/jheem-containers/pull/28)). |
-| Installation | Current: `shield-container-20261009` on shield2, with the October 8 census ([below](#current-installation)). The 2026-10-01, 2026-10-04, and 2026-10-08 installations remain for any runs started with them. No operator runs yet. |
+| Data managers | The syphilis release named by `SYPHILIS.MANAGER.RELEASE.TAG` in the captured `shield_source_code.R`, saved with the selection; census is the installation's release. Both come from an append-only store of verified releases on the NAS ([D-027](../decisions.qmd#d-027), [#33](https://github.com/ncsizemore/jheem-containers/pull/33)). |
+| Installation | Current: `shield-container-20261012` on shield2 ([below](#current-installation)). The 2026-10-01, 2026-10-04, 2026-10-08, and 2026-10-09 installations remain for any runs started with them. No operator runs yet. |
 | Hosted checks | Build, offline preflight, kill-and-resume, summary and assembly, two-stage lineage, numerical output inspection, missing/modified-output and changed-seed rejection, a real stage-0 → stage-1 predecessor handoff, and a four-chain stage. |
 
 ## Toward real calibrations {#operational-delivery}
@@ -60,7 +61,26 @@ as it is; it reproduces native behavior, including failures, rather than
 changing it. Shared writers across accounts still need coordination beyond the
 wrapper's same-account check.
 
-### Current installation (2026-10-09) {#current-installation}
+### Current installation (2026-10-12) {#current-installation}
+
+`/home/jheem-shared/shield-container-20261012` on shield2 uses the same October 9
+runtime release and census as the installation below, with the wrapper and helpers
+from [`jheem-containers@39649e9f`](https://github.com/ncsizemore/jheem-containers/tree/39649e9f50e20ff25adc53b691fdf61bbd7266cd/workloads/shield).
+A new run uses the syphilis release its committed `shield_source_code.R` names,
+the same release a native run of that commit uses, so a manager update needs no
+new image or installation. Releases are kept once in
+`/mnt/jheem_nas_share/data_manager_releases/<manager>/<release>/`: copied from the
+installation's bundled cache, or downloaded on the host from the GitHub release
+and checked against its published digest. The store is append-only, the run
+mounts only its two release directories, and the container re-verifies each file
+when it loads it. An isolated administrator batch from analyses `c302e4ae` and
+`jheem2` `85b73171` (with the stage-3 chain-seeding fix) ran two locations through
+the smoke stages, ending in a four-chain stage 3, in 10 minutes. Records carried
+`syphilis-manager-v2026.10.09` (`7dfc7341…`, the published digest) and the October
+census, and a repeated pipeline verified and skipped every stage without changing
+any file.
+
+### Installation with the October 8 census (2026-10-09) {#october-census-installation}
 
 `/home/jheem-shared/shield-container-20261009` on shield2 uses the non-latest
 prerelease
