@@ -5,8 +5,9 @@ date-modified: 2026-10-19
 ---
 
 **Status (2026-10-19): Design guide, revised. Container runs already take the
-syphilis release declared in committed code; Phases A–E below are planned, and
-Phase A is next.** Requested by the team on 2026-10-09: make specifications,
+syphilis release declared in committed code; Phase A (identity and registry) is
+shipped on jheem2 `dev`; Phase B (selection) is next, after its
+[decisions](#decisions) are finalized.** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
 releases at different points of a process. This page fixes the target design,
@@ -99,7 +100,8 @@ Nothing records what the others resolved to.
 
 - **No content identity.** The manager object holds a name (for example
   `syphilis.manager_section3`, a build label), a description, timestamps, and a code
-  iteration. Eight methods change it in place
+  iteration. Seven methods change its contents in place and update its
+  last-modified time
   ([`DATA_MANAGER_data_manager.R`](https://github.com/CIPHER-Epi/jheem2/blob/85b731715bf3eaf81021141b142ebdf53230707e/R/DATA_MANAGER_data_manager.R#L618)).
   The analyses loader attaches the release tag and SHA-256 as an R attribute, which
   jheem2 never reads.
@@ -162,7 +164,7 @@ A private field holds a provenance record, read through
 | `md5` | `load.data.manager()`, using `tools::md5sum` from base R | Content identity, available for every loaded manager |
 | `sha256`, `release`, `repository` | The caller, through a new optional `provenance` argument to `load.data.manager()`; the analyses loader passes its verified resolution | Release identity, when known |
 | `loaded.at` | `load.data.manager()` | Load time |
-| `modified` | `FALSE` at load; `TRUE` after any of the eight methods that change contents | The identity no longer describes the contents |
+| `modified` | `FALSE` at load; `TRUE` after any of the seven methods that change contents | The identity no longer describes the contents |
 
 `load.data.manager()` already copies a saved manager through the current class
 constructor, so every newly loaded manager carries the field. jheem2 imports no
@@ -281,8 +283,8 @@ serialized manager from each control (132.7 MB on disk per city and stage, 9.5 s
 | Phase | Scope | Repositories | Acceptance | State (2026-10-19) |
 |---|---|---|---|---|
 | 0 | Container runs take the syphilis release declared in committed code; shared verified store | jheem-containers, jheem_analyses | [D-027](../decisions.qmd#d-027); installation accepted | Shipped for container runs |
-| A | jheem2 test gate; manager identity; named registry; loader passes identity | jheem2, jheem-containers, jheem_analyses | Gates below; no output or behavior change | Next |
-| B | Declared list per application (SHIELD first); resolve, verify, register, freeze; recorded overrides; containers read the list; census release path | jheem_analyses, jheem-containers | Native and container runs of one commit load identical releases for every SHIELD manager; an already-loaded manager with the wrong identity is reloaded | Planned |
+| A | jheem2 test gate; manager identity; named registry; loader passes identity | jheem2, jheem-containers, jheem_analyses | Gates below; no output or behavior change | Shipped ([below](#phase-a-shipped)) |
+| B | Declared list per application (SHIELD first); resolve, verify, register, freeze; recorded overrides; containers read the list; census release path | jheem_analyses, jheem-containers | Native and container runs of one commit load identical releases for every SHIELD manager; an already-loaded manager with the wrong identity is reloaded | Next |
 | C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Planned |
 | D | Comparison and checks at rerun, next stage, transmutation; option off, then warn | jheem2 | A rerun after a census change, and a stage whose syphilis release differs from its predecessor's, are reported by name | Planned |
 | C2 | Observed reads with capture scopes | jheem2 | The A-then-B test passes; no record claims `read` coverage it lacks | Planned |
@@ -303,6 +305,32 @@ serialized manager from each control (132.7 MB on disk per city and stage, 9.5 s
   - a short container calibration is bit-identical to one without the change.
 - **No behavior change:** the same launchers run unchanged, and nothing new is
   printed.
+
+### Phase A as shipped (2026-10-19) {#phase-a-shipped}
+
+- **jheem2 `dev`
+  [`6e12e34e`](https://github.com/CIPHER-Epi/jheem2/commit/6e12e34e5cd541ca222d120812d3c803178ffa36):**
+  - `R/DATA_MANAGER_provenance.R` adds `get.data.manager.provenance()`,
+    `register.data.manager()`, `get.data.manager()`, and `list.data.managers()`;
+  - `load.data.manager(provenance = ...)` and the seven content-changing methods
+    maintain the record, and copies inherit it;
+  - the source-mode loader includes the new file, and registrations survive
+    re-sourcing;
+  - tests are in `tests/data_manager_provenance.R`.
+- **jheem_analyses
+  [`ea3752f9`](https://github.com/tfojo1/jheem_analyses/commit/ea3752f9):** the
+  release loader passes the tag, repository, and SHA-256 it verified, when the loaded
+  jheem2 accepts them. Checked against a real release.
+- **jheem-containers
+  [#34](https://github.com/ncsizemore/jheem-containers/pull/34):** a manual
+  `jheem2_test_ref` dispatch builds a jheem2 ref in the runtime image and runs its tests
+  (first run
+  [39285274737](https://github.com/ncsizemore/jheem-containers/actions/runs/39285274737)).
+- **Gates passed:**
+  - SHIELD kernel inputs for all 26 configured cities that build are identical to
+    `dev` `85b73171`;
+  - a container calibration through four-chain stage 3 is bit-identical: every
+    checkpoint, summary, and simulation set's parameters.
 
 ## Delivery practice {#delivery}
 
