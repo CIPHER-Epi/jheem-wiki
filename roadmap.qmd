@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-10-12
+date-modified: 2026-10-19
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -61,21 +61,21 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
 | 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-12) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; use and maintain** (2026-10-01) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; awaiting a real contributor update ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
-| 9 | **Data-manager identity and tracking** | **Phase 0 shipped for containers; Phase 1 proposed** (2026-10-12) | Requested 2026-10-09: artifacts record which manager releases they read, and re-derivation detects changes. Container runs already use the syphilis release declared in committed code ([D-027](decisions.qmd#d-027)) ([design](investigations/data-manager-identity.qmd)) |
+| 9 | **Data-manager identity and tracking** | **Phase A next** (2026-10-19) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, checks, exact reads, other applications ([D-028](decisions.qmd#d-028)). Container runs already use the syphilis release declared in committed code ([D-027](decisions.qmd#d-027)) ([design](investigations/data-manager-identity.qmd)) |
 
 ### Next
 
-Two active tracks, updated 2026-10-12 ([D-026](decisions.qmd#d-026), [D-027](decisions.qmd#d-027)):
+Two active tracks, updated 2026-10-19 ([D-026](decisions.qmd#d-026), [D-027](decisions.qmd#d-027)):
 
 1. **SHIELD container for real calibrations.** Engine source snapshots,
    multi-chain stage 3, location lists, and the output path are built and
    installed on shield2, and the analysis-side changes and operator guide are on
    the `jheem_analyses` default branch. Next: a first operator trial with real
    calibrations, then durable retention of snapshots and records. See [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
-2. **Data-manager identity and tracking.** Phase 0 (container runs take the
-   declared syphilis release from a shared store of verified releases) is shipped.
-   Next: Phase 1 in jheem2, recording the manager releases each kernel, likelihood,
-   and calibration reads, with no change to outputs. See the
+2. **Data-manager identity and tracking.** Container runs already take the declared
+   syphilis release from a shared store of verified releases. Next: Phase A
+   (a jheem2 test gate in the container CI, manager identity, a named registry),
+   then selection for every SHIELD manager. See the
    [design](investigations/data-manager-identity.qmd#phases).
 
 **Same-seed reproducibility** is demonstrated for a real stage-0 calibration

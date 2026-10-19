@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-10-12
+date-modified: 2026-10-19
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,23 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-028 · Phase data-manager tracking selection first, test jheem2 changes in container CI, and ship behavior changes off by default — refines D-001 and D-027 {#d-028}
+
+*2026-10-19. Working decision.* The data-manager design originally put selection last
+and exact read capture first. Selection decides which data a run uses and is what
+analysts work with directly; a partial trace of reads can name the wrong dependency.
+jheem2 has no automated test gate, and the team loads it from `dev` source, so a
+merge reaches every new session at once.
+
+Decision: implement in this order: foundations (test gate, manager identity, named
+registry), selection, conservative records, checks, exact read capture, then other
+applications. jheem2 tests for this work run in the jheem-containers CI, which
+already builds jheem2 at a chosen commit. Work happens on short-lived branches and
+merges to `dev` after its gates pass. Behavior changes merge behind an option that
+defaults to today's behavior and are switched on in a separate, announced change,
+rather than waiting on long-lived branches. See the
+[design](investigations/data-manager-identity.qmd#phases).
 
 ## D-027 · Treat data managers as run inputs selected by committed source — refines D-024 and D-026 {#d-027}
 
