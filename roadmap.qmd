@@ -61,7 +61,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
 | 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-12) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; use and maintain** (2026-10-01) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; awaiting a real contributor update ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
-| 9 | **Data-manager identity and tracking** | **Phase A shipped; selection next** (2026-10-19) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, checks, exact reads, other applications ([D-028](decisions.qmd#d-028)). Container runs already use the syphilis release declared in committed code ([D-027](decisions.qmd#d-027)) ([design](investigations/data-manager-identity.qmd)) |
+| 9 | **Data-manager identity and tracking** | **Phase A shipped; selection in progress** (2026-10-19) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, checks, exact reads, other applications ([D-028](decisions.qmd#d-028)). Selection defaults adopted ([D-029](decisions.qmd#d-029)); the 2026-10-19 container installation reads the declaration file, and the analysis side is next ([design](investigations/data-manager-identity.qmd#phase-b-progress)) |
 
 ### Next
 
@@ -75,9 +75,10 @@ Two active tracks, updated 2026-10-19 ([D-026](decisions.qmd#d-026), [D-027](dec
 2. **Data-manager identity and tracking.** Container runs already take the declared
    syphilis release from a shared store of verified releases. Phase A is shipped:
    loaded managers record their release identity, a named registry exists, and
-   jheem2 commits can be tested in the runtime image. Next: selection for every
-   SHIELD manager. See the
-   [design](investigations/data-manager-identity.qmd#phases).
+   jheem2 commits can be tested in the runtime image. Selection is in progress:
+   container runs read SHIELD's declaration file; next, the analysis side reads it
+   too, then census gets dated releases. See the
+   [design](investigations/data-manager-identity.qmd#phase-b-progress).
 
 **Same-seed reproducibility** is demonstrated for a real stage-0 calibration
 ([comparison](investigations/shield-container-pilot.qmd#native-comparison)); later

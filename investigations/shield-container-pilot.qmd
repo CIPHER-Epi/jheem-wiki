@@ -1,13 +1,13 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-10-12
+date-modified: 2026-10-19
 ---
 
-**Status (2026-10-12):** Opt-in pilot installed on one team server. It runs
+**Status (2026-10-19):** Opt-in pilot installed on one team server. It runs
 the team's calibration stages for a list of locations, including four-chain
 stage 3, from the operator's committed `jheem_analyses` and `jheem2` checkouts,
-with the syphilis manager that committed code names, frozen inputs, and run records. A real stage-0 calibration for two locations
+with the data managers that committed code declares, frozen inputs, and run records. A real stage-0 calibration for two locations
 gave bit-identical results natively and in the container, and in two container
 runs ([below](#native-comparison)). The analysis-side changes and operator guide
 are on the `jheem_analyses` default branch ([`2ae81bd6`](https://github.com/tfojo1/jheem_analyses/commit/2ae81bd689fca1dda9118a7a0f2097866d83bad2)); no team member has run it yet. A container usable for the team's real calibration workflows is
@@ -23,17 +23,17 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 
 ## Current state {#current-state}
 
-| Capability | State (2026-10-12) |
+| Capability | State (2026-10-19) |
 |---|---|
 | Recorded runs | Opt-in `SHIELD_RECORDED_RUN=true` path in `jheem_analyses`: declared source and package revisions, immutable manager releases verified by SHA-256, explicit seed, non-destructive `fresh`/`resume`. The ordinary launcher is unchanged when the flag is unset. |
-| Run records | Per calibration: `inputs.json` (including the engine commit), `outputs.json` (sizes and digests of the summary and simulation set), one record per attempt and phase (setup, each chain, assembly), per-chain logs, and preceding-stage lineage. Completed stages are reused only after their files are re-verified. |
-| Analysis source | A clean committed checkout is captured per pipeline and mounted read-only; continuations reuse it ([D-023](../decisions.qmd#d-023)). |
+| Run records | Per calibration: `inputs.json` (including the engine commit), `outputs.json` (sizes and digests of the summary and simulation set), one record and one log per attempt and phase (setup, each chain, assembly), and preceding-stage lineage. Completed stages are reused only after their files are re-verified. Each command that changes runs keeps a transcript in the output folder ([#36](https://github.com/ncsizemore/jheem-containers/pull/36)). |
+| Analysis source | A clean committed checkout is captured per pipeline and mounted read-only; continuations reuse it ([D-023](../decisions.qmd#d-023)). New calibration codes are bound to it only after the compatibility check passes. |
 | Engine (`jheem2`) | The sibling `jheem2` checkout is captured clean and committed like analysis source, built once per commit and image into a cached library without kept source references, recorded, and reused on resume. A run stops if the loaded engine differs from the recorded commit ([D-026](../decisions.qmd#d-026), [containers #25](https://github.com/ncsizemore/jheem-containers/pull/25)). |
 | Stages | Ordered pipelines per location that continue on rerun. Multi-chain stages run in phases: setup once, each chain as its own resumable process in parallel, and assembly only after every chain completes ([#26](https://github.com/ncsizemore/jheem-containers/pull/26)). Four-chain stage 3 has run on small fixtures only. |
-| Location lists | One pipeline per location with a concurrency cap (default five), surviving logout and stoppable as a batch ([#27](https://github.com/ncsizemore/jheem-containers/pull/27)). |
+| Location lists | One pipeline per location with a concurrency cap (default five), surviving logout and stoppable as a batch ([#27](https://github.com/ncsizemore/jheem-containers/pull/27)). A second batch covering the same locations and codes is refused while the first runs. |
 | Outputs | A separate per-user output root on the NAS. The wrapper prints the `JHEEM_ROOT_DIR` setting that points the team's analysis scripts at it from a server, Mac, or Windows ([#28](https://github.com/ncsizemore/jheem-containers/pull/28)). |
-| Data managers | The syphilis release named by `SYPHILIS.MANAGER.RELEASE.TAG` in the captured `shield_source_code.R`, saved with the selection; census is the installation's release. Both come from an append-only store of verified releases on the NAS ([D-027](../decisions.qmd#d-027), [#33](https://github.com/ncsizemore/jheem-containers/pull/33)). |
-| Installation | Current: `shield-container-20261012` on shield2 ([below](#current-installation)). The 2026-10-01, 2026-10-04, 2026-10-08, and 2026-10-09 installations remain for any runs started with them. No operator runs yet. |
+| Data managers | The releases declared in the captured `applications/SHIELD/data_managers.csv`, saved with the selection; an unpinned census is the installation's release. Commits without that file use the syphilis release named by `SYPHILIS.MANAGER.RELEASE.TAG` ([#35](https://github.com/ncsizemore/jheem-containers/pull/35)). Both come from an append-only store of verified releases on the NAS ([D-027](../decisions.qmd#d-027), [#33](https://github.com/ncsizemore/jheem-containers/pull/33)). |
+| Installation | Current: `shield-container-20261019` on shield2 ([below](#current-installation)). The 2026-10-01, 2026-10-04, 2026-10-08, 2026-10-09, and 2026-10-12 installations remain for any runs started with them. No operator runs yet. |
 | Hosted checks | Build, offline preflight, kill-and-resume, summary and assembly, two-stage lineage, numerical output inspection, missing/modified-output and changed-seed rejection, a real stage-0 → stage-1 predecessor handoff, and a four-chain stage. |
 
 ## Toward real calibrations {#operational-delivery}
@@ -61,7 +61,42 @@ as it is; it reproduces native behavior, including failures, rather than
 changing it. Shared writers across accounts still need coordination beyond the
 wrapper's same-account check.
 
-### Current installation (2026-10-12) {#current-installation}
+### Current installation (2026-10-19) {#current-installation}
+
+`/home/jheem-shared/shield-container-20261019` on shield2 uses the same October 9
+runtime release, census, and output namespace as the installations below, with the
+wrapper and helpers from
+[`jheem-containers@0c2672bc`](https://github.com/ncsizemore/jheem-containers/tree/0c2672bcfe0e44cf09dd60597712b2795abca149/workloads/shield).
+Changes from the 2026-10-12 installation:
+
+- A run takes the data managers its committed `applications/SHIELD/data_managers.csv`
+  declares; census `unpinned` means the installation's release. Commits without that
+  file use the syphilis tag line, as before.
+- New calibration codes are saved to the run's selection only after the
+  compatibility check passes. A request that lists completed stages together with
+  new codes checks the new codes against the earlier code, fails, and says to
+  commit the new codes and run them alone; they then find the completed stages from
+  their records.
+- A batch is refused while another live batch in the same output folder covers any
+  of its locations and codes, and batch launches take the same per-location locks
+  as single launches.
+- Each command that changes runs keeps a transcript in `run_logs/`, including the
+  full compatibility-check output, and each phase of each stage keeps its output
+  under `run_records/.../logs/`, which `logs` reads.
+
+An isolated administrator batch from analyses `8cdb5e7f` (`ea3752f9` plus the
+smoke-canary fix in
+[jheem_analyses #10](https://github.com/tfojo1/jheem_analyses/pull/10)) and `jheem2`
+`6e12e34e` ran two locations through the smoke stages, ending in a four-chain
+stage 3, in 9 minutes. Records carried the October census and
+`syphilis-manager-v2026.10.09` digests, and a repeated pipeline verified and skipped
+every stage without changing any of 5,143 files. From `ea3752f9` itself the smoke
+stages fail the compatibility check: their stage-1 handoff canary copied
+`calib.10.1`, which was retired on 2026-10-15. Real calibrations do not load the
+smoke registrations; `calib.10.15` stages 0–3 at `ea3752f9` pass a read-only
+compatibility check in this installation.
+
+### Installation with the data-manager store (2026-10-12) {#store-installation}
 
 `/home/jheem-shared/shield-container-20261012` on shield2 uses the same October 9
 runtime release and census as the installation below, with the wrapper and helpers

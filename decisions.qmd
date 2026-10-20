@@ -10,6 +10,24 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ---
 
+## D-029 · Declare each application's data managers in one committed file; a pipeline keeps its selection — refines D-027 and D-028 {#d-029}
+
+*2026-10-19. Working decision.* Selection (Phase B of D-028) needed five choices:
+where declarations live, how later stages take newer data, how managers are named,
+how census gets dated releases, and what happens to the default manager.
+
+Decision: each application declares the managers it uses in one committed file that
+both its R setup and the container wrapper read; for SHIELD,
+`applications/SHIELD/data_managers.csv` (`name,file,release`), a plain table so the
+host-side wrapper needs no R. A pipeline keeps the selection its first stage made; a
+later stage takes newer data only through a new calibration code, which records the
+change. Each manager kind has one name (`census`, `syphilis`, `hiv.surveillance`, …).
+Until census manager CI exists, a small publishing script releases a dated census
+when its cached-metadata file changes; until census is pinned, `unpinned` means the
+installation's census. The default manager stays, set from a named manager, for
+plotting and analysis. See the
+[design](investigations/data-manager-identity.qmd#decisions).
+
 ## D-028 · Phase data-manager tracking selection first, test jheem2 changes in container CI, and ship behavior changes off by default — refines D-001 and D-027 {#d-028}
 
 *2026-10-19. Working decision.* The data-manager design originally put selection last

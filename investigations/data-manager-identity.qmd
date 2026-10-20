@@ -4,10 +4,11 @@ date: 2026-10-12
 date-modified: 2026-10-19
 ---
 
-**Status (2026-10-19): Design guide, revised. Container runs already take the
-syphilis release declared in committed code; Phase A (identity and registry) is
-shipped on jheem2 `dev`; Phase B (selection) is next, after its
-[decisions](#decisions) are finalized.** Requested by the team on 2026-10-09: make specifications,
+**Status (2026-10-19): Design guide, revised. Phase A (identity and registry) is
+shipped on jheem2 `dev`. Phase B (selection) is in progress: its
+[decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)), and the
+container installation of 2026-10-19 reads the declaration file; the analysis-side
+switch to it is next ([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
 releases at different points of a process. This page fixes the target design,
@@ -187,14 +188,19 @@ SHA-256 (or, failing that, MD5) agree and neither is modified.
 Four steps, each small:
 
 1. **Declare.** Each application keeps one list of the managers it uses, in
-   committed code, replacing `SYPHILIS.MANAGER.RELEASE.TAG`:
-   ```r
-   SHIELD.DATA.MANAGERS <- list(
-       census   = list(file = "census.manager.rdata",   release = "census-manager-v2026.10.08"),
-       syphilis = list(file = "syphilis.manager.rdata", release = "syphilis-manager-v2026.10.09"))
+   committed code, replacing `SYPHILIS.MANAGER.RELEASE.TAG`. For SHIELD it is the
+   plain table `applications/SHIELD/data_managers.csv`, so that the host-side
+   container wrapper reads the same file without R:
+   ```
+   # Data managers SHIELD uses: each run loads exactly these releases.
+   name,file,release
+   census,census.manager.rdata,unpinned
+   syphilis,syphilis.manager.rdata,syphilis-manager-v2026.10.09
    ```
    The names are what code refers to; the releases are the versions. A version
-   change is a reviewable commit.
+   change is a reviewable commit. `unpinned` keeps a manager on today's release
+   path (for census, the cached-metadata file natively and the installation's
+   release in the container) until it has dated releases; syphilis must be pinned.
 2. **Resolve and load once.** The application's setup loads each declared release
    through the verified loader, passes its identity to jheem2, registers it under its
    name, and assigns the existing globals. A manager already in memory is reused only
@@ -332,6 +338,26 @@ serialized manager from each control (132.7 MB on disk per city and stage, 9.5 s
   - a container calibration through four-chain stage 3 is bit-identical: every
     checkpoint, summary, and simulation set's parameters.
 
+### Phase B progress (2026-10-19) {#phase-b-progress}
+
+Phase B ships in three steps: B1 introduces the declaration with census unpinned,
+so no run changes; B2 adds the census publishing script; B3 pins census, announced.
+
+- **B1, container side (installed):** jheem-containers
+  [#35](https://github.com/ncsizemore/jheem-containers/pull/35) reads
+  `data_managers.csv` from the captured source (falling back to the syphilis tag line
+  for older commits), and
+  [#36](https://github.com/ncsizemore/jheem-containers/pull/36) binds new codes only
+  after their check and keeps logs in the output folder. Both are in the
+  [2026-10-19 installation](shield-container-pilot.qmd#current-installation). On a
+  private copy, a commit declaring the file ran with the declared syphilis release
+  and the installation's census.
+- **B1, analysis side (next):** the file itself, the SHIELD setup reading it and
+  registering `census` and `syphilis` by name, a check that a manager already in
+  memory matches the declaration, and the operator guide. `*.csv` is ignored in
+  jheem_analyses, so the file needs an explicit exception.
+- **B2, B3:** not started.
+
 ## Delivery practice {#delivery}
 
 Adopted as [D-028](../decisions.qmd#d-028):
@@ -357,22 +383,20 @@ Adopted as [D-028](../decisions.qmd#d-028):
   timestamp checks, remain the analysts' choice; the design does not depend on them.
 - **Operator guides** explain warnings when Phase D switches them on.
 
-## Decisions to finalize before Phase B {#decisions}
+## Phase B decisions {#decisions}
 
-Proposed defaults, to confirm before Phase B starts:
+Adopted 2026-10-19 as [D-029](../decisions.qmd#d-029):
 
-1. **Where declarations live:** one list per application (proposed), rather than per
-   calibration code.
+1. **Where declarations live:** one committed file per application, rather than per
+   calibration code (for SHIELD, `applications/SHIELD/data_managers.csv`).
 2. **Stages and newer data:** a pipeline keeps its selection; a later stage may
-   select newer data only through a new calibration code, which records the change
-   (proposed).
-3. **Names:** one per manager kind (`census`, `syphilis`, `hiv.surveillance`, ...)
-   (proposed).
+   select newer data only through a new calibration code, which records the change.
+3. **Names:** one per manager kind (`census`, `syphilis`, `hiv.surveillance`, ...).
 4. **Census releases:** dated releases published from each census update; until
    census manager CI exists, a small publishing script run when the cached-metadata
-   file changes (proposed).
+   file changes.
 5. **The default manager:** kept, set from a named manager, for plotting and
-   analysis (proposed).
+   analysis.
 
 ## Open questions {#open-questions}
 
