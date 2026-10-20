@@ -22,13 +22,13 @@ across two container runs; a resumed run still diverges from an uninterrupted
 one ([D-025](decisions.qmd#d-025)). The broader program is still a
 working engineering proposal rather than a team-adopted plan ([D-017](decisions.qmd)).
 
-### Practice baseline (updated 2026-10-01)
+### Practice baseline (updated 2026-10-20)
 
 Per-repo engineering practice, as verifiable facts. This table is the program's "before" picture and its progress tracker — cells flip as work lands ([D-014](decisions.qmd)).
 
 | Repo | README | Tests | CI | Release discipline |
 |---|---|---|---|---|
-| `jheem2` | — | 100 recursive test/reprex/profiling artifacts; 0 automated gate | — | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
+| `jheem2` | — | 100 recursive test/reprex/profiling artifacts; one `tests/` file (data-manager identity), run in the runtime image by a manual jheem-containers dispatch; no automatic gate | — | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
 | `jheem_analyses` | no root README | syphilis structural validation; HIV comparison and consumer checks; SHIELD static/unit/model and recorded-runtime checks | manager build/promote workflows; Linux/Windows release-cache tests; ordinary SHIELD model workflow red in every run (56 failures, 3 cancelled of the last 59, 2026-10-05) | versioned, digest-verified manager releases (syphilis, HIV); ordinary latest loading also verifies identity |
 | `bayesian.simulations` | — | — | — | — |
 | `distributions` | — | — | — | — |
@@ -38,6 +38,10 @@ Per-repo engineering practice, as verifiable facts. This table is the program's 
 | `jheem-backend` | ✅ | — | 8 workflows | — |
 | `jheem-portal` | ✅ | — | hosted deploys | — |
 | `jheem-simulations` | ✅ | n/a | n/a | semver GitHub Releases with documented deprecations |
+
+History protection (2026-10-20): repository rules block force pushes and deletion
+of `jheem2` `dev`, `jheem-containers` `main`, and this wiki's `main`; normal pushes
+are unaffected. `jheem_analyses` `master` has no protection.
 
 The modeling core still has much less automated protection than the delivery
 platform. The SHIELD model suite mixes deliberately failing review findings with
