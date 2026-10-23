@@ -1,14 +1,16 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-10-20
+date-modified: 2026-10-23
 ---
 
-**Status (2026-10-20): Design guide, revised. Phase A (identity and registry) is
+**Status (2026-10-23): Design guide, revised. Phase A (identity and registry) is
 shipped on jheem2 `dev`. Phase B (selection) is in progress: its
-[decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)), and its first
-step (B1, SHIELD's declaration file, read natively and in the container) is shipped;
-census releases (B2) are next ([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
+[decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)); SHIELD declares
+its managers in one file read natively and in the container (B1), and census is
+pinned to a dated release (B3, early, after a census update broke the SHIELD
+specification). Publishing and checking new census releases (B2) is next
+([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
 releases at different points of a process. This page fixes the target design,
@@ -194,13 +196,13 @@ Four steps, each small:
    ```
    # Data managers SHIELD uses: each run loads exactly these releases.
    name,file,release
-   census,census.manager.rdata,unpinned
+   census,census.manager.rdata,census-manager-v2026.10.08
    syphilis,syphilis.manager.rdata,syphilis-manager-v2026.10.09
    ```
    The names are what code refers to; the releases are the versions. A version
-   change is a reviewable commit. `unpinned` keeps a manager on today's release
-   path (for census, the cached-metadata file natively and the installation's
-   release in the container) until it has dated releases; syphilis must be pinned.
+   change is a reviewable commit. A manager may instead be `unpinned`, which keeps
+   it on its older release path (for census, the cached-metadata file natively and
+   the installation's release in the container); syphilis must be pinned.
 2. **Resolve and load once.** The application's setup loads each declared release
    through the verified loader, passes its identity to jheem2, registers it under its
    name, and assigns the existing globals. A manager already in memory is reused only
@@ -338,7 +340,7 @@ serialized manager from each control (132.7 MB on disk per city and stage, 9.5 s
   - a container calibration through four-chain stage 3 is bit-identical: every
     checkpoint, summary, and simulation set's parameters.
 
-### Phase B progress (2026-10-20) {#phase-b-progress}
+### Phase B progress (2026-10-23) {#phase-b-progress}
 
 Phase B ships in three steps: B1 introduces the declaration with census unpinned,
 so no run changes; B2 adds the census publishing script; B3 pins census, announced.
@@ -368,9 +370,27 @@ so no run changes; B2 adds the census publishing script; B3 pins census, announc
     evaluates the setup's selection block as written, runs in the manager-cache
     workflow on Linux and Windows; the wrapper's parser has unit tests in
     jheem-containers.
-- **B2 (next):** a script that publishes a dated census release when the
-  cached-metadata file changes, until census manager CI exists.
-- **B3:** pin census in the file, announced.
+- **B3, early (shipped 2026-10-23).** A census update on 2026-10-21 changed the age
+  dimension of the census manager's `census` ontology from single years to 5-year
+  groups. SHIELD takes its single-year ages from that ontology, so its specification
+  stopped compiling ("the dimnames of 'value' does not match expected dimnames for
+  model quantity 'single.year.age.sexual.availability'"). Nothing checks SHIELD
+  against a census before the cached-metadata file moves.
+  - jheem_analyses [#12](https://github.com/tfojo1/jheem_analyses/pull/12) (master
+    `f30d2d7d`) pins `census-manager-v2026.10.08` in the file, and lets a census load
+    that names a release come from GitHub Releases in ordinary sessions, verified by
+    digest. Loads that name no census release, in SHIELD or elsewhere, keep the
+    OneDrive path; the named release is cached apart from `cached/census.manager.rdata`.
+  - On shield2, in a checkout that had downloaded the new census, the specification
+    compiles and the C.12580 kernel builds with the pinned release; in the
+    container, `calib.10.15.stage0` and `calib.10.20` stages 1–3 pass the
+    compatibility check. Native and container runs of a commit again use the same
+    census.
+  - Moving to a newer census is a one-line change once it is published as a dated
+    release and SHIELD works with it.
+- **B2 (next):** publish a dated census release whenever the cached-metadata file
+  changes, and before it does, check that SHIELD's specification compiles and a
+  kernel builds against the candidate; this is also the start of census manager CI.
 
 ## Delivery practice {#delivery}
 
