@@ -1,16 +1,18 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-10-01
+date-modified: 2026-10-23
 ---
 
-**Status: Master build, automatic candidate publication, and exact loading
-verified (2026-10-01); contributor handoff pending.** The first automatically
-built candidate reproduced the promoted manager's data and passed the focused
-consumer checks. It was loaded online and offline without changing the active
-manager. Baseline promotion and ordinary loading are established; the next
-exercise is a contributor's section update through review and deliberate
-promotion. The operator path and check descriptions live with the code:
+**Status (2026-10-23): Master build, automatic candidate publication, and exact
+loading verified (2026-10-01); handed off to contributors (2026-09-29).** The first
+automatically built candidate reproduced the promoted manager's data and passed the
+focused consumer checks, and was loaded online and offline without changing the
+active manager. The first contributor build (2026-10-23, with a new dependency
+bundle) stopped in the merge step on incomplete county adult population for one
+state and published nothing; the bundle carried the census changed on 2026-10-21
+([census structure](manager-compatibility.qmd#census-structure)), the likely cause,
+not yet confirmed. The operator path and check descriptions live with the code:
 
 - [`scripts/README.md` — HIV Surveillance Manager](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/scripts/README.md#hiv-surveillance-manager):
   upload sections, build, promote, refresh the shared-drive copy, load or pin a version.

@@ -39,7 +39,7 @@ Implementation, tests, and runbooks live in `jheem_analyses` and
 ## Toward real calibrations {#operational-delivery}
 
 The gaps between the pilot and the team's workflow, as ordered on 2026-10-05,
-and their state on 2026-10-08:
+and their state on 2026-10-23:
 
 1. **Engine from a source snapshot.** Done. A new engine commit runs without an
    image rebuild, and a continuation keeps its saved engine after the checkout
@@ -54,9 +54,14 @@ and their state on 2026-10-08:
    the outputs on the NAS under a temporary directory. Later derived runs depend
    on them ([derived lineage](reproducibility.qmd#derived-lineage)).
 
-The analysis-side phases, smoke fixtures, and updated operator guide reached the
-`jheem_analyses` default branch on 2026-10-08 ([`2ae81bd6`](https://github.com/tfojo1/jheem_analyses/commit/2ae81bd689fca1dda9118a7a0f2097866d83bad2)); a first operator trial
-with real calibrations is next. The container runs the team's committed code
+The analysis-side phases and smoke fixtures reached the `jheem_analyses` default
+branch on 2026-10-08 ([`2ae81bd6`](https://github.com/tfojo1/jheem_analyses/commit/2ae81bd689fca1dda9118a7a0f2097866d83bad2)), and the operator guide matches the
+[current installation](#current-installation). Since then the team's calibration
+codes have changed weekly (`calib.10.15`, `.10.19`, `.10.20`); each set passed the
+container's compatibility check from the default branch. Still to do: one real
+pipeline including a four-chain stage 3, after the servers' OS patching (the
+pending updates include podman and the container SELinux policy), then a first
+operator trial. No team member has run the container yet. The container runs the team's committed code
 as it is; it reproduces native behavior, including failures, rather than
 changing it. Shared writers across accounts still need coordination beyond the
 wrapper's same-account check.

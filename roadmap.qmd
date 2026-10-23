@@ -69,22 +69,29 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 
 ### Next
 
-Two active tracks, updated 2026-10-19 ([D-026](decisions.qmd#d-026), [D-027](decisions.qmd#d-027)):
+Three active tracks, updated 2026-10-23 ([D-026](decisions.qmd#d-026), [D-027](decisions.qmd#d-027), [D-029](decisions.qmd#d-029)):
 
-1. **SHIELD container for real calibrations.** Engine source snapshots,
-   multi-chain stage 3, location lists, and the output path are built and
-   installed on shield2, and the analysis-side changes and operator guide are on
-   the `jheem_analyses` default branch. Next: a first operator trial with real
-   calibrations, then durable retention of snapshots and records. See [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
-2. **Data-manager identity and tracking.** Container runs already take the declared
-   syphilis release from a shared store of verified releases. Phase A is shipped:
-   loaded managers record their release identity, a named registry exists, and
-   jheem2 commits can be tested in the runtime image. Selection is in progress:
-   SHIELD declares its managers in one committed file that native and container
-   runs both read, with census pinned to a dated release since a census update
-   broke the SHIELD specification; next, publishing and checking new census
-   releases. See the
+1. **Census manager CI.** A census change on 2026-10-21 reached every model
+   unchecked: it broke the SHIELD specification and an HIV build
+   ([details](investigations/manager-compatibility.qmd#census-structure)). Census
+   moves to the syphilis and HIV model: a candidate release, a structural comparison
+   with the current one, consumer checks (SHIELD compiles and builds a kernel; the
+   HIV merge aggregation), a dated release, and deliberate promotion. Builds and
+   loaders then take the promoted census rather than the build-dependency bundle.
+2. **Data-manager identity and tracking.** Phase A is shipped: loaded managers
+   record their release identity, a named registry exists, and jheem2 commits can
+   be tested in the runtime image. Selection is shipped for SHIELD: one committed
+   file declares its releases, read by native and container runs, with census
+   pinned since the census change. Next: specifications, likelihoods,
+   calibrations, and simsets record the managers they used. See the
    [design](investigations/data-manager-identity.qmd#phase-b-progress).
+3. **SHIELD container for real calibrations.** Installed on shield2 with engine
+   snapshots, multi-chain stage 3, location lists, declared managers, and logs in
+   the output folder; the operator guide is on the `jheem_analyses` default branch,
+   and the team's current calibration codes pass its checks. Next, after the
+   servers' OS patching: one real pipeline including a four-chain stage 3, then a
+   first operator trial and durable retention of snapshots and records. See
+   [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
 
 **Same-seed reproducibility** is demonstrated for a real stage-0 calibration
 ([comparison](investigations/shield-container-pilot.qmd#native-comparison)); later
@@ -92,7 +99,9 @@ stages are compared as the team runs them.
 
 **Bounded follow-ups:** share the resume finding with the package owner for a
 reviewed checkpoint/RNG proposal. Load immutable manager releases cache-first, so
-launches don't depend on GitHub availability or tokens. Separate known failing
+launches don't depend on GitHub availability or tokens: each SHIELD R process now
+looks up two named releases, so a ten-city, four-chain stage makes about 80 API
+calls at launch, above the 60-per-hour unauthenticated limit. Separate known failing
 SHIELD checks from must-pass ones. HIV CI stays in use-and-maintain mode;
 syphilis alignment follows real HIV use ([D-022](decisions.qmd#d-022)). Later
 derived runs link to their parent artifacts
@@ -109,7 +118,7 @@ artifact-led recovery builds on retention
   ([D-001](decisions.qmd), [D-017](decisions.qmd)).
 - **Select the reference application** whose complete path — raw data → data manager → calibration → simset → container extraction → portal/manuscript artifact — becomes the paved road other applications later migrate through ([D-015](decisions.qmd)). Leading candidate: Ryan White (active, published, portal-facing, already the worked example in [Application Anatomy](application-anatomy.qmd)).
 - **NAMESPACE export sweep** — team specs call non-exported jheem2 functions unqualified. At `jheem_analyses@426f03d1`, the EHE spec calls `create.logistic.taper.functional.form`; at `jheem2@90b68ad`, that function is defined but not exported. This blocks `library(jheem2)` for spec sourcing. The sweep unblocks package mode as the default workflow and shrinks the per-session C++ recompile / toolchain-sensitivity surface. (The originally cited example, `create.solver.metadata`, had become exported by `jheem2@90b68ad` — caught by an external re-audit; a reminder that unpinned claims rot, per [D-014](decisions.qmd).)
-- **Fix the `populate_outcomes_array` C++ undefined behavior** — no longer merely latent: at `jheem-containers@9c846bf`, the container runtime hot-patches this function in production via `assignInNamespace` (`base/common/custom_simulation.R:122`), so the platform already carries a live workaround for a bug filed as deferred. Fix on `dev` once the package/CI verification net exists, gate with the container golden suite, then retire the patch. A sanitizer pass (ASan/UBSan) over the C++ follows once CI exists.
+- **Retire the `populate_outcomes_array` workaround** — the empty-outcome case is fixed on jheem2 `dev` ([`008897e`](https://github.com/CIPHER-Epi/jheem2/commit/008897e8fc6a68f2be67796180fd0e7e0e21abc2), 2026-10-05: `last_new_time` is read only when there are new times). The Ryan White container runtime still hot-patches the function with a NULL guard via `assignInNamespace` (`base/common/custom_simulation.R`, lines 108–123 at 2026-10-23). Rebuild those images on a jheem2 with the fix, confirm the golden suite passes without the patch, then remove it. A sanitizer pass (ASan/UBSan) over the C++ follows once CI exists.
 - **Automatic run history and provenance receipts** — container runs now write input, output, attempt, and lineage records. Remaining: a readable summary, records for native runs, and automatic, retryable archival so promoted artifacts resolve back to their receipt ([D-015](decisions.qmd)).
 - **Gate the unguarded `browser()` calls** at `JHEEM_engine.R` ~4597/~4647 — they fire during *normal* intervention runs under `Rscript` (harmless but noisy; outputs verified bit-identical). The correct `if (debug)` pattern already exists at line ~1739.
 - **Quickstart vignette** on the toy fixture (spec → engine → simulate → plot), executed in CI.

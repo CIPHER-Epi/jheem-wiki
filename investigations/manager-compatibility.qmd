@@ -1,14 +1,25 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-10-03
+date-modified: 2026-10-23
 ---
 
-**Status:** Evidence-backed investigation. Exact syphilis-manager release
-selection and digest verification are implemented; a model-consumer check before
-promotion is proposed but not merged. A local [stage-1 likelihood check](#stage1-check)
-passes with September's manager and reproduces the missing-outcome failure with
-May's manager. This is not a check of all published versions or all locations.
+**Status (2026-10-23):** Evidence-backed investigation. Exact release selection
+and digest verification are implemented for the syphilis, HIV, and census managers.
+SHIELD now declares the releases it loads in one committed file,
+`applications/SHIELD/data_managers.csv`, which native and container runs both read
+([D-029](../decisions.qmd#d-029); [current state](data-manager-identity.qmd#phase-b-progress)):
+`syphilis-manager-v2026.10.09` and `census-manager-v2026.10.08`. The HIV build checks
+that common queries still work before publishing, but no manager is checked against a
+model such as SHIELD before promotion, and census has no build or promotion step at all;
+a second incompatibility, this time in census, is [below](#census-structure). A local
+[stage-1 likelihood check](#stage1-check) passes with September's syphilis manager and
+reproduces the missing-outcome failure with May's. This is not a check of all
+published versions or all locations.
+
+The sections from 2026-09-09 to 2026-10-03 describe the earlier selection setting,
+`SYPHILIS.MANAGER.RELEASE.TAG` in `shield_source_code.R`, which the declaration file
+replaced on 2026-10-20.
 
 **Verified against:** `jheem_analyses@16eff985372fd65be46871bf164acb6eff14beb3`,
 the July 27, August 26, and September 9 syphilis-manager releases, and the
@@ -333,6 +344,27 @@ available in the owning repository; it is not a required manager-promotion gate.
 The next runtime comparison follows the
 [repeatability plan](shield-container-pilot.qmd#repeatability-plan).
 
+### Census structure change (2026-10-21) {#census-structure}
+
+A census update published through the cached-metadata file (OneDrive) on 2026-10-21
+changed the age dimension of the census manager's `census` ontology from single years
+(0–85) to 5-year groups (0, 5, …, 85). SHIELD takes its single-year ages from that
+ontology, so its specification stopped compiling ("the dimnames of 'value' does not
+match expected dimnames for model quantity 'single.year.age.sexual.availability'");
+reproduced on shield2 with `jheem_analyses@1e9e5d1f`. The same day's dependency bundle
+for the syphilis and HIV builds carried the new census, and an HIV build on
+2026-10-23 stopped in its merge step on incomplete county adult population. Nothing
+checked either consumer before the census became current.
+
+SHIELD was pinned to the October 8 census the same day
+([`f30d2d7d`](https://github.com/tfojo1/jheem_analyses/commit/f30d2d7d53f5726426478afd9dc14dce93578497)):
+a census load that names a release now comes from GitHub Releases in ordinary
+sessions too, verified by digest; loads that name no release keep the OneDrive path.
+Whether the census or SHIELD changes is a modeling decision outside this page. The
+proposed gate is census CI on the syphilis and HIV model: a candidate release, a
+structural comparison with the current one, consumer checks (the SHIELD specification
+compiles and a kernel builds; the HIV merge aggregation), and promotion.
+
 ## Syphilis CI as a partial template
 
 The [hosted merge workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/build-syphilis-manager.yml)
@@ -362,8 +394,10 @@ a separately stated limitation. This refines the earlier sequencing in
 
 ## Next verification and destination
 
-Rerun the current SHIELD adapter against the July, August, and September
-manager artifacts, including the ten-MSA and Baltimore checks. Resolve the
+Census CI with consumer checks comes first (2026-10-23), since census changes
+currently reach every model unchecked. Rerun the current SHIELD adapter against the
+July, August, and September manager artifacts, including the ten-MSA and Baltimore
+checks. Resolve the
 scientific interpretation of changed MSM values separately from accepting a
 storage shape. Then reconcile the promotion-gate proposal with current SHIELD
 before allowing it to move an approved alias. Keep an explicit older release
