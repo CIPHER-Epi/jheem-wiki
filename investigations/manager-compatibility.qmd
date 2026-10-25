@@ -1,18 +1,20 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-10-23
+date-modified: 2026-10-25
 ---
 
-**Status (2026-10-23):** Evidence-backed investigation. Exact release selection
+**Status (2026-10-25):** Evidence-backed investigation. Exact release selection
 and digest verification are implemented for the syphilis, HIV, and census managers.
 SHIELD now declares the releases it loads in one committed file,
 `applications/SHIELD/data_managers.csv`, which native and container runs both read
 ([D-029](../decisions.qmd#d-029); [current state](data-manager-identity.qmd#phase-b-progress)):
 `syphilis-manager-v2026.10.09` and `census-manager-v2026.10.08`. The HIV build checks
-that common queries still work before publishing, but no manager is checked against a
-model such as SHIELD before promotion, and census has no build or promotion step at all;
-a second incompatibility, this time in census, is [below](#census-structure). A local
+that common queries still work before publishing. Since 2026-10-24 census is built in
+CI, and each build checks that SHIELD starts with the candidate before it can be
+promoted without review ([census CI](#census-ci)); the syphilis and HIV managers are
+not yet checked against SHIELD. The census incompatibility that prompted this is
+[below](#census-structure). A local
 [stage-1 likelihood check](#stage1-check) passes with September's syphilis manager and
 reproduces the missing-outcome failure with May's. This is not a check of all
 published versions or all locations.
@@ -361,9 +363,40 @@ SHIELD was pinned to the October 8 census the same day
 a census load that names a release now comes from GitHub Releases in ordinary
 sessions too, verified by digest; loads that name no release keep the OneDrive path.
 Whether the census or SHIELD changes is a modeling decision outside this page. The
-proposed gate is census CI on the syphilis and HIV model: a candidate release, a
-structural comparison with the current one, consumer checks (the SHIELD specification
-compiles and a kernel builds; the HIV merge aggregation), and promotion.
+check that would have caught the change before it became current is now in place:
+[census CI](#census-ci).
+
+### Census manager CI (2026-10-24) {#census-ci}
+
+Census now follows the syphilis and HIV pattern section-to-final
+([#15](https://github.com/tfojo1/jheem_analyses/pull/15), merged 2026-10-24 as
+[`0845c7e1`](https://github.com/tfojo1/jheem_analyses/commit/0845c7e1cee89b0f289e648581db009bd5fbf7f0)).
+Three section files are uploaded as a dated, checksummed `census-sections-v*` release.
+A hosted **Build Census Manager** workflow merges them and compares the candidate with
+the promoted census, by structure and by value, using the HIV build's tools. It then
+starts SHIELD offline in recorded mode with the syphilis release SHIELD declares,
+compiling the specification and building the Baltimore engine, once with the promoted
+census as a control and once with the candidate. Finally it publishes a dated
+release. A candidate that removes structure, or that SHIELD does not start with, is
+published as a pre-release marked **Needs review**, and **Promote Census Manager**
+refuses it unless the reviewer confirms the changes. The operator steps and check
+descriptions live with the code:
+[`scripts/README.md`](https://github.com/tfojo1/jheem_analyses/blob/0845c7e1/scripts/README.md#census-manager)
+and
+[`data_processing/census.manager/README.md`](https://github.com/tfojo1/jheem_analyses/blob/0845c7e1/data_processing/census.manager/README.md).
+
+| Step | Result |
+|---|---|
+| Onboarding (2026-10-23) | The census published on 2026-10-21 was reproduced exactly (31 of 31 arrays and all metadata) from three section files assembled from what the census scripts had saved before that day's rename, with the national-deaths step committed in `04628f9e` added to one. They were uploaded as `census-sections-v2026.10.23`. |
+| First promotion (2026-10-24) | `census-manager-latest` was promoted from `census-manager-v2026.10.08`, the census SHIELD pins (SHA-256 `fc45487d…`), so the first build compares against what SHIELD runs. |
+| First master build (2026-10-25) | [Run 40195381688](https://github.com/tfojo1/jheem_analyses/actions/runs/40195381688) built the 2026-10-21 census as [`census-manager-v2026.10.25`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.10.25) (SHA-256 `053779ef…`), a **Needs review** pre-release. SHIELD starts with the control and fails with the candidate on the same `single.year.age.sexual.availability` error as above. The build found 9 structural removals, including single-year ages replaced by 5-year groups in three `census` stratifications, the race categories of the fully stratified array, and 12 locations lost from that array, among them Connecticut's counties, now listed as its planning regions. 7 of 17 shared arrays changed values. The merge took 1:54 and 7.6 GiB peak memory on the hosted runner; the whole run took 7.5 minutes. |
+
+**Not yet changed.** Nothing loads `census-manager-latest` automatically. SHIELD
+loads the dated release it declares; other census loads use the OneDrive path; and the
+syphilis and HIV builds take census from the `data-managers-v*` bundle. Moving those
+to the promoted census is a separate, announced change. The build does not check the
+HIV merge's adult-population aggregation, which failed on 2026-10-23 with a bundle
+carrying the new census. Sections are still built from raw files outside CI.
 
 ## Syphilis CI as a partial template
 
@@ -394,8 +427,9 @@ a separately stated limitation. This refines the earlier sequencing in
 
 ## Next verification and destination
 
-Census CI with consumer checks comes first (2026-10-23), since census changes
-currently reach every model unchecked. Rerun the current SHIELD adapter against the
+Census CI with a SHIELD check is in place (2026-10-24), but a census change still
+reaches unpinned loads and the build-dependency bundle unchecked until those take the
+promoted census. Rerun the current SHIELD adapter against the
 July, August, and September manager artifacts, including the ten-MSA and Baltimore
 checks. Resolve the
 scientific interpretation of changed MSM values separately from accepting a

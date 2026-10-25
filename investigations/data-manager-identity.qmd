@@ -1,16 +1,17 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-10-23
+date-modified: 2026-10-25
 ---
 
-**Status (2026-10-23): Design guide, revised. Phase A (identity and registry) is
+**Status (2026-10-25): Design guide, revised. Phase A (identity and registry) is
 shipped on jheem2 `dev`. Phase B (selection) is in progress: its
 [decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)); SHIELD declares
 its managers in one file read natively and in the container (B1), and census is
 pinned to a dated release (B3, early, after a census update broke the SHIELD
-specification). Publishing and checking new census releases (B2) is next
-([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
+specification). Census manager CI, which publishes and checks new census releases
+(B2), is on the `jheem_analyses` default branch and has run once from it; its first
+contributor build is next ([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
 releases at different points of a process. This page fixes the target design,
@@ -340,10 +341,11 @@ serialized manager from each control (132.7 MB on disk per city and stage, 9.5 s
   - a container calibration through four-chain stage 3 is bit-identical: every
     checkpoint, summary, and simulation set's parameters.
 
-### Phase B progress (2026-10-23) {#phase-b-progress}
+### Phase B progress (2026-10-25) {#phase-b-progress}
 
 Phase B ships in three steps: B1 introduces the declaration with census unpinned,
-so no run changes; B2 adds the census publishing script; B3 pins census, announced.
+so no run changes; B2 publishes dated census releases (planned as a script, delivered as
+census CI); B3 pins census, announced.
 
 - **B1 (shipped 2026-10-20).**
   - Container side: jheem-containers
@@ -388,9 +390,17 @@ so no run changes; B2 adds the census publishing script; B3 pins census, announc
     census.
   - Moving to a newer census is a one-line change once it is published as a dated
     release and SHIELD works with it.
-- **B2 (next):** publish a dated census release whenever the cached-metadata file
-  changes, and before it does, check that SHIELD's specification compiles and a
-  kernel builds against the candidate; this is also the start of census manager CI.
+- **B2 (in place 2026-10-24; first contributor build pending).** Rather than a
+  publishing script, census manager CI
+  ([details](manager-compatibility.qmd#census-ci); jheem_analyses
+  [#15](https://github.com/tfojo1/jheem_analyses/pull/15), master `0845c7e1`) builds
+  each census from uploaded sections, checks that SHIELD's specification compiles and
+  an engine builds with the candidate, and publishes a dated release, marked **Needs
+  review** if it removes structure or SHIELD fails. `census-manager-latest` starts at
+  the October 8 release SHIELD pins. The first master build (2026-10-25) published the
+  October 21 census as `census-manager-v2026.10.25`, marked **Needs review**: SHIELD
+  does not start with it. Loads that name no census release, and the build-dependency
+  bundle, do not take the promoted census yet.
 
 ## Delivery practice {#delivery}
 
