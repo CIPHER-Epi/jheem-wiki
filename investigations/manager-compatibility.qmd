@@ -1,10 +1,10 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-10-25
+date-modified: 2026-10-27
 ---
 
-**Status (2026-10-25):** Evidence-backed investigation. Exact release selection
+**Status (2026-10-27):** Evidence-backed investigation. Exact release selection
 and digest verification are implemented for the syphilis, HIV, and census managers.
 SHIELD now declares the releases it loads in one committed file,
 `applications/SHIELD/data_managers.csv`, which native and container runs both read
@@ -14,7 +14,8 @@ that common queries still work before publishing. Since 2026-10-24 census is bui
 CI, and each build checks that SHIELD starts with the candidate before it can be
 promoted without review ([census CI](#census-ci)); the syphilis and HIV managers are
 not yet checked against SHIELD. The census incompatibility that prompted this is
-[below](#census-structure). A local
+[below](#census-structure). Since 2026-10-27 each manager version published through
+OneDrive is also kept as an immutable release ([copies](#onedrive-copies)). A local
 [stage-1 likelihood check](#stage1-check) passes with September's syphilis manager and
 reproduces the missing-outcome failure with May's. This is not a check of all
 published versions or all locations.
@@ -397,6 +398,70 @@ syphilis and HIV builds take census from the `data-managers-v*` bundle. Moving t
 to the promoted census is a separate, announced change. The build does not check the
 HIV merge's adult-population aggregation, which failed on 2026-10-23 with a bundle
 carrying the new census. Sections are still built from raw files outside CI.
+
+Since 2026-10-27 a failed census, HIV, or syphilis build puts the R error that stopped
+it, with the lines before it, on the run's summary page
+([#17](https://github.com/tfojo1/jheem_analyses/pull/17), merged as
+[`e39f57a1`](https://github.com/tfojo1/jheem_analyses/commit/e39f57a1e9bb61d7131b0e52480a3cff51baa084)); the full
+logs remain in the run's artifact.
+
+### Copies of OneDrive managers (2026-10-27) {#onedrive-copies}
+
+The cached-metadata file points each manager it lists at one OneDrive link, and each
+update replaces the file behind that link. A version that no release or dependency
+bundle had copied cannot be recovered once the next one is published. The census
+published on 2026-10-26 was such a version: its publication changed only the metadata
+([`1feb34fa`](https://github.com/tfojo1/jheem_analyses/commit/1feb34fa5e2320c94f5eb523d1d19d8258195345)),
+with no section upload or census build.
+
+The **Snapshot OneDrive Managers** workflow now keeps every version
+([#16](https://github.com/tfojo1/jheem_analyses/pull/16), merged 2026-10-27 as
+[`47f2f35d`](https://github.com/tfojo1/jheem_analyses/commit/47f2f35d1f8e4870025ff33a62b4681a81d16d29)).
+It runs when the metadata file changes on master, and on demand. For each manager the
+metadata lists, it downloads the OneDrive file, checks that it holds one JHEEM data
+manager whose creation and last-modified dates match the metadata, and publishes it as
+a release named after the file and its last-modified date (UTC), such as
+`census-manager-onedrive-v2026.10.26`. The tag points at the commit that last changed
+the metadata, the release is not marked latest, and a `snapshot.json` asset records
+the size, SHA-256, manager name, dates, and metadata commit. A version already kept is
+skipped. A manager that cannot be downloaded, or whose file does not match the
+metadata, is listed as not kept on the run's summary page without failing the run.
+The copies are not builds: nothing beyond the file's identity is checked. A copy of a
+file the loader can take from GitHub Releases (census, syphilis, or HIV surveillance,
+per `commoncode/data_manager_sources.json`) loads by tag; the others are kept for
+recovery:
+
+```r
+load.data.manager.from.cache("census.manager.rdata",
+                             release.tag = "census-manager-onedrive-v2026.10.26")
+```
+
+Operator steps are documented with the code, in
+[`scripts/README.md`](https://github.com/tfojo1/jheem_analyses/blob/47f2f35d1f8e4870025ff33a62b4681a81d16d29/scripts/README.md#copies-of-onedrive-managers).
+
+| File | Kept as | SHA-256 | Note |
+|---|---|---|---|
+| `census.manager.rdata` | [`census-manager-onedrive-v2026.10.26`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-onedrive-v2026.10.26) | `d2d16a34…` | Copied by the same script, run locally before the merge. Loaded by tag, digest verified. |
+| `surveillance.manager.rdata` | [`surveillance-manager-onedrive-v2026.09.24`](https://github.com/tfojo1/jheem_analyses/releases/tag/surveillance-manager-onedrive-v2026.09.24) | `e282f8cb…` | The legacy HIV entry; HIV loads follow `hiv-surveillance-manager-latest` since 2026-09-27. Loaded by tag, digest verified. |
+| `ryan.white.data.manager.rdata` | [`ryan-white-data-manager-onedrive-v2026.03.16`](https://github.com/tfojo1/jheem_analyses/releases/tag/ryan-white-data-manager-onedrive-v2026.03.16) | `cc227cb9…` | |
+| `ryan.white.web.data.manager.rdata` | [`ryan-white-web-data-manager-onedrive-v2025.04.08`](https://github.com/tfojo1/jheem_analyses/releases/tag/ryan-white-web-data-manager-onedrive-v2025.04.08) | `4f1b5063…` | |
+| `medicaid.data.manager.rdata` | [`medicaid-data-manager-onedrive-v2025.12.05`](https://github.com/tfojo1/jheem_analyses/releases/tag/medicaid-data-manager-onedrive-v2025.12.05) | `370870f1…` | |
+| `syphilis.manager.rdata` | Not kept | | The OneDrive file was last modified 2026-03-18, while the metadata names the version of 2026-03-11. The syphilis manager loads from its own releases. |
+
+The first run on master,
+[run 40621083959](https://github.com/tfojo1/jheem_analyses/actions/runs/40621083959)
+(3.5 minutes), kept the HIV surveillance, Ryan White, Ryan White web, and Medicaid
+copies, found census already kept, and reported the syphilis entry. Each release's asset digest matches the file checked
+before publication.
+
+**The census of 2026-10-26.** Against the census of 2026-10-21, the census build's
+candidate checks (`validate_candidate.R` at
+[`ea4d59d0`](https://github.com/tfojo1/jheem_analyses/commit/ea4d59d09a06f32c66c6f49785a4d72f5e61be49))
+report no removals and 30 additions: every stratification of `census.population` in
+the `census` ontology gains the years 2016–2019 and Connecticut's former counties.
+15 of 31 shared arrays changed values (14.9 million cells). The `census` ontology still
+has 5-year age groups, so SHIELD would presumably still fail as
+[above](#census-structure); this is inferred, not run.
 
 ## Syphilis CI as a partial template
 
