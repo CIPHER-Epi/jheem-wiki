@@ -1,25 +1,32 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-10-23
+date-modified: 2026-11-03
 ---
 
-**Status (2026-10-23): Master build, automatic candidate publication, and exact
-loading verified (2026-10-01); handed off to contributors (2026-09-29).** The first
-automatically built candidate reproduced the promoted manager's data and passed the
-focused consumer checks, and was loaded online and offline without changing the
-active manager. The first contributor build (2026-10-23, with a new dependency
-bundle) stopped in the merge step on incomplete county adult population for one
-state and published nothing; the bundle carried the census changed on 2026-10-21
-([census structure](manager-compatibility.qmd#census-structure)), the likely cause,
-not yet confirmed. The operator path and check descriptions live with the code:
+**Status (2026-11-03): In contributor use; on the shared manager build since
+2026-11-03.** The master build, automatic candidate publication, and exact loading were
+verified on 2026-10-01, and the build was handed to contributors on 2026-09-29. A
+contributor build on 2026-10-23 stopped in the merge step on incomplete county adult
+population for one state, likely because its dependency bundle carried the census
+changed on 2026-10-21 ([census structure](manager-compatibility.qmd#census-structure)).
+Later contributor builds were promoted on 2026-10-28, 2026-10-29, and 2026-10-30
+(`hiv-surveillance-manager-v2026.10.30`). Since 2026-11-03
+([#21](https://github.com/tfojo1/jheem_analyses/pull/21)) the build calls the shared `manager-build.yml`, as the census
+build does, in a pinned environment: Ubuntu 24.04, R 4.4.2, and CRAN packages as
+Posit Package Manager served them on a fixed date (2026-10-27). Its release notes name
+the exact dated raw-data and dependency releases. A branch run in that environment,
+from the exact inputs of `v2026.10.30`, reproduced its data and metadata
+([run 41676762480](https://github.com/tfojo1/jheem_analyses/actions/runs/41676762480)). The operator path and check descriptions live with the code:
 
-- [`scripts/README.md` — HIV Surveillance Manager](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/scripts/README.md#hiv-surveillance-manager):
+- [`scripts/README.md` — HIV Surveillance Manager](https://github.com/tfojo1/jheem_analyses/blob/3ad30c62/scripts/README.md#hiv-surveillance-manager):
   upload sections, build, promote, refresh the shared-drive copy, load or pin a version.
-- [`data_processing/hiv.surveillance.manager/README.md`](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/data_processing/hiv.surveillance.manager/README.md):
+- [`data_processing/hiv.surveillance.manager/README.md`](https://github.com/tfojo1/jheem_analyses/blob/3ad30c62/data_processing/hiv.surveillance.manager/README.md):
   what the build verifies and what its checks mean.
-- Workflows: [build](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/.github/workflows/build-hiv-surveillance-manager.yml)
-  and [promote](https://github.com/tfojo1/jheem_analyses/blob/e1970a72/.github/workflows/promote-hiv-surveillance-manager.yml).
+- Workflows: [build](https://github.com/tfojo1/jheem_analyses/blob/3ad30c62/.github/workflows/build-hiv-surveillance-manager.yml),
+  which calls the [shared manager build](https://github.com/tfojo1/jheem_analyses/blob/3ad30c62/.github/workflows/manager-build.yml)
+  with the HIV steps in [`ci/`](https://github.com/tfojo1/jheem_analyses/tree/3ad30c62/data_processing/hiv.surveillance.manager/ci),
+  and [promote](https://github.com/tfojo1/jheem_analyses/blob/3ad30c62/.github/workflows/promote-hiv-surveillance-manager.yml).
 
 This page keeps the cross-repository record: what was established, and the
 questions that remain open. The full investigation text, including the input
@@ -124,8 +131,9 @@ serialized digest and stored manager name; it is not a byte-for-byte duplicate.
   only after that section is rebuilt and uploaded.
 - The build doesn't write to shared storage. After promotion, the shared-drive
   copy that syphilis section builds read must be refreshed by hand.
-- R is pinned to 4.4.2; other R packages are recorded in `session_info.txt`
-  but not locked.
+- The environment is pinned (Ubuntu 24.04, R 4.4.2, CRAN packages from a dated
+  snapshot). jheem2 and locations follow their branches unless a commit is named;
+  the commits used are recorded in `input_identity.txt`.
 - The consumer checks are focused queries, not full calibrations.
 - Reproducing a baseline records existing behavior. It doesn't certify
   scientific correctness.

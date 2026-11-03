@@ -523,6 +523,17 @@ had no recorded runs at this audit, and its optional handoff refers to a
 self-hosted workflow file absent from the verified revision. These are reasons
 to copy the boundary, not the workflow verbatim.
 
+Since 2026-11-03 ([#18](https://github.com/tfojo1/jheem_analyses/pull/18)) each syphilis build resolves the default
+aliases to the dated releases they point to, checks every downloaded input against its
+published SHA-256, and attaches `input_identity.txt`: the exact releases, every input's
+digest, the jheem2 and locations commits, and the R version. Section uploads create
+dated, checksummed `syphilis-sections-v*` releases. Only builds from `master` publish
+or push a spec commit; a build from another branch is a check and keeps its manager as
+a short-lived artifact. The unused section workflow is archived. A branch run from the
+inputs of `syphilis-manager-v2026.10.30` reproduced its data and metadata
+([run 41682166097](https://github.com/tfojo1/jheem_analyses/actions/runs/41682166097)). The syphilis build is not on the
+pinned environment: it uses R `release` (4.6.2 in that run).
+
 For the requested HIV increment, raw-to-section automation of syphilis is not
 a prerequisite. A candidate assembled from identified prebuilt sections can
 have a valid, explicit section-to-final claim while upstream lineage remains
