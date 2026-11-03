@@ -1,17 +1,18 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-10-25
+date-modified: 2026-11-03
 ---
 
-**Status (2026-10-25): Design guide, revised. Phase A (identity and registry) is
+**Status (2026-11-03): Design guide, revised. Phase A (identity and registry) is
 shipped on jheem2 `dev`. Phase B (selection) is in progress: its
 [decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)); SHIELD declares
-its managers in one file read natively and in the container (B1), and census is
-pinned to a dated release (B3, early, after a census update broke the SHIELD
-specification). Census manager CI, which publishes and checks new census releases
-(B2), is on the `jheem_analyses` default branch and has run once from it; its first
-contributor build is next ([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
+its managers in one file read natively and in the container (B1). Census was pinned
+to a dated release on 2026-10-23 (B3, early, after a census update broke the SHIELD
+specification) and unpinned on 2026-10-30, when SHIELD moved to the new census.
+Census manager CI, which publishes and checks new census releases (B2), is on the
+`jheem_analyses` default branch and had its first contributor build on 2026-10-28
+([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
 releases at different points of a process. This page fixes the target design,
@@ -390,6 +391,9 @@ census CI); B3 pins census, announced.
     census.
   - Moving to a newer census is a one-line change once it is published as a dated
     release and SHIELD works with it.
+  - On 2026-10-30 SHIELD moved to the October 21 census's ontology names and set census
+    back to `unpinned`; SHIELD's census loads again take the OneDrive path, unverified
+    and unrecorded ([details](manager-compatibility.qmd#census-versions)).
 - **B2 (in place 2026-10-24; first contributor build pending).** Rather than a
   publishing script, census manager CI
   ([details](manager-compatibility.qmd#census-ci); jheem_analyses

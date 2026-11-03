@@ -65,7 +65,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
 | 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-12) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; use and maintain** (2026-10-01) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; awaiting a real contributor update ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
-| 9 | **Data-manager identity and tracking** | **Phase A shipped; selection in progress** (2026-10-25) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, checks, exact reads, other applications ([D-028](decisions.qmd#d-028)). Selection defaults adopted ([D-029](decisions.qmd#d-029)); SHIELD's declaration file is shipped, read natively and in the container, with census pinned to a dated release; census releases are now built and checked in CI (item 10); records next ([design](investigations/data-manager-identity.qmd#phase-b-progress)) |
+| 9 | **Data-manager identity and tracking** | **Phase A shipped; selection in progress** (2026-10-25) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, checks, exact reads, other applications ([D-028](decisions.qmd#d-028)). Selection defaults adopted ([D-029](decisions.qmd#d-029)); SHIELD's declaration file is shipped, read natively and in the container, with census pinned to a dated release from 2026-10-23 until SHIELD moved to the new census on 2026-10-30; census releases are now built and checked in CI (item 10); records next ([design](investigations/data-manager-identity.qmd#phase-b-progress)) |
 | 10 | **Census manager CI** | **In place; first contributor build next** (2026-10-25) | Merged 2026-10-24. Builds compare each candidate with the promoted census and check that SHIELD starts with it. The first master build published the 2026-10-21 census as a **Needs review** pre-release because SHIELD does not start with it; the promoted census remains October 8's ([details](investigations/manager-compatibility.qmd#census-ci)) |
 
 ### Next
@@ -86,8 +86,8 @@ Three active tracks, updated 2026-10-25 ([D-026](decisions.qmd#d-026), [D-027](d
 2. **Data-manager identity and tracking.** Phase A is shipped: loaded managers
    record their release identity, a named registry exists, and jheem2 commits can
    be tested in the runtime image. Selection is shipped for SHIELD: one committed
-   file declares its releases, read by native and container runs, with census
-   pinned since the census change. Next: specifications, likelihoods,
+   file declares its releases, read by native and container runs; census was
+   pinned from the census change until 2026-10-30 and is unpinned again. Next: specifications, likelihoods,
    calibrations, and simsets record the managers they used. See the
    [design](investigations/data-manager-identity.qmd#phase-b-progress).
 3. **SHIELD container for real calibrations.** Installed on shield2 with engine

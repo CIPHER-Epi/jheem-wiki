@@ -1,15 +1,16 @@
 ---
 title: "Manager Selection and Compatibility"
 date: 2026-09-22
-date-modified: 2026-10-27
+date-modified: 2026-11-03
 ---
 
-**Status (2026-10-27):** Evidence-backed investigation. Exact release selection
+**Status (2026-11-03):** Evidence-backed investigation. Exact release selection
 and digest verification are implemented for the syphilis, HIV, and census managers.
 SHIELD now declares the releases it loads in one committed file,
 `applications/SHIELD/data_managers.csv`, which native and container runs both read
-([D-029](../decisions.qmd#d-029); [current state](data-manager-identity.qmd#phase-b-progress)):
-`syphilis-manager-v2026.10.09` and `census-manager-v2026.10.08`. The HIV build checks
+([D-029](../decisions.qmd#d-029); [current state](data-manager-identity.qmd#phase-b-progress)).
+It pins `syphilis-manager-v2026.10.09`; since 2026-10-30 its census is unpinned again
+([census versions](#census-versions)). The HIV build checks
 that common queries still work before publishing. Since 2026-10-24 census is built in
 CI, and each build checks that SHIELD starts with the candidate before it can be
 promoted without review ([census CI](#census-ci)); the syphilis and HIV managers are
@@ -462,6 +463,45 @@ the `census` ontology gains the years 2016–2019 and Connecticut's former count
 15 of 31 shared arrays changed values (14.9 million cells). The `census` ontology still
 has 5-year age groups, so SHIELD would presumably still fail as
 [above](#census-structure); this is inferred, not run.
+
+### SHIELD on the new census; the April 2025 census (2026-11-03) {#census-versions}
+
+On 2026-10-30 SHIELD moved to the census ontology names introduced with the October 21
+census ([`265ed172`](https://github.com/tfojo1/jheem_analyses/commit/265ed172275f541a4566c47aeb15cbf37f64f1c3)): it reads
+single-year ages from `single.year.age.census` (named `census` up to the October 8
+census) and 5-year groups from `census` (formerly `stratified.census`). The same day,
+[`cee6b3b6`](https://github.com/tfojo1/jheem_analyses/commit/cee6b3b6f32fc0267c5c1a727812d1eb4250bf9c) set census back to
+`unpinned` in `data_managers.csv`, so SHIELD sessions again load census through the
+OneDrive path, with no digest check and no record of the version. As of 2026-11-03 that
+path resolves to the October 28 census, also kept as
+[`census-manager-onedrive-v2026.10.28`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-onedrive-v2026.10.28).
+The file's comment still describes the October 8 pin.
+
+Because `census` changed meaning, SHIELD code and census versions now have to match.
+SHIELD from `265ed172` on stops with the October 8 census, or any earlier one, at
+`shield_source_code.R:330` ("'strata.names' must be a character vector"); earlier SHIELD
+code does not compile with the October 21 census or later ([above](#census-structure)).
+The move changes data, not only names. Between the October 8 and October 28 censuses,
+the fully stratified single-year population array is identical for 2010–2017; in the
+fully stratified 5-year array, totals over shared locations differ by +0.02% (2010) to
++1.1% (2023), and the median cell differs by about 10% from 2020 on.
+
+The census that ordinary sessions loaded from 2025-04-24 to 2026-10-08 (cached metadata
+from [`c72f502c`](https://github.com/tfojo1/jheem_analyses/commit/c72f502c27daad17870a52f1fccd0aba87d8689f) to
+[`8d28541f`](https://github.com/tfojo1/jheem_analyses/commit/8d28541f2a359394e933f7a8d548309ca79400ec)) had no release until
+2026-11-03, when it was published from the team's archive of census versions as
+[`census-manager-v2025.04.23`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2025.04.23)
+(108,009,923 bytes, SHA-256 `f8c71068…`). It is also the census in all nine dependency
+bundles from `data-managers-v2026.03.10` through `data-managers-v2026.08.26`. Analyses
+from that period can cite it and load it by tag with digest verification; it uses the
+names from before 2026-10-30. Compared with it, the October 8 census revises 2010–2023
+population (United States, 2023: 334,914,895 and 336,755,052) and 2011–2023 deaths, in
+addition to the years its release notes say it adds.
+
+**Verified against:** `jheem_analyses@42d281c5b869a3dae31f618a7779bc5f6a3dca74`; the
+releases named above; a load of `census-manager-v2025.04.23` by tag through
+`load.data.manager.from.cache()` at that commit, into an empty cache, which verified the
+digest.
 
 ## Syphilis CI as a partial template
 
