@@ -142,7 +142,12 @@ serialized digest and stored manager name; it is not a byte-for-byte duplicate.
 
 - **Section lineage.** Which processing revisions and raw inputs produced each
   of the five snapshotted sections remains unrecorded. Sections 1–4 were last
-  written August 24–26 and section 5 on May 13.
+  written August 24–26 and section 5 on May 13. Since 2026-11-03
+  ([#19](https://github.com/tfojo1/jheem_analyses/pull/19)) each section upload, for census, HIV, and syphilis, attaches
+  `provenance.json`: the commit and branch of the checkout it ran from, that
+  checkout's uncommitted changes under `data_processing/` and `commoncode/`, the R and
+  model-package versions, and each file's digest and modified time. It describes the
+  upload, not the section builds, and records no raw inputs.
 - **Massachusetts adult population.** Between the August 26 and August 31
   managers, adult-population values for `MA.1`, `MA.4`, and `MA.5` changed
   (10,810 cells across 13 arrays; for example, 2023 `MA.4` moved from 692,751

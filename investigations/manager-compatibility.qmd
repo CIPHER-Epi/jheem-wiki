@@ -527,7 +527,9 @@ Since 2026-11-03 ([#18](https://github.com/tfojo1/jheem_analyses/pull/18)) each 
 aliases to the dated releases they point to, checks every downloaded input against its
 published SHA-256, and attaches `input_identity.txt`: the exact releases, every input's
 digest, the jheem2 and locations commits, and the R version. Section uploads create
-dated, checksummed `syphilis-sections-v*` releases. Only builds from `master` publish
+dated, checksummed `syphilis-sections-v*` releases and, like the census and HIV
+uploads, record the checkout they ran from in `provenance.json`
+([#19](https://github.com/tfojo1/jheem_analyses/pull/19)). Only builds from `master` publish
 or push a spec commit; a build from another branch is a check and keeps its manager as
 a short-lived artifact. The unused section workflow is archived. A branch run from the
 inputs of `syphilis-manager-v2026.10.30` reproduced its data and metadata
