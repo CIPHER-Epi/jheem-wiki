@@ -47,7 +47,7 @@ on 2026-09-30.
 | Build | Manual **Build HIV Surveillance Manager** workflow on a GitHub-hosted runner. Inputs: sections, raw data, dependencies, and `jheem2` ref, with `latest`/`dev` defaults. Every download is verified against its published SHA-256, and the release records each input's exact version and digest. |
 | Checks | Structural and value comparison against the promoted manager; ten focused consumer checks (Ryan White queries, EHE national prevalence, syphilis adult-population import). A merge error or consumer failure fails the build. |
 | Removals | A build that removes structure present in the promoted manager is published as a pre-release marked **Needs review**. Promotion refuses it unless the reviewer confirms the removals. |
-| Promotion | Manual **Promote HIV Surveillance Manager** workflow moves `hiv-surveillance-manager-latest`. Building never changes the baseline or commits to the repository. |
+| Promotion | Manual **Promote HIV Surveillance Manager** workflow moves `hiv-surveillance-manager-latest`. Given no tag, it promotes the newest `hiv-surveillance-manager-v*` build ([#23](https://github.com/tfojo1/jheem_analyses/pull/23), 2026-11-03). Building never changes the baseline or commits to the repository. |
 | Loading | `SURVEILLANCE.MANAGER` follows `hiv-surveillance-manager-latest` through the same GitHub Releases loader as the syphilis manager (`e1970a72`). A specific build can be pinned with `release.tag`. |
 
 The first promoted version,

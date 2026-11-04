@@ -392,9 +392,12 @@ and
 | Onboarding (2026-10-23) | The census published on 2026-10-21 was reproduced exactly (31 of 31 arrays and all metadata) from three section files assembled from what the census scripts had saved before that day's rename, with the national-deaths step committed in `04628f9e` added to one. They were uploaded as `census-sections-v2026.10.23`. |
 | First promotion (2026-10-24) | `census-manager-latest` was promoted from `census-manager-v2026.10.08`, the census SHIELD pins (SHA-256 `fc45487d…`), so the first build compares against what SHIELD runs. |
 | First master build (2026-10-25) | [Run 40195381688](https://github.com/tfojo1/jheem_analyses/actions/runs/40195381688) built the 2026-10-21 census as [`census-manager-v2026.10.25`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.10.25) (SHA-256 `053779ef…`), a **Needs review** pre-release. Compared with the census published on 2026-10-21, its data are identical (31 of 31 arrays) and no metadata field differs; the files differ only in serialization. SHIELD starts with the control and fails with the candidate on the same `single.year.age.sexual.availability` error as above. The build found 9 structural removals, including single-year ages replaced by 5-year groups in three `census` stratifications, the race categories of the fully stratified array, and 12 locations lost from that array, among them Connecticut's counties, now listed as its planning regions. 7 of 17 shared arrays changed values. The merge took 1:54 and 7.6 GiB peak memory on the hosted runner; the whole run took 7.5 minutes. |
+| First contributor build (2026-10-28) | [Run 40707539641](https://github.com/tfojo1/jheem_analyses/actions/runs/40707539641) built the October 28 census from `census-sections-v2026.10.28.2` as [`census-manager-v2026.10.28`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.10.28) (SHA-256 `5a41631d…`), a **Needs review** pre-release: 8 structural removals against the October 8 census, and SHIELD code from before `265ed172` does not start with it. Its data and metadata are identical to the census published to OneDrive the same day (`census-manager-onedrive-v2026.10.28`, SHA-256 `0305f1f8…`). |
+| Second promotion (2026-11-03) | A branch check ([run 41750704372](https://github.com/tfojo1/jheem_analyses/actions/runs/41750704372): the same sections, the pinned environment, jheem2 `dev` at `2cc6115f`, baseline `census-manager-v2026.10.28`) reproduced the release's data and metadata (31 of 31 arrays), and SHIELD at master `a4670c36` compiled its specification and built the Baltimore engine with both. `census-manager-latest` was then promoted from `census-manager-v2026.10.28` ([run 41753258219](https://github.com/tfojo1/jheem_analyses/actions/runs/41753258219)), so builds again compare against the census its consumers load, and the SHIELD control runs on a census current SHIELD code starts with. |
 
 **Not yet changed.** Nothing loads `census-manager-latest` automatically. SHIELD
-loads the dated release it declares; other census loads use the OneDrive path; and the
+(whose census entry has been `unpinned` since 2026-10-30, [below](#census-versions)) and
+other census loads use the OneDrive path, and the
 syphilis and HIV builds take census from the `data-managers-v*` bundle. Moving those
 to the promoted census is a separate, announced change. The build does not check the
 HIV merge's adult-population aggregation, which failed on 2026-10-23 with a bundle
@@ -535,6 +538,14 @@ a short-lived artifact. The unused section workflow is archived. A branch run fr
 inputs of `syphilis-manager-v2026.10.30` reproduced its data and metadata
 ([run 41682166097](https://github.com/tfojo1/jheem_analyses/actions/runs/41682166097)). The syphilis build is not on the
 pinned environment: it uses R `release` (4.6.2 in that run).
+
+Since 2026-11-03 ([#23](https://github.com/tfojo1/jheem_analyses/pull/23), merged as
+[`572156a9`](https://github.com/tfojo1/jheem_analyses/commit/572156a99cf9db52b09968fec3760d79b87b0bea)) syphilis promotion
+checks the tag's form and every asset against its published SHA-256, as census
+promotion does, and no longer marks `syphilis-manager-latest` as the repository's latest
+release. All three promote workflows promote the newest dated build of their manager,
+ordered by the date in the tag, when no tag is given. Two of the HIV promotions from 2026-10-28 to
+2026-10-30 had failed on a mistyped tag.
 
 For the requested HIV increment, raw-to-section automation of syphilis is not
 a prerequisite. A candidate assembled from identified prebuilt sections can
