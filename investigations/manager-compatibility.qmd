@@ -501,10 +501,43 @@ names from before 2026-10-30. Compared with it, the October 8 census revises 201
 population (United States, 2023: 334,914,895 and 336,755,052) and 2011–2023 deaths, in
 addition to the years its release notes say it adds.
 
+**Section files of both censuses (2026-11-04).** Both censuses were merged by
+`census.manager.merge.R` from four section files (`population1`, `population2`,
+`population3`, `births.deaths`). By 2026-11-04 only `population2` and the October
+`population3` were still in the live section folder. The NAS's daily snapshots of
+2026-10-07 and 2026-10-08 held both complete sets, and they are now released as
+[`census-sections-v2025.04.23`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-sections-v2025.04.23)
+and
+[`census-sections-v2026.10.08`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-sections-v2026.10.08).
+Merging each set as the merge script does gives its census release exactly: identical
+data and the 12 metadata fields `compare.manager.reproduction()` checks, with only the
+creation and last-modified dates differing (jheem2 1.12.3.9000). The two sets differ
+only in `population3`, the county population and deaths section. The October 8 census
+is therefore the April 2025 census with that one section rebuilt on 2026-10-08.
+
+Neither census has been rebuilt from raw data, but both look rebuildable:
+
+- Each section's build time, compared with the census code's history, points to one or
+  two candidate script revisions.
+- Every raw file the older sections read predates their builds on the NAS.
+- `population3`'s inputs were checked in the raw-data releases: the October 8 build's
+  in `data-raw-v2026.10.21`, the April 2025 build's in `data-raw-v2026.08.24`. The live
+  folder no longer holds the April 2025 inputs.
+- The R package versions used for those builds were not recorded.
+
+The release notes give the revisions and inputs for each section. Section releases
+record neither, before or after census CI, so for later censuses the raw inputs and
+script revision can only be inferred this way. On 2026-11-04 the oldest NAS snapshot was
+from 2026-09-22.
+
 **Verified against:** `jheem_analyses@42d281c5b869a3dae31f618a7779bc5f6a3dca74`; the
 releases named above; a load of `census-manager-v2025.04.23` by tag through
 `load.data.manager.from.cache()` at that commit, into an empty cache, which verified the
-digest.
+digest. The section releases were checked on 2026-11-04 against the NAS snapshot files
+(SHA-256) and by re-merging, with the merge steps of `census.manager.merge.R` at
+[`fa5fedaa`](https://github.com/tfojo1/jheem_analyses/commit/fa5fedaabdbb2b6f76d00612a4ff7f33b3c238d5); the raw-input
+checks compared file sizes and modification times in the raw-data archives with the
+NAS.
 
 ## Syphilis CI as a partial template
 
