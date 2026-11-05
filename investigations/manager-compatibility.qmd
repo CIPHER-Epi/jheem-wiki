@@ -396,6 +396,7 @@ and
 | First master build (2026-10-25) | [Run 40195381688](https://github.com/tfojo1/jheem_analyses/actions/runs/40195381688) built the 2026-10-21 census as [`census-manager-v2026.10.25`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.10.25) (SHA-256 `053779ef…`), a **Needs review** pre-release. Compared with the census published on 2026-10-21, its data are identical (31 of 31 arrays) and no metadata field differs; the files differ only in serialization. SHIELD starts with the control and fails with the candidate on the same `single.year.age.sexual.availability` error as above. The build found 9 structural removals, including single-year ages replaced by 5-year groups in three `census` stratifications, the race categories of the fully stratified array, and 12 locations lost from that array, among them Connecticut's counties, now listed as its planning regions. 7 of 17 shared arrays changed values. The merge took 1:54 and 7.6 GiB peak memory on the hosted runner; the whole run took 7.5 minutes. |
 | First contributor build (2026-10-28) | [Run 40707539641](https://github.com/tfojo1/jheem_analyses/actions/runs/40707539641) built the October 28 census from `census-sections-v2026.10.28.2` as [`census-manager-v2026.10.28`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.10.28) (SHA-256 `5a41631d…`), a **Needs review** pre-release: 8 structural removals against the October 8 census, and SHIELD code from before `265ed172` does not start with it. Its data and metadata are identical to the census published to OneDrive the same day (`census-manager-onedrive-v2026.10.28`, SHA-256 `0305f1f8…`). |
 | Second promotion (2026-11-03) | A branch check ([run 41750704372](https://github.com/tfojo1/jheem_analyses/actions/runs/41750704372): the same sections, the pinned environment, jheem2 `dev` at `2cc6115f`, baseline `census-manager-v2026.10.28`) reproduced the release's data and metadata (31 of 31 arrays), and SHIELD at master `a4670c36` compiled its specification and built the Baltimore engine with both. `census-manager-latest` was then promoted from `census-manager-v2026.10.28` ([run 41753258219](https://github.com/tfojo1/jheem_analyses/actions/runs/41753258219)), so builds again compare against the census its consumers load, and the SHIELD control runs on a census current SHIELD code starts with. |
+| Contributor promotion (2026-11-04) | A contributor build from `census-sections-v2026.11.04` ([run 41911861979](https://github.com/tfojo1/jheem_analyses/actions/runs/41911861979)) published [`census-manager-v2026.11.04`](https://github.com/tfojo1/jheem_analyses/releases/tag/census-manager-v2026.11.04) (SHA-256 `102d8cde…`), marked **Needs review** for one structural removal: county census deaths (`deaths > census.deaths > census > year__location`) no longer include 2010. No value changed at shared coordinates, and SHIELD started with it. It was promoted the same day ([run 41918098038](https://github.com/tfojo1/jheem_analyses/actions/runs/41918098038)). The first year of deaths in each Census estimates series covers April to June only: summed over counties, 2000, 2010, and 2020 hold 0.56, 0.60, and 0.85 million deaths, against 2.4 to 3.5 million in the years around them. [`0d0f6069`](https://github.com/tfojo1/jheem_analyses/commit/0d0f6069dab5ed6e51bb4f41f9ec70c63fae1482) (2026-11-05) also drops 2000 and 2020 in section 2; it takes effect when that section is rebuilt. |
 
 **[Census consumers (2026-11-05).]{#census-consumers}**
 [#25](https://github.com/tfojo1/jheem_analyses/pull/25) (merged as
@@ -410,12 +411,18 @@ bundle, and new bundles no longer carry census. Syphilis section 3, which reads 
 during local section processing, loads it through the same loader, and census is no
 longer in the cached-metadata file. The syphilis merge does not read census.
 
-No values changed at the switch. `census-manager-latest` (`5a41631d…`) has the same data
-and metadata as the OneDrive census of 2026-10-28 (`0305f1f8…`), which ordinary sessions
-loaded and the current HIV and syphilis managers were built with. An HIV build with
-`hiv-surveillance-manager-v2026.10.30`'s inputs and census from `census-manager-latest`
-reproduced that release: 0 of 408 arrays differ, and no metadata field differs
-([run 41913951530](https://github.com/tfojo1/jheem_analyses/actions/runs/41913951530)). A
+The switch changed one thing for census loads that name no release. Ordinary sessions
+had loaded the OneDrive census of 2026-10-28 (`0305f1f8…`), which has the same data and
+metadata as `census-manager-v2026.10.28` (`5a41631d…`); the current HIV and syphilis
+managers were built with it. By the merge, `census-manager-latest` named
+`census-manager-v2026.11.04` (`102d8cde…`, [above](#census-ci)), which lacks 2010
+county census deaths and otherwise matches. An HIV build with
+`hiv-surveillance-manager-v2026.10.30`'s inputs and census from `census-manager-latest`,
+then still the October 28 release, reproduced that release: 0 of 408 arrays differ, and
+no metadata field differs
+([run 41913951530](https://github.com/tfojo1/jheem_analyses/actions/runs/41913951530)).
+The HIV merge copies county census deaths and aggregates them to MSAs, so the next HIV
+build loses 2010 there too, and the shared validation marks lost years for review. A
 machine that cannot reach GitHub keeps loading its local `cached/census.manager.rdata`,
 with a warning that its version is unknown. Sections are still built from raw files
 outside CI, and their releases record neither the script revision nor the raw inputs

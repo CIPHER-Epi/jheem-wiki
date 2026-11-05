@@ -405,9 +405,11 @@ census CI); B3 pins census, announced.
   review** if it removes structure or SHIELD fails. `census-manager-latest` started at
   the October 8 release SHIELD then pinned. The first master build (2026-10-25) published the
   October 21 census as `census-manager-v2026.10.25`, marked **Needs review**: SHIELD
-  did not start with it. Since 2026-11-03 `census-manager-latest` names
+  did not start with it. On 2026-11-03 `census-manager-latest` moved to
   `census-manager-v2026.10.28`, which has the same data and metadata as the October 28
-  census that ordinary sessions then loaded from OneDrive. Since 2026-11-05
+  census that ordinary sessions then loaded from OneDrive, and on 2026-11-04 a contributor
+  promoted `census-manager-v2026.11.04`, which drops the partial-year 2010 county deaths.
+  Since 2026-11-05
   ([#25](https://github.com/tfojo1/jheem_analyses/pull/25), master `02dc85d0`) a census
   load that names no release takes `census-manager-latest`, verified by digest; `unpinned`
   in SHIELD's file means the same; the HIV build takes census from a census release; and
