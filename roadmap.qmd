@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-10-25
+date-modified: 2026-11-05
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -66,7 +66,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-12) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; in contributor use** (2026-11-03) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; contributor builds promoted 2026-10-28 to 2026-10-30; on the shared, pinned manager build since 2026-11-03, where a branch run reproduced `v2026.10.30` ([investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
 | 9 | **Data-manager identity and tracking** | **Phase A shipped; selection in progress** (2026-10-25) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, checks, exact reads, other applications ([D-028](decisions.qmd#d-028)). Selection defaults adopted ([D-029](decisions.qmd#d-029)); SHIELD's declaration file is shipped, read natively and in the container, with census pinned to a dated release from 2026-10-23 until SHIELD moved to the new census on 2026-10-30; census releases are now built and checked in CI (item 10); records next ([design](investigations/data-manager-identity.qmd#phase-b-progress)) |
-| 10 | **Census manager CI** | **In contributor use; October 28 census promoted** (2026-11-03) | Merged 2026-10-24. Builds compare each candidate with the promoted census and check that SHIELD starts with it. The first master build published the 2026-10-21 census as a **Needs review** pre-release because SHIELD did not start with it; a contributor build on 2026-10-28 published the October 28 census the same way. After SHIELD moved to the new census names (2026-10-30), a branch check reproduced that release and SHIELD started with it; it was promoted on 2026-11-03. Nothing loads the promoted census automatically yet. Runs on the shared, pinned manager build since 2026-10-29 ([details](investigations/manager-compatibility.qmd#census-ci)) |
+| 10 | **Census manager CI** | **In contributor use; the promoted census is the only published census** (2026-11-05) | Merged 2026-10-24. Builds compare each candidate with the promoted census and check that SHIELD starts with it. The first master build published the 2026-10-21 census as a **Needs review** pre-release because SHIELD did not start with it; a contributor build on 2026-10-28 published the October 28 census the same way. After SHIELD moved to the new census names (2026-10-30), a branch check reproduced that release and SHIELD started with it; it was promoted on 2026-11-03. Since 2026-11-05 census loads that name no release, and the HIV build, take the promoted census; OneDrive is retired for census. Runs on the shared, pinned manager build since 2026-10-29 ([details](investigations/manager-compatibility.qmd#census-ci)) |
 
 ### Next
 
@@ -79,15 +79,17 @@ Three active tracks, updated 2026-10-25 ([D-026](decisions.qmd#d-026), [D-027](d
    of its sections, a candidate compared with the promoted census, a check that SHIELD
    starts with it, and deliberate promotion. The first master build flagged the
    October 21 census for review
-   ([census CI](investigations/manager-compatibility.qmd#census-ci)). Next: the first
-   contributor build, then a separate, announced change so that census loads naming no
-   release and the manager builds take the promoted census, rather than OneDrive and
-   the build-dependency bundle.
+   ([census CI](investigations/manager-compatibility.qmd#census-ci)). Contributors
+   build and promote census themselves since 2026-10-28, and since 2026-11-05 census
+   loads naming no release and the HIV build take the promoted census instead of
+   OneDrive and the build-dependency bundle
+   ([consumers](investigations/manager-compatibility.qmd#census-consumers)). Open: the
+   section releases do not record the script revision or raw inputs of each section.
 2. **Data-manager identity and tracking.** Phase A is shipped: loaded managers
    record their release identity, a named registry exists, and jheem2 commits can
    be tested in the runtime image. Selection is shipped for SHIELD: one committed
    file declares its releases, read by native and container runs; census was
-   pinned from the census change until 2026-10-30 and is unpinned again. Next: specifications, likelihoods,
+   pinned from the census change until 2026-10-30 and again since 2026-11-04. Next: specifications, likelihoods,
    calibrations, and simsets record the managers they used. See the
    [design](investigations/data-manager-identity.qmd#phase-b-progress).
 3. **SHIELD container for real calibrations.** Installed on shield2 with engine

@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-10-19
+date-modified: 2026-11-05
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,26 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-030 · Publish census only by promotion and retire its OneDrive path — supersedes the census interim in D-029 {#d-030}
+
+*2026-11-05.* D-029 left census loads that name no release on the cached-metadata
+(OneDrive) path until census manager CI existed. Census CI has been in contributor use
+since 2026-10-28, and the promoted census had the same data and metadata as the
+OneDrive copy. Keeping both paths let a census reach users without a build, its checks
+(including whether SHIELD starts), or a digest.
+
+Decision: a census load that names no release takes the promoted census,
+`census-manager-latest`, verified by digest; `unpinned` in an application's declaration
+file means the same. Builds that need census take it from a census release. Census is
+removed from the cached-metadata file and the build-dependency bundle. Loads that name
+a release are unchanged. Implemented in jheem_analyses
+[#25](https://github.com/tfojo1/jheem_analyses/pull/25)
+([details](investigations/manager-compatibility.qmd#census-consumers)).
+
+Rationale: with one publication path, every census in use has passed the build's
+checks and is identified by digest. The switch changed no values. Machines without
+GitHub access keep loading their local copy, with a warning that its version is unknown.
 
 ## D-029 · Declare each application's data managers in one committed file; a pipeline keeps its selection — refines D-027 and D-028 {#d-029}
 

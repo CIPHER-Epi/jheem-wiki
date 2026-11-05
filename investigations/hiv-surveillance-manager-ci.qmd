@@ -1,11 +1,11 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-11-03
+date-modified: 2026-11-05
 ---
 
-**Status (2026-11-03): In contributor use; on the shared manager build since
-2026-11-03.** The master build, automatic candidate publication, and exact loading were
+**Status (2026-11-05): In contributor use; on the shared manager build since
+2026-11-03; census from a census release since 2026-11-05.** The master build, automatic candidate publication, and exact loading were
 verified on 2026-10-01, and the build was handed to contributors on 2026-09-29. A
 contributor build on 2026-10-23 stopped in the merge step on incomplete county adult
 population for one state, likely because its dependency bundle carried the census
@@ -17,7 +17,11 @@ build does, in a pinned environment: Ubuntu 24.04, R 4.4.2, and CRAN packages as
 Posit Package Manager served them on a fixed date (2026-10-27). Its release notes name
 the exact dated raw-data and dependency releases. A branch run in that environment,
 from the exact inputs of `v2026.10.30`, reproduced its data and metadata
-([run 41676762480](https://github.com/tfojo1/jheem_analyses/actions/runs/41676762480)). The operator path and check descriptions live with the code:
+([run 41676762480](https://github.com/tfojo1/jheem_analyses/actions/runs/41676762480)).
+Since 2026-11-05 ([#25](https://github.com/tfojo1/jheem_analyses/pull/25)) the build takes
+census from a census release (input `census_release_tag`, default `census-manager-latest`)
+instead of the dependency bundle; with `v2026.10.30`'s other inputs it reproduced that
+release ([run 41913951530](https://github.com/tfojo1/jheem_analyses/actions/runs/41913951530)). The operator path and check descriptions live with the code:
 
 - [`scripts/README.md` — HIV Surveillance Manager](https://github.com/tfojo1/jheem_analyses/blob/3ad30c62/scripts/README.md#hiv-surveillance-manager):
   upload sections, build, promote, refresh the shared-drive copy, load or pin a version.
@@ -44,7 +48,7 @@ on 2026-09-30.
 | Piece | State |
 |---|---|
 | Section upload | `scripts/upload_hiv_sections.R` publishes a dated, checksummed `hiv-sections-v*` release and moves `hiv-sections-latest` to it. |
-| Build | Manual **Build HIV Surveillance Manager** workflow on a GitHub-hosted runner. Inputs: sections, raw data, dependencies, and `jheem2` ref, with `latest`/`dev` defaults. Every download is verified against its published SHA-256, and the release records each input's exact version and digest. |
+| Build | Manual **Build HIV Surveillance Manager** workflow on a GitHub-hosted runner. Inputs: sections, raw data, census (dependencies before 2026-11-05), and `jheem2` ref, with `latest`/`dev` defaults. Every download is verified against its published SHA-256, and the release records each input's exact version and digest. |
 | Checks | Structural and value comparison against the promoted manager; ten focused consumer checks (Ryan White queries, EHE national prevalence, syphilis adult-population import). A merge error or consumer failure fails the build. |
 | Removals | A build that removes structure present in the promoted manager is published as a pre-release marked **Needs review**. Promotion refuses it unless the reviewer confirms the removals. |
 | Promotion | Manual **Promote HIV Surveillance Manager** workflow moves `hiv-surveillance-manager-latest`. Given no tag, it promotes the newest `hiv-surveillance-manager-v*` build ([#23](https://github.com/tfojo1/jheem_analyses/pull/23), 2026-11-03). Building never changes the baseline or commits to the repository. |

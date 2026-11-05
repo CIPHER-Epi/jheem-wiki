@@ -1,17 +1,18 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-11-03
+date-modified: 2026-11-05
 ---
 
-**Status (2026-11-03): Design guide, revised. Phase A (identity and registry) is
+**Status (2026-11-05): Design guide, revised. Phase A (identity and registry) is
 shipped on jheem2 `dev`. Phase B (selection) is in progress: its
 [decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)); SHIELD declares
 its managers in one file read natively and in the container (B1). Census was pinned
 to a dated release on 2026-10-23 (B3, early, after a census update broke the SHIELD
-specification) and unpinned on 2026-10-30, when SHIELD moved to the new census.
-Census manager CI, which publishes and checks new census releases (B2), is on the
-`jheem_analyses` default branch and had its first contributor build on 2026-10-28
+specification), unpinned on 2026-10-30, when SHIELD moved to the new census, and
+pinned again on 2026-11-04. Census manager CI, which publishes and checks new census
+releases (B2), had its first contributor build on 2026-10-28, and since 2026-11-05 the
+promoted census is what every census load naming no release takes
 ([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
@@ -394,6 +395,7 @@ census CI); B3 pins census, announced.
   - On 2026-10-30 SHIELD moved to the October 21 census's ontology names and set census
     back to `unpinned`; SHIELD's census loads again take the OneDrive path, unverified
     and unrecorded ([details](manager-compatibility.qmd#census-versions)).
+  - On 2026-11-04 SHIELD's census was pinned to `census-manager-v2026.10.08` again.
 - **B2 (in place 2026-10-24; first contributor build 2026-10-28; October 28 census promoted 2026-11-03).** Rather than a
   publishing script, census manager CI
   ([details](manager-compatibility.qmd#census-ci); jheem_analyses
@@ -405,8 +407,12 @@ census CI); B3 pins census, announced.
   October 21 census as `census-manager-v2026.10.25`, marked **Needs review**: SHIELD
   did not start with it. Since 2026-11-03 `census-manager-latest` names
   `census-manager-v2026.10.28`, which has the same data and metadata as the October 28
-  census that SHIELD loads from OneDrive and the build-dependency bundles carry. Loads that name
-  no census release, and the build-dependency bundle, do not take the promoted census yet.
+  census that ordinary sessions then loaded from OneDrive. Since 2026-11-05
+  ([#25](https://github.com/tfojo1/jheem_analyses/pull/25), master `02dc85d0`) a census
+  load that names no release takes `census-manager-latest`, verified by digest; `unpinned`
+  in SHIELD's file means the same; the HIV build takes census from a census release; and
+  census is no longer published to OneDrive or bundled
+  ([details](manager-compatibility.qmd#census-consumers)).
 
 ## Delivery practice {#delivery}
 
