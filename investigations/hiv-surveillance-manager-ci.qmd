@@ -1,7 +1,7 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-11-05
+date-modified: 2026-11-06
 ---
 
 **Status (2026-11-05): In contributor use; on the shared manager build since
@@ -104,6 +104,24 @@ the current pointer. A live July 27 syphilis-manager download and offline reload
 also passed through this shared loader. These checks protect loading and identity,
 not the scientific compatibility of a selected manager.
 
+*2026-11-06.* Builds on the default jheem2 ref failed from 2026-11-03 to 2026-11-06.
+jheem2 `dev` [`2cc6115f`](https://github.com/CIPHER-Epi/jheem2/commit/2cc6115f76eb195f533b0af5ab638032e730f299)
+made `unhash.url()` drop the NaN that marks a missing cell, so the county-to-MSA
+aggregation stopped with `non-character argument`
+([run 42122044607](https://github.com/tfojo1/jheem_analyses/actions/runs/42122044607)).
+[CIPHER-Epi/jheem2#22](https://github.com/CIPHER-Epi/jheem2/pull/22), merged to `dev` as
+`f8f7322e`, fixes it and unhashes stored arrays in one lookup. A branch run with that
+fix and the failing build's inputs
+([run 42290825701](https://github.com/tfojo1/jheem_analyses/actions/runs/42290825701))
+passed its consumer checks. Its manager matched a `68b6cae4` build of the same inputs
+in values, url text and details text for all 409 arrays. The merge took 35:47 and
+14.7 GiB peak resident memory, against 28:20 and 10.6 GiB on `68b6cae4`
+([run 42064699786](https://github.com/tfojo1/jheem_analyses/actions/runs/42064699786)).
+The increase arrived with jheem2's per-cell metadata records (`3e85027b`): managers
+saved before them are converted on every load. Measured on macOS, loading
+`census-manager-v2026.11.05` took 160 s and 11.5 GiB on `dev`, against 8 s and
+3.6 GiB on `68b6cae4`, and 9.5 s and 4.8 GiB once re-saved in the new format.
+
 ## Release roles (2026-10-01)
 
 A published build is an identified artifact available for review or explicit
@@ -157,6 +175,11 @@ serialized digest and stored manager name; it is not a byte-for-byte duplicate.
   (10,810 cells across 13 arrays; for example, 2023 `MA.4` moved from 692,751
   to 2,097,024). The cause and scientific intent haven't been established; the
   promoted manager carries the August 31 values.
+- **Memory headroom.** Since 2026-11-06 the merge peaks at 14.7 GiB on a 16 GiB
+  hosted runner. Each build records its peak in `resource_metrics.txt`. Census and
+  section managers saved in jheem2's metadata format would remove most of the load-time
+  conversion; until then, a larger input or another jheem2 change could exceed the
+  runner's memory.
 - **Promotion gate depth.** Which full-model scenarios, if any, should gate
   promotion beyond the focused consumer checks.
 - **Raw-to-section automation.** Bringing section builds into CI one at a time
