@@ -1,10 +1,10 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-11-05
+date-modified: 2026-11-07
 ---
 
-**Status (2026-11-05): Design guide, revised. Phase A (identity and registry) is
+**Status (2026-11-07): Design guide, revised. Phase A (identity and registry) is
 shipped on jheem2 `dev`. Phase B (selection) is in progress: its
 [decisions](#decisions) are adopted ([D-029](../decisions.qmd#d-029)); SHIELD declares
 its managers in one file read natively and in the container (B1). Census was pinned
@@ -13,7 +13,9 @@ specification), unpinned on 2026-10-30, when SHIELD moved to the new census, and
 pinned again on 2026-11-04. Census manager CI, which publishes and checks new census
 releases (B2), had its first contributor build on 2026-10-28, and since 2026-11-05 the
 promoted census is what every census load naming no release takes
-([progress](#phase-b-progress)).** Requested by the team on 2026-10-09: make specifications,
+([progress](#phase-b-progress)). Phase C1 has started: since 2026-11-07 each step of
+the native modular SHIELD launcher writes a run record naming its code commits and
+data-manager releases ([progress](#phase-c-progress)).** Requested by the team on 2026-10-09: make specifications,
 likelihoods, calibrations, and saved simulation sets aware of which data managers
 (name and version) they used, including several managers at once and different
 releases at different points of a process. This page fixes the target design,
@@ -296,7 +298,7 @@ serialized manager from each control (132.7 MB on disk per city and stage, 9.5 s
 | 0 | Container runs take the syphilis release declared in committed code; shared verified store | jheem-containers, jheem_analyses | [D-027](../decisions.qmd#d-027); installation accepted | Shipped for container runs |
 | A | jheem2 test gate; manager identity; named registry; loader passes identity | jheem2, jheem-containers, jheem_analyses | Gates below; no output or behavior change | Shipped ([below](#phase-a-shipped)) |
 | B | Declared list per application (SHIELD first); resolve, verify, register, freeze; recorded overrides; containers read the list; census release path | jheem_analyses, jheem-containers | Native and container runs of one commit load identical releases for every SHIELD manager; an already-loaded manager with the wrong identity is reloaded | Next |
-| C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Planned |
+| C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Started 2026-11-07: native run records ([below](#phase-c-progress)); jheem2 records planned |
 | D | Comparison and checks at rerun, next stage, transmutation; option off, then warn | jheem2 | A rerun after a census change, and a stage whose syphilis release differs from its predecessor's, are reported by name | Planned |
 | C2 | Observed reads with capture scopes | jheem2 | The A-then-B test passes; no record claims `read` coverage it lacks | Planned |
 | E | Beyond SHIELD (above) | All | Every application's managers are declared and recorded | Planned |
@@ -415,6 +417,46 @@ census CI); B3 pins census, announced.
   in SHIELD's file means the same; the HIV build takes census from a census release; and
   census is no longer published to OneDrive or bundled
   ([details](manager-compatibility.qmd#census-consumers)).
+
+### Phase C progress (2026-11-07) {#phase-c-progress}
+
+C1 starts with a record of each native run, kept in jheem_analyses, ahead of the
+jheem2 records on artifacts.
+
+- **Run records (shipped 2026-11-07).** jheem_analyses
+  [#28](https://github.com/tfojo1/jheem_analyses/pull/28) (master
+  [`b0680792`](https://github.com/tfojo1/jheem_analyses/tree/b06807920f9ef88181f48c3ebb7c516abc655058)).
+  The modular launcher (`applications/SHIELD/shield_calib_setup_and_run_modular.R`)
+  runs setup, each chain, and assembly as separate processes, each of which sources
+  the checkouts and loads the managers again, so the code or a manager can change
+  between steps of one calibration. Each step now writes a DCF file to `run_records/`
+  in the calibration directory, named by step, chain, UTC time, host, and process ID.
+  A record holds:
+  - the step, chain, location, calibration code, time, host, user, R version, and the
+    seed the step set;
+  - the jheem_analyses and jheem2 commits and branches, with the tracked files that
+    have uncommitted changes (for jheem2 installed as a package, its version and
+    GitHub commit), and the versions and commits of bayesian.simulations,
+    distributions, and locations;
+  - for census and syphilis, the release `data_managers.csv` declares, the release
+    loaded with its SHA-256 and repository, the MD5 jheem2 records for the manager,
+    and whether the manager changed after loading. A manager loaded without a release
+    identity is marked `unrecorded`.
+
+  Failing to write a record is a warning; the calibration itself is unchanged. The
+  records sit beside the MCMC `cache/` directory, which is all that jheem2's assembly
+  and summary functions list.
+  - Verified: a local modular run of `calib.10.15.stage0` for C.12580 (setup, one
+    chain started, assembly) on jheem2 `dev` `f8f7322e` wrote a record at each step;
+    the commits matched both checkouts and the census and syphilis digests matched
+    the loader's.
+  - Regression check: `applications/SHIELD/tests/test-run-record.R` runs in the
+    manager-cache workflow on Linux and Windows.
+  - Not covered: `shield_calib_setup_and_run.R`, `shield_assemble_and_thin.R`,
+    intervention runs, untracked files, and which data the code read. The modular
+    launcher refuses recorded runs, so container runs keep their `inputs.json`.
+- **Records on artifacts (jheem2): planned.** `get.data.inputs()` and
+  `data_inputs.dcf`, as [designed](#recording), are not merged.
 
 ## Delivery practice {#delivery}
 
