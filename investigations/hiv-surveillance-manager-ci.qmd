@@ -1,7 +1,7 @@
 ---
 title: "HIV Surveillance Manager CI Investigation"
 date: 2026-09-22
-date-modified: 2026-11-06
+date-modified: 2026-11-07
 ---
 
 **Status (2026-11-05): In contributor use; on the shared manager build since
@@ -122,6 +122,17 @@ saved before them are converted on every load. Measured on macOS, loading
 `census-manager-v2026.11.05` took 160 s and 11.5 GiB on `dev`, against 8 s and
 3.6 GiB on `68b6cae4`, and 9.5 s and 4.8 GiB once re-saved in the new format.
 
+*2026-11-07.* Because the builds follow jheem2 `dev` by default, a scheduled
+**Check jheem2 dev** workflow ([#27](https://github.com/tfojo1/jheem_analyses/pull/27),
+`3e4a4420`) now runs the HIV build on each new `dev` commit: every six hours it
+compares `dev` with the commit it last checked and, if `dev` has moved, builds with the
+default inputs, comparison and consumer checks. It publishes nothing (the shared build's
+`publish` input is false, with a read-only token), and it can be dispatched for any
+jheem2 ref. Every manager build's run summary also reports the merge's peak memory
+against the runner's. The pre-merge test
+([run 42383750433](https://github.com/tfojo1/jheem_analyses/actions/runs/42383750433),
+`dev` at `f8f7322e`) passed: merge 29:35, 14.7 GiB of the runner's 15.6 GiB.
+
 ## Release roles (2026-10-01)
 
 A published build is an identified artifact available for review or explicit
@@ -155,7 +166,9 @@ serialized digest and stored manager name; it is not a byte-for-byte duplicate.
   copy that syphilis section builds read must be refreshed by hand.
 - The environment is pinned (Ubuntu 24.04, R 4.4.2, CRAN packages from a dated
   snapshot). jheem2 and locations follow their branches unless a commit is named;
-  the commits used are recorded in `input_identity.txt`.
+  the commits used are recorded in `input_identity.txt`. Since 2026-11-07 each new
+  jheem2 `dev` commit is also built by the scheduled check; other managers' builds
+  on `dev` are not checked.
 - The consumer checks are focused queries, not full calibrations.
 - Reproducing a baseline records existing behavior. It doesn't certify
   scientific correctness.
@@ -176,7 +189,8 @@ serialized digest and stored manager name; it is not a byte-for-byte duplicate.
   to 2,097,024). The cause and scientific intent haven't been established; the
   promoted manager carries the August 31 values.
 - **Memory headroom.** Since 2026-11-06 the merge peaks at 14.7 GiB on a 16 GiB
-  hosted runner. Each build records its peak in `resource_metrics.txt`. Census and
+  hosted runner. Each build records its peak in `resource_metrics.txt` and, since
+  2026-11-07, on its run summary. Census and
   section managers saved in jheem2's metadata format would remove most of the load-time
   conversion; until then, a larger input or another jheem2 change could exceed the
   runner's memory.
