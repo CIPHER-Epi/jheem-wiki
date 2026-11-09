@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-11-05
+date-modified: 2026-11-09
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,42 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-031 · Build model objects under an explicit data binding; withdraw exact-read capture and comparison checks — refines D-027 and D-028 {#d-031}
+
+*2026-11-09.* The 2026-10-09 request asked that specifications and likelihoods know
+data managers by name and that running them supply the versions. The design that
+followed ([D-028](#d-028)) made selection explicit and recorded what a session loaded,
+but left model code reaching data through session state: jheem2 calls specification
+functions with only a location and metadata, so they read global variables;
+likelihoods use the manager object a registration captured when its file was sourced;
+reruns use whatever is in memory. Records could only list what was loaded, and two
+planned phases, exact read capture (C2) and comparison checks (D), existed to
+compensate.
+
+Decision: model objects are built under an explicit binding of names to manager
+releases. jheem2 keeps a stack of active bindings, with the application's session
+binding at the bottom. Kernel construction, likelihood instantiation, and calibration
+setup run under the active binding and record it with the names they used;
+`get.data.manager(name)` resolves through it, and the existing global names become
+aliases that do the same. Calibration registrations store their manager by name,
+resolved at setup, and `instantiate.likelihood()` accepts a name. Calibration
+controls store the binding's identity instead of the manager; reruns, transmutation,
+and later stages rebuild the recorded binding through a release resolver the
+application supplies. C2 and D are withdrawn and replaced by
+phases F1–F5; C1's records remain the record for code that runs without a binding.
+Which data a likelihood uses is unchanged. Delivery follows D-028: additive steps
+merge when their gates pass, and behavior changes ship behind options that default to
+today's behavior. See the [design](investigations/data-manager-identity.qmd#binding).
+
+Rationale: one cause, data reached through session state, underlies the remaining
+hazards: one variable naming two managers, selection captured when files are sourced,
+reruns that use memory, and about 2.5 GB of manager serialized into every calibration
+control. Binding removes it, so records name the managers used by construction and
+reproduction is the default rather than a check. Aliases make every existing
+reference (317 lines in SHIELD) follow the binding without being edited, so SHIELD's
+adoption touches its setup and one specification argument, and the same releases give
+identical numbers, verified by the same gates as Phase A.
 
 ## D-030 · Publish census only by promotion and retire its OneDrive path — supersedes the census interim in D-029 {#d-030}
 
