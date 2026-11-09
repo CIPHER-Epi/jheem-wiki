@@ -7,9 +7,11 @@ date-modified: 2026-11-09
 **Status (2026-11-09): Design guide, revised. Phase A (identity and registry) is
 shipped on jheem2 `dev`. Phase B (selection) is shipped for SHIELD: one committed file
 declares its managers, read natively and in the container, and census has dated
-releases built and checked in CI ([progress](#phase-b-progress)). Phase C1 has started:
+releases built and checked in CI ([progress](#phase-b-progress)). Phase C1 is shipped:
 since 2026-11-07 each step of the native modular SHIELD launcher writes a run record
-naming its code commits and data-manager releases ([progress](#phase-c-progress)). The
+naming its code commits and data-manager releases, and since 2026-11-09 jheem2 kernels,
+likelihoods, simulation sets, and calibrations record the managers in use
+([progress](#phase-c-progress)). The
 target is now explicit binding (Phase F, [design](#binding),
 [D-031](../decisions.qmd#d-031)): model objects are built under a named binding of
 manager releases, which they record and which can be supplied again; it replaces the
@@ -157,6 +159,13 @@ Nothing records what the others resolved to.
   syphilis manager: 2,471.5 MB serialized, against 0.8 MB for the calibration settings
   without it. Loading it took 9.5 s and about 2.9 GB of memory. The census manager is
   recorded nowhere.
+- **Declaration read before setup's own pull (found 2026-11-09).** In an interactive
+  session, SHIELD setup reads `data_managers.csv` and then pulls jheem_analyses, so a
+  checkout that is behind reads the old declaration and sources the rest from the new
+  commit. A checkout last pulled while census was `unpinned` loaded the promoted census
+  instead of the 10.08 pin it pulled. jheem_analyses
+  [#29](https://github.com/tfojo1/jheem_analyses/pull/29) (open) stops setup when the
+  pull moves the checkout.
 - **Releases change mid-pipeline unnoticed.** One city's native pipeline ran stages
   0–1 before the syphilis release of 2026-10-09 existed and stages 2–3 with it; only
   log lines show it.
@@ -389,7 +398,7 @@ start). A manager without a release stays embedded.
 | 0 | Container runs take the syphilis release declared in committed code; shared verified store | jheem-containers, jheem_analyses | [D-027](../decisions.qmd#d-027); installation accepted | Shipped for container runs |
 | A | jheem2 test gate; manager identity; named registry; loader passes identity | jheem2, jheem-containers, jheem_analyses | Gates below; no output or behavior change | Shipped ([below](#phase-a-shipped)) |
 | B | Declared list per application (SHIELD first); resolve, verify, register; containers read the list; census release path | jheem_analyses, jheem-containers | Native and container runs of one commit load identical releases for every SHIELD manager | Shipped for SHIELD ([below](#phase-b-progress)); the reload rule and recorded overrides move to F2 |
-| C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Native run records shipped 2026-11-07; jheem2 records implemented, not merged ([below](#phase-c-progress)) |
+| C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Shipped: native run records 2026-11-07, jheem2 records 2026-11-09 ([below](#phase-c-progress)) |
 | F1 | Binding, active-binding stack, resolver with recording frames, aliases, release-resolver hook; kernel, likelihood, instructions, and calibration-setup hooks; names accepted for `data.manager`; `bound` records | jheem2 | jheem2 tests on the toy fixture: two bindings in one session give two kernels with different values and records; instructions built under one binding stop when instantiated under another; alias assignment and double aliasing behave as designed; with no binding, records equal C1's; earlier artifacts load | Next |
 | F2 | SHIELD adopts binding: setup builds it (reload rule, recorded overrides), aliases, and the specification declares its names | jheem_analyses | Kernel inputs and a short container calibration bit-identical to before; records are `bound` and name the managers each artifact used; native and container runs of one commit record the same binding | Planned |
 | F3 | Calibration controls store the binding's identity, not the manager; chains rebuild the binding from the calibration directory; option off, then on | jheem2, jheem_analyses | Chains bit-identical; control size and chain-start time and memory measured before and after | Planned |
@@ -553,11 +562,20 @@ jheem2 records on artifacts.
   - Not covered: `shield_calib_setup_and_run.R`, `shield_assemble_and_thin.R`,
     intervention runs, untracked files, and which data the code read. The modular
     launcher refuses recorded runs, so container runs keep their `inputs.json`.
-- **Records on artifacts (jheem2): implemented, not merged.** `get.data.inputs()` and
-  `data_inputs.dcf`, as [designed](#recording), are implemented and tested against
-  jheem2 `dev` `f8f7322e`; a local `calib.10.15.stage0` setup for C.12580 wrote a
-  `data_inputs.dcf` whose releases and digests match its run record. They become the
-  record for code that runs without a binding, which F1 extends with `bound`.
+- **Records on artifacts (shipped 2026-11-09).** jheem2
+  [#23](https://github.com/CIPHER-Epi/jheem2/pull/23) (`dev`
+  [`70857a6e`](https://github.com/CIPHER-Epi/jheem2/commit/70857a6eae2eb44198741575349c4a4c61d55bb3)):
+  `get.data.inputs()` for kernels, likelihoods, simulation sets, and calibration
+  directories, and `data_inputs.dcf` written by calibration setup, as
+  [designed](#recording). They are the record for code that runs without a binding,
+  which F1 extends with `bound`.
+  - Verified: a local `calib.10.15.stage0` setup for C.12580 wrote a `data_inputs.dcf`
+    whose releases and digests match its run record.
+  - Regression checks: `tests/data_inputs.R` passes in the runtime image through the
+    jheem-containers `jheem2_test_ref` dispatch (run
+    [42654206996](https://github.com/ncsizemore/jheem-containers/actions/runs/42654206996));
+    kernel inputs for the 21 of SHIELD's 32 configured cities that build locally are
+    identical to `dev` `f8f7322e` (the other 11 fail identically on both).
 
 ## Delivery practice {#delivery}
 
