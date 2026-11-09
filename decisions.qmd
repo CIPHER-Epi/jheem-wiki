@@ -10,6 +10,27 @@ Format: context → decision → rationale. Status is **Accepted** unless marked
 
 ---
 
+## D-032 · jheem2 runs its own tests on every push; the runtime image stays the integration gate — refines D-028 {#d-032}
+
+*2026-11-09.* [D-028](#d-028) ran jheem2's tests only through a manual jheem-containers
+dispatch, which builds the whole SHIELD runtime image before testing a commit (about
+half an hour per run). That suited Phase A's two rare test runs, but binding
+([D-031](#d-031)) changes kernel construction, likelihood instantiation, and
+calibration setup, and needs feedback on every push. jheem2 is public, so GitHub Actions
+minutes are free, and its tests use a toy specification and tiny managers, not SHIELD
+data.
+
+Decision: a jheem2 workflow installs the package on Linux with current R and runs every
+`tests/*.R` file on each push that touches the package, and on demand
+([#24](https://github.com/CIPHER-Epi/jheem2/pull/24)). It is informational, not a
+required check, because the team pushes directly to `dev`; making it required is a
+later team decision. Scripts under `R/tests`, `R/beta_code`, and `R/production_tests`
+are not run. The jheem-containers dispatch remains the integration gate for changes
+that reach SHIELD runs, since it builds jheem2 in the pinned runtime the runs use.
+
+Rationale: fast, automatic feedback in the repository where changes happen, without
+changing how the team works. The first run took under five minutes.
+
 ## D-031 · Build model objects under an explicit data binding; withdraw exact-read capture and comparison checks — refines D-027 and D-028 {#d-031}
 
 *2026-11-09.* The 2026-10-09 request asked that specifications and likelihoods know

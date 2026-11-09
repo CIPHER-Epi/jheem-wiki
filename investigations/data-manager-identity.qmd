@@ -164,8 +164,8 @@ Nothing records what the others resolved to.
   checkout that is behind reads the old declaration and sources the rest from the new
   commit. A checkout last pulled while census was `unpinned` loaded the promoted census
   instead of the 10.08 pin it pulled. jheem_analyses
-  [#29](https://github.com/tfojo1/jheem_analyses/pull/29) (open) stops setup when the
-  pull moves the checkout.
+  [#29](https://github.com/tfojo1/jheem_analyses/pull/29) (merged 2026-11-09, master `5e0cd82d`) stops
+  setup when the pull moves the checkout.
 - **Releases change mid-pipeline unnoticed.** One city's native pipeline ran stages
   0–1 before the syphilis release of 2026-10-09 existed and stages 2–3 with it; only
   log lines show it.

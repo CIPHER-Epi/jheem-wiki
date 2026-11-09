@@ -28,7 +28,7 @@ Per-repo engineering practice, as verifiable facts. This table is the program's 
 
 | Repo | README | Tests | CI | Release discipline |
 |---|---|---|---|---|
-| `jheem2` | — | 100 recursive test/reprex/profiling artifacts; one `tests/` file (data-manager identity), run in the runtime image by a manual jheem-containers dispatch; no automatic gate | — | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
+| `jheem2` | — | 100 recursive test/reprex/profiling artifacts; two `tests/` files (data-manager identity, data-input records), also run in the runtime image by a manual jheem-containers dispatch | `tests/*.R` on every push that touches the package, informational (since 2026-11-09, [D-032](decisions.qmd#d-032)) | manual version bumps on master, no git tags ([D-012](decisions.qmd)) |
 | `jheem_analyses` | no root README | syphilis structural validation; HIV comparison and consumer checks; SHIELD static/unit/model and recorded-runtime checks | manager build/promote workflows; Linux/Windows release-cache tests; ordinary SHIELD model workflow red in every run (56 failures, 3 cancelled of the last 59, 2026-10-05) | versioned, digest-verified manager releases (syphilis, HIV); ordinary latest loading also verifies identity |
 | `bayesian.simulations` | — | — | — | — |
 | `distributions` | — | — | — | — |
