@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-10-08
+date-modified: 2026-11-11
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -161,6 +161,15 @@ can consume additional RNG draws after a restart. Recording a seed and
 successfully resuming therefore do not establish identical stochastic replay.
 The diagnostic is landed, but a separately reviewed checkpoint/RNG correction
 remains open. No engine or sampler behavior was changed by that experiment.
+
+On 2026-11-10 a production four-stage calibration was checked piece by piece
+against committed source on the servers that ran it, without a full rerun: its
+setups, the code its saved controls embed, and 30 sampled chunks were
+bit-identical, provided each replayed chunk rebuilt its starting simulation before
+setting the chunk seed
+([details](shield-container-pilot.qmd#production-replay)). The saved chain
+controls and chunks are enough to verify a finished run, as long as they are kept
+and the commits that ran it are known.
 
 The [October 4 delivery sequence](shield-container-pilot.qmd#operational-delivery)
 prioritizes useful preserved execution and artifact-led recovery independently

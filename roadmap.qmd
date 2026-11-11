@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-11-09
+date-modified: 2026-11-11
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -104,15 +104,19 @@ Three active tracks, updated 2026-10-25 ([D-026](decisions.qmd#d-026), [D-027](d
    [toward real calibrations](investigations/shield-container-pilot.qmd#operational-delivery).
 
 **Same-seed reproducibility** is demonstrated for a real stage-0 calibration
-([comparison](investigations/shield-container-pilot.qmd#native-comparison)); later
-stages are compared as the team runs them.
+natively and in the container
+([comparison](investigations/shield-container-pilot.qmd#native-comparison)). On
+2026-11-10 a production four-stage calibration (ten locations, four-chain stages 3
+and 4) replayed bit-identically from committed source on the servers that ran it
+([replay](investigations/shield-container-pilot.qmd#production-replay)); later
+stages in the container remain to be compared.
 
 **Bounded follow-ups:** share the resume finding with the package owner for a
-reviewed checkpoint/RNG proposal. Load immutable manager releases cache-first, so
-launches don't depend on GitHub availability or tokens: each SHIELD R process now
-looks up two named releases, so a ten-city, four-chain stage makes about 80 API
-calls at launch, above the 60-per-hour unauthenticated limit. Separate known failing
-SHIELD checks from must-pass ones. HIV CI stays in use-and-maintain mode;
+reviewed checkpoint/RNG proposal. Separate known failing SHIELD checks from
+must-pass ones. (Since 2026-10-23, verified cached manager releases load without a
+GitHub lookup, so launches no longer depend on the 60-per-hour unauthenticated API
+limit ([#14](https://github.com/tfojo1/jheem_analyses/pull/14)); code from before
+then still makes two lookups per R process.) HIV CI stays in use-and-maintain mode;
 syphilis alignment follows real HIV use ([D-022](decisions.qmd#d-022)). Later
 derived runs link to their parent artifacts
 ([derived lineage](investigations/reproducibility.qmd#derived-lineage));
