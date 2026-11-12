@@ -1,7 +1,7 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-11-09
+date-modified: 2026-11-12
 ---
 
 **Status (2026-11-09): Design guide, revised. Phase A (identity and registry) is
@@ -9,7 +9,8 @@ shipped on jheem2 `dev`. Phase B (selection) is shipped for SHIELD: one committe
 declares its managers, read natively and in the container, and census has dated
 releases built and checked in CI ([progress](#phase-b-progress)). Phase C1 is shipped:
 since 2026-11-07 each step of the native modular SHIELD launcher writes a run record
-naming its code commits and data-manager releases, and since 2026-11-09 jheem2 kernels,
+naming its code commits and data-manager releases (since 2026-11-12 also its
+outputs with digests and its full package list), and since 2026-11-09 jheem2 kernels,
 likelihoods, simulation sets, and calibrations record the managers in use
 ([progress](#phase-c-progress)). The
 target is now explicit binding (Phase F, [design](#binding),
@@ -562,6 +563,30 @@ jheem2 records on artifacts.
   - Not covered: `shield_calib_setup_and_run.R`, `shield_assemble_and_thin.R`,
     intervention runs, untracked files, and which data the code read. The modular
     launcher refuses recorded runs, so container runs keep their `inputs.json`.
+- **Run-record additions (shipped 2026-11-12).** jheem_analyses
+  [#31](https://github.com/tfojo1/jheem_analyses/pull/31) (master
+  [`1cf6715d`](https://github.com/tfojo1/jheem_analyses/tree/1cf6715d51433ec41d5adf8766be80ceccd19ad1)).
+  Reconstructing records by hand for a finished production calibration showed what
+  the 2026-11-07 record would have missed: a commit that existed only in one
+  server's history, deSolve versions that differed between servers, assemblies
+  killed for memory that left no trace of failing, and no digests of the outputs.
+  Each record now adds:
+  - whether each checkout's commit is on a remote branch, and how many commits it
+    is ahead of its upstream;
+  - the platform (operating system, BLAS, LAPACK) and every package loaded beyond
+    base R, with its version, library, and GitHub commit when there is one;
+  - when the step finishes, an `end` entry and one `output` entry per file the step
+    saved: path, size, modification time, and SHA-256 (files over 20 GB by default
+    are listed without a digest). A step that stops early has no `end` entry.
+  - Verified: the modular launcher on a production server, writing to a scratch
+    root, ran setup, one chain, and assembly of a stage-0 calibration for C.12580;
+    each record ended with an `end` entry and its outputs, and the recorded digests
+    match `sha256sum` for every file no later step rewrote.
+  - Regression check: `test-run-record.R` in the manager-cache workflow on Linux
+    and Windows. Digests come from `openssl`, as in the manager cache, because the
+    system hashing tools are absent on Windows.
+  - Still not covered: the other launchers and the intervention and analysis
+    scripts, and untracked files read from `cached/`.
 - **Records on artifacts (shipped 2026-11-09).** jheem2
   [#23](https://github.com/CIPHER-Epi/jheem2/pull/23) (`dev`
   [`70857a6e`](https://github.com/CIPHER-Epi/jheem2/commit/70857a6eae2eb44198741575349c4a4c61d55bb3)):

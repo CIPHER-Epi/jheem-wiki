@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-11-11
+date-modified: 2026-11-12
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -170,6 +170,24 @@ setting the chunk seed
 ([details](shield-container-pilot.qmd#production-replay)). The saved chain
 controls and chunks are enough to verify a finished run, as long as they are kept
 and the commits that ran it are known.
+
+On 2026-11-11 and 2026-11-12 that calibration and its interventions were frozen for
+a manuscript
+([`PAPER1-FREEZE.md`](https://github.com/tfojo1/jheem_analyses/blob/1cf6715d51433ec41d5adf8766be80ceccd19ad1/applications/SHIELD/PAPER1-FREEZE.md)):
+tags in jheem_analyses and jheem2 at the commits that ran each step (one commit
+existed only in one server's git history and was recovered from it); 230
+reconstructed run records beside their outputs, in the native format and labeled
+with their sources; each server's R version and package list; and a SHA-256 list
+of 23,669 files (2.70 TB). The results stay in place on the NAS, whose snapshots
+roll off after a few weeks, so the list detects later changes but does not prevent
+them; durable retention is undecided. The reconstruction found two gaps outside the
+record. The intervention definitions draw effectiveness values without a seed, so
+the saved intervention results are the only copy of the values used. SHIELD's
+startup loads an untracked file, `cached/google_mobility_data.Rdata`, that no
+SHIELD code reads; it is now a release
+([`google-mobility-v2026.11.12`](https://github.com/tfojo1/jheem_analyses/releases/tag/google-mobility-v2026.11.12)).
+Gaps the reconstruction exposed in the automatic record were closed on 2026-11-12
+([run-record additions](data-manager-identity.qmd#phase-c-progress)).
 
 The [October 4 delivery sequence](shield-container-pilot.qmd#operational-delivery)
 prioritizes useful preserved execution and artifact-led recovery independently
