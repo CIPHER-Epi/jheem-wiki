@@ -1,7 +1,7 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-11-11
+date-modified: 2026-11-13
 ---
 
 **Status (2026-10-19):** Opt-in pilot installed on one team server. It runs
@@ -372,7 +372,9 @@ operationally valid but are not trace-identical to uninterrupted ones.
   the container to write there.
 - **The ordinary SHIELD test workflow** is not a gate. It fails at its static tier
   in every run (56 failures and 3 cancellations in the last 59 runs as of
-  2026-10-05), mixing open review findings with checks, and skips later tiers.
+  2026-10-05), mixing open review findings with checks, and skips later tiers. Since
+  2026-11-13 it fails only on findings not already listed, and all three tiers run
+  ([#32](https://github.com/tfojo1/jheem_analyses/pull/32)).
 - **Growth-penalty denominator.** The `start + 1` change is a scientific choice
   for zero and small baselines, for the model owners rather than infrastructure work.
 

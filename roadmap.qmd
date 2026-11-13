@@ -1,7 +1,7 @@
 ---
 title: "Modernization Roadmap"
 date: 2026-09-02
-date-modified: 2026-11-11
+date-modified: 2026-11-13
 ---
 
 This page is the **working tracker**: what's in flight, in what order, with technical detail. For the plain-language case — what the program delivers and why it's worth the time — see [The Program](program.qmd). Rationale for individual choices lives in the [decision log](decisions.qmd).
@@ -45,9 +45,11 @@ are unaffected. `jheem_analyses` `master` has no protection.
 
 The modeling core still has much less automated protection than the delivery
 platform. The SHIELD model suite mixes deliberately failing review findings with
-checks, so a red run doesn't distinguish a new regression, and its later tiers
-are skipped ([workflow](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/.github/workflows/test-shield.yml),
-[suite status](https://github.com/tfojo1/jheem_analyses/blob/16eff985372fd65be46871bf164acb6eff14beb3/applications/SHIELD/tests/README.md)).
+checks. Since 2026-11-13 it lists the findings it reports on master, one line per
+offender, and its workflow fails only on a finding not listed; its unit and model
+tiers, which had never run in CI, now run on every SHIELD change
+([#32](https://github.com/tfojo1/jheem_analyses/pull/32)). The 67 listed findings
+remain open ([list](https://github.com/tfojo1/jheem_analyses/blob/7e5c5ee9995838f8acdef6ee0a51c013c748cf40/applications/SHIELD/tests/known_failures.txt)).
 
 ## Sequence
 
@@ -65,7 +67,7 @@ Work-in-progress cap: **two active tracks** ([D-009](decisions.qmd)).
 | 6 | **Model-manager compatibility and rollback** | **Loader safety landed** (2026-10-02) | Failed online resolution stops instead of substituting a cached manager (`336df26d`); SHIELD pins September 9; promotion gate open ([details](investigations/manager-compatibility.qmd#stage1-check)) |
 | 7 | **SHIELD container for real calibrations** | **Installed; operator trial next** (2026-10-12) | Location lists through four-chain stage 3 from captured `jheem_analyses` and `jheem2`, with frozen inputs and run records; installed on shield2; a real stage-0 calibration bit-identical natively and in the container. Next: first operator trial, retention ([current state](investigations/shield-container-pilot.qmd#current-state)) |
 | 8 | **HIV surveillance-manager CI** | **Shipped; in contributor use** (2026-11-03) | `v2026.10.01` published automatically with 603 structural and ten consumer checks; contributor builds promoted 2026-10-28 to 2026-10-30; on the shared, pinned manager build since 2026-11-03, where a branch run reproduced `v2026.10.30`. Builds on the default jheem2 ref failed 2026-11-03 to 2026-11-06 until a jheem2 fix ([CIPHER-Epi/jheem2#22](https://github.com/CIPHER-Epi/jheem2/pull/22)); the merge now peaks at 14.7 GiB on the 16 GiB runner. Since 2026-11-07 a scheduled check builds each new jheem2 `dev` commit and publishes nothing ([#27](https://github.com/tfojo1/jheem_analyses/pull/27); [investigation](investigations/hiv-surveillance-manager-ci.qmd)) |
-| 9 | **Data-manager identity and tracking** | **Phases A, B (SHIELD), and C1 shipped; binding is the target** (2026-11-09) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, then explicit binding, then other applications ([D-028](decisions.qmd#d-028), [D-031](decisions.qmd#d-031)). Selection defaults adopted ([D-029](decisions.qmd#d-029)); SHIELD's declaration file is shipped, read natively and in the container, and census releases are built and checked in CI (item 10). Since 2026-11-07 each step of the native modular SHIELD launcher writes a run record of its code commits and data-manager releases with digests ([#28](https://github.com/tfojo1/jheem_analyses/pull/28)), and since 2026-11-09 jheem2 kernels, likelihoods, simulation sets, and calibrations record the managers in use ([jheem2 #23](https://github.com/CIPHER-Epi/jheem2/pull/23)). Next: binding: model objects built under a named binding of releases that they record and that reruns rebuild, with the existing globals kept as aliases ([design](investigations/data-manager-identity.qmd#binding)) |
+| 9 | **Data-manager identity and tracking** | **Phases A, B (SHIELD), C1, and binding F1 shipped; F2 merged for native SHIELD runs** (2026-11-13) | Requested 2026-10-09. Order: foundations (test gate, identity, named registry), selection, conservative records, then explicit binding, then other applications ([D-028](decisions.qmd#d-028), [D-031](decisions.qmd#d-031)). Selection defaults adopted ([D-029](decisions.qmd#d-029)); SHIELD's declaration file is shipped, read natively and in the container, and census releases are built and checked in CI (item 10). Since 2026-11-07 each step of the native modular SHIELD launcher writes a run record of its code commits and data-manager releases with digests ([#28](https://github.com/tfojo1/jheem_analyses/pull/28)), and since 2026-11-09 jheem2 kernels, likelihoods, simulation sets, and calibrations record the managers in use ([jheem2 #23](https://github.com/CIPHER-Epi/jheem2/pull/23)). Since 2026-11-13 jheem2 `dev` has bindings ([jheem2 #25](https://github.com/CIPHER-Epi/jheem2/pull/25)) and native SHIELD sessions build under one, with the existing globals as aliases ([#33](https://github.com/tfojo1/jheem_analyses/pull/33); [progress](investigations/data-manager-identity.qmd#phase-f-progress)). Next: F3 (controls store the binding, not the manager) and F4 (reruns rebuild the recorded binding) |
 | 10 | **Census manager CI** | **In contributor use; the promoted census is the only published census** (2026-11-05) | Merged 2026-10-24. Builds compare each candidate with the promoted census and check that SHIELD starts with it. The first master build published the 2026-10-21 census as a **Needs review** pre-release because SHIELD did not start with it; a contributor build on 2026-10-28 published the October 28 census the same way. After SHIELD moved to the new census names (2026-10-30), a branch check reproduced that release and SHIELD started with it; it was promoted on 2026-11-03. A contributor promoted the November 4 census, without the partial-year 2010 county deaths, on 2026-11-04. Since 2026-11-05 census loads that name no release, and the HIV build, take the promoted census; OneDrive is retired for census. Runs on the shared, pinned manager build since 2026-10-29 ([details](investigations/manager-compatibility.qmd#census-ci)) |
 
 ### Next

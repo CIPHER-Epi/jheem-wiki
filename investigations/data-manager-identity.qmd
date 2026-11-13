@@ -1,7 +1,7 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-11-12
+date-modified: 2026-11-13
 ---
 
 **Status (2026-11-09): Design guide, revised. Phase A (identity and registry) is
@@ -16,7 +16,9 @@ likelihoods, simulation sets, and calibrations record the managers in use
 target is now explicit binding (Phase F, [design](#binding),
 [D-031](../decisions.qmd#d-031)): model objects are built under a named binding of
 manager releases, which they record and which can be supplied again; it replaces the
-planned exact-read capture (C2) and comparison checks (D).** Requested by the team on
+planned exact-read capture (C2) and comparison checks (D). Since 2026-11-13 jheem2
+`dev` has bindings (F1) and native SHIELD sessions build under one (F2)
+([progress](#phase-f-progress)).** Requested by the team on
 2026-10-09: make specifications, likelihoods, calibrations, and saved simulation sets
 aware of which data managers (name and version) they used, including several managers
 at once and different releases at different points of a process. This page fixes the
@@ -400,8 +402,8 @@ start). A manager without a release stays embedded.
 | A | jheem2 test gate; manager identity; named registry; loader passes identity | jheem2, jheem-containers, jheem_analyses | Gates below; no output or behavior change | Shipped ([below](#phase-a-shipped)) |
 | B | Declared list per application (SHIELD first); resolve, verify, register; containers read the list; census release path | jheem_analyses, jheem-containers | Native and container runs of one commit load identical releases for every SHIELD manager | Shipped for SHIELD ([below](#phase-b-progress)); the reload rule and recorded overrides move to F2 |
 | C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Shipped: native run records 2026-11-07, jheem2 records 2026-11-09 ([below](#phase-c-progress)) |
-| F1 | Binding, active-binding stack, resolver with recording frames, aliases, release-resolver hook; kernel, likelihood, instructions, and calibration-setup hooks; names accepted for `data.manager`; `bound` records | jheem2 | jheem2 tests on the toy fixture: two bindings in one session give two kernels with different values and records; instructions built under one binding stop when instantiated under another; alias assignment and double aliasing behave as designed; with no binding, records equal C1's; earlier artifacts load | Next |
-| F2 | SHIELD adopts binding: setup builds it (reload rule, recorded overrides), aliases, and the specification declares its names | jheem_analyses | Kernel inputs and a short container calibration bit-identical to before; records are `bound` and name the managers each artifact used; native and container runs of one commit record the same binding | Planned |
+| F1 | Binding, active-binding stack, resolver with recording frames, aliases, release-resolver hook; kernel, likelihood, instructions, and calibration-setup hooks; names accepted for `data.manager`; `bound` records | jheem2 | jheem2 tests on the toy fixture: two bindings in one session give two kernels with different values and records; instructions built under one binding stop when instantiated under another; alias assignment and double aliasing behave as designed; with no binding, records equal C1's; earlier artifacts load | Shipped 2026-11-13 ([below](#phase-f-progress)) |
+| F2 | SHIELD adopts binding: setup builds it (reload rule, recorded overrides), aliases, and the specification declares its names | jheem_analyses | Kernel inputs and a short container calibration bit-identical to before; records are `bound` and name the managers each artifact used; native and container runs of one commit record the same binding | Merged 2026-11-13 for native runs; the container criterion is open ([below](#phase-f-progress)) |
 | F3 | Calibration controls store the binding's identity, not the manager; chains rebuild the binding from the calibration directory; option off, then on | jheem2, jheem_analyses | Chains bit-identical; control size and chain-start time and memory measured before and after | Planned |
 | F4 | Reruns and transmutation rebuild the recorded binding; later-stage setup compares with the preceding stage; option off, then on | jheem2 | A rerun after a census change reproduces the original kernel inputs; a stage whose syphilis release differs from its predecessor's is reported by name | Planned |
 | F5 | SHIELD helpers and registrations use names; values read while sourcing move into instantiation; timestamp checks replaced | jheem_analyses | No alias reads remain on the model path; numbers unchanged | Planned, as files are next edited |
@@ -601,6 +603,38 @@ jheem2 records on artifacts.
     [42654206996](https://github.com/ncsizemore/jheem-containers/actions/runs/42654206996));
     kernel inputs for the 21 of SHIELD's 32 configured cities that build locally are
     identical to `dev` `f8f7322e` (the other 11 fail identically on both).
+
+### Phase F progress (2026-11-13) {#phase-f-progress}
+
+- **F1, bindings in jheem2 (shipped 2026-11-13).** jheem2
+  [#25](https://github.com/CIPHER-Epi/jheem2/pull/25) (`dev`
+  [`3e8c9842`](https://github.com/CIPHER-Epi/jheem2/commit/3e8c984243a89a0a7cbceed84d62b64b34008567)),
+  as [designed](#binding). With no binding set, kernels, likelihoods, and records are as
+  before.
+  - Regression check: `tests/data_binding.R` (toy fixture), run by jheem2's CI on every
+    push that touches the package.
+- **F2, SHIELD under a binding (merged 2026-11-13).** jheem_analyses
+  [#33](https://github.com/tfojo1/jheem_analyses/pull/33). After its managers load,
+  `shield_source_code.R` calls `shield.bind.data.managers()`
+  (`applications/SHIELD/R/shield_data_managers.R`): the session binding is `census` and
+  `syphilis`, `CENSUS.MANAGER` and `SURVEILLANCE.MANAGER` become aliases, and the
+  release loader is registered as the release resolver, so `rebuild.data.binding()` can
+  reload a recorded binding. With a jheem2 before F1 it registers the managers by name,
+  as before. The specification declares the two names.
+  - Verified: kernel inputs for SHIELD's 32 configured cities, master with `dev` before
+    F1 against F2 with F1: all 21 that build are identical, the other 11 fail the same
+    way, and each kernel records both releases as used. A short native calibration
+    (container smoke code, C.12580: setup, one chain, assembly) has the same chunk
+    seeds, samples, likelihoods, and acceptances with and without the binding.
+  - Exact chain comparison needs bayesian.simulations with per-chunk seeds (`b170ce7`,
+    on the servers as `4e0d13e8`). Without them, as in a January 2025 install, a chain's
+    random stream continues from whatever the process drew before it, and the chain
+    under the binding differed although its likelihood and prior were identical.
+  - Regression check: `test-manager-selection.R` (stand-ins for jheem2) in the
+    manager-cache workflow on Linux and Windows.
+  - Open: container runs use the jheem2 their image pins, which predates F1, so they
+    register rather than bind; the criterion that native and container runs record the
+    same binding waits for an image with F1.
 
 ## Delivery practice {#delivery}
 
