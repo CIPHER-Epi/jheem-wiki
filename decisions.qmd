@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-11-09
+date-modified: 2026-11-13
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,37 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-033 · jheem2 is checked on Linux, macOS, and Windows and released by a workflow; binaries come from r-universe — refines D-032 {#d-033}
+
+*2026-11-13.* Releasing jheem2 was manual: a maintainer merged `dev` into `master`, bumped
+the version, and regenerated documentation by hand. `master`, GitHub's default branch,
+was at 1.12.3 from 2026-03-16, 62 commits behind `dev`, so an install without a ref got
+it; ten help pages were stale and fifteen exported functions had none; and `DESCRIPTION`
+omitted eight packages the code calls (R6 among them), so an install worked only where
+they were already present. The team uses Windows, macOS, and Linux, and asked for the
+build to be taken over and automated.
+
+Decision ([#27](https://github.com/CIPHER-Epi/jheem2/pull/27)):
+
+- `DESCRIPTION` declares every package the code calls, with `Remotes` for the GitHub-only
+  ones.
+- Every push to `dev` or `master` and every pull request that touches the package runs
+  R CMD check on Linux, macOS, and Windows (which also runs `tests/*.R`) and checks that
+  `NAMESPACE` and `man/` match the roxygen comments (`check.yml`, replacing D-032's
+  Linux-only workflow). Errors fail the run; existing warnings and notes are reported.
+- Releases are tags cut from `dev` by a workflow run by hand with a version, only from a
+  commit whose checks passed. It sets the version and date, regenerates the help pages,
+  tags `v<version>`, attaches the source package with its SHA-256 to a GitHub Release,
+  moves `master` to the release, and starts the next `.9000` version on `dev`. `master`
+  is the latest release and is not edited directly.
+- Windows and macOS binaries come from r-universe (`cipher-epi.r-universe.dev`), which
+  builds the latest release and the GitHub packages jheem2 needs.
+
+Rationale: installs that work without a compiler on every platform the team uses, and
+releases that need no manual steps. The checks stay informational for direct pushes to
+`dev`, as in D-032; only releases require them. The jheem-containers dispatch remains
+the integration gate for changes that reach SHIELD runs.
 
 ## D-032 · jheem2 runs its own tests on every push; the runtime image stays the integration gate — refines D-028 {#d-032}
 

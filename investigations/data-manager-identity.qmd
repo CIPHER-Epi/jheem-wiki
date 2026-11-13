@@ -404,7 +404,7 @@ start). A manager without a release stays embedded.
 | C1 | `declared` and `loaded` records on kernels, likelihoods, calibrations, linked to run history | jheem2, jheem_analyses | New artifacts name every SHIELD manager with its digest; earlier artifacts load and run | Shipped: native run records 2026-11-07, jheem2 records 2026-11-09 ([below](#phase-c-progress)) |
 | F1 | Binding, active-binding stack, resolver with recording frames, aliases, release-resolver hook; kernel, likelihood, instructions, and calibration-setup hooks; names accepted for `data.manager`; `bound` records | jheem2 | jheem2 tests on the toy fixture: two bindings in one session give two kernels with different values and records; instructions built under one binding stop when instantiated under another; alias assignment and double aliasing behave as designed; with no binding, records equal C1's; earlier artifacts load | Shipped 2026-11-13 ([below](#phase-f-progress)) |
 | F2 | SHIELD adopts binding: setup builds it (reload rule, recorded overrides), aliases, and the specification declares its names | jheem_analyses | Kernel inputs and a short container calibration bit-identical to before; records are `bound` and name the managers each artifact used; native and container runs of one commit record the same binding | Merged 2026-11-13 for native runs; the container criterion is open ([below](#phase-f-progress)) |
-| F3 | Calibration controls store the binding's identity, not the manager; chains rebuild the binding from the calibration directory; option off, then on | jheem2, jheem_analyses | Chains bit-identical; control size and chain-start time and memory measured before and after | Planned |
+| F3 | Calibration controls store the binding's identity, not the manager; chains rebuild the binding from the calibration directory; option off, then on | jheem2, jheem_analyses | Chains bit-identical; control size and chain-start time and memory measured before and after | Merged 2026-11-13 behind an option, off by default; chains do not need the manager, so nothing is rebuilt at chain start ([below](#phase-f-progress)) |
 | F4 | Reruns and transmutation rebuild the recorded binding; later-stage setup compares with the preceding stage; option off, then on | jheem2 | A rerun after a census change reproduces the original kernel inputs; a stage whose syphilis release differs from its predecessor's is reported by name | Planned |
 | F5 | SHIELD helpers and registrations use names; values read while sourcing move into instantiation; timestamp checks replaced | jheem_analyses | No alias reads remain on the model path; numbers unchanged | Planned, as files are next edited |
 | E | Beyond SHIELD (above) | All | Every application's managers are declared and bound | Planned |
@@ -635,6 +635,32 @@ jheem2 records on artifacts.
   - Open: container runs use the jheem2 their image pins, which predates F1, so they
     register rather than bind; the criterion that native and container runs record the
     same binding waits for an image with F1.
+- **A regression from F1, fixed 2026-11-13.** `set.up.calibration()` saves functions that
+  keep its whole environment, and F1 left the binding frame in it, so a control set up
+  under SHIELD's binding carried both managers: the smoke calibration's control grew from
+  139 MB to 249 MB on disk, and the chain step's peak memory from 15.9 GB to 21.8 GB. The
+  gates for F1 and F2 compared kernel inputs and chains, not size or memory. jheem2
+  [#26](https://github.com/CIPHER-Epi/jheem2/pull/26) takes the data-inputs record before
+  the control is saved and drops the frame; the record and chain are unchanged.
+- **F3, lean controls (merged 2026-11-13, off by default).** jheem2
+  [#28](https://github.com/CIPHER-Epi/jheem2/pull/28) (`dev`
+  [`454feb24`](https://github.com/CIPHER-Epi/jheem2/commit/454feb24065afc4be1115f829edca56121ce64c9)).
+  A chain calls only the saved likelihood, simulation, and prior functions, which use the
+  engine built at setup and the instantiated likelihood, which holds the data it pulled. So
+  chains need no manager, and nothing is rebuilt at chain start (the design above
+  expected a rebuild). With `options(jheem2.lean.calibration.controls = TRUE)` the saved
+  functions keep only those objects; a manager loaded without a release is kept, since the
+  control is then its only copy. The prior's density function is made outside
+  `set.up.calibration()`'s frame, because `distributions::get.density.function()` keeps its
+  arguments as unevaluated promises, which kept the frame, and the manager, reachable.
+  - Verified (smoke calibration, C.12580, option off and on): the control is 139.0 MB
+    against 19.7 MB, the saved functions' environment 3.58 GB against 83.5 MB serialized,
+    with no path to a manager; chain-step peak memory 15.9 GB against 11.5 GB; assembly
+    13.2 GB against 11.4 GB. The chain, the assembled simulation parameters, and the
+    data-inputs record are identical.
+  - Regression check: `tests/calibration_control.R`, run by jheem2's checks on Linux,
+    macOS, and Windows ([D-033](../decisions.qmd#d-033)).
+  - Open: switching the option on for SHIELD, a separate change.
 
 ## Delivery practice {#delivery}
 
