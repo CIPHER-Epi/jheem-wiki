@@ -1,7 +1,7 @@
 ---
 title: "Analysis Reproducibility Investigation"
 date: 2026-09-02
-date-modified: 2026-11-12
+date-modified: 2026-11-14
 ---
 
 **Status:** Evidence-backed cross-repository investigation of the run and
@@ -188,6 +188,12 @@ SHIELD code reads; it is now a release
 ([`google-mobility-v2026.11.12`](https://github.com/tfojo1/jheem_analyses/releases/tag/google-mobility-v2026.11.12)).
 Gaps the reconstruction exposed in the automatic record were closed on 2026-11-12
 ([run-record additions](data-manager-identity.qmd#phase-c-progress)).
+
+On 2026-11-14 the freeze gained a restore test: from the tags, the data releases and the archive alone, a
+location's stage 4 setup, a chain chunk and its interventions are rebuilt in an image and compared with the archive.
+They reproduce bit for bit in an image of the environment that ran them, and exact replay turned out to need the
+same R minor version: R 4.6.0 computes `0.7^4` one ulp differently from R 4.5, which changes SHIELD's prior and,
+through the adaptive sampler, the chain ([details](shield-container-pilot.qmd#cross-environment-replay)).
 
 The [October 4 delivery sequence](shield-container-pilot.qmd#operational-delivery)
 prioritizes useful preserved execution and artifact-led recovery independently

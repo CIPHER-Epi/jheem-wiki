@@ -1,7 +1,7 @@
 ---
 title: "SHIELD Calibration and Container Pilot"
 date: 2026-09-22
-date-modified: 2026-11-13
+date-modified: 2026-11-14
 ---
 
 **Status (2026-10-19):** Opt-in pilot installed on one team server. It runs
@@ -216,7 +216,7 @@ Same-seed claims depend on the comparison ([D-024](../decisions.qmd#d-024),
 | Fixed parameters: installed vs hand-sourced engine | Identical within macOS and within Linux | — |
 | Fixed parameters: Mac vs Linux | Up to about 1e-12 relative ([below](#engine-loading-comparison)) | — |
 | Container vs native calibration | Bit-identical for a real stage-0 calibration, two locations, one server ([below](#native-comparison)) | Later stages as the team runs them |
-| Production four-stage calibration replayed natively from committed source | Setups for ten locations × four stages and 30 sampled 500-iteration chunks bit-identical on the server that ran each stage; one chunk also identical on a server with a different R and deSolve ([below](#production-replay)) | The same replay in the container |
+| Production four-stage calibration replayed natively from committed source | Setups for ten locations × four stages and 30 sampled 500-iteration chunks bit-identical on the server that ran each stage; one chunk also identical on a server with a different R and deSolve ([below](#production-replay)) | Done in two images, 2026-11-14 ([below](#cross-environment-replay)) |
 
 The sampler's explicit seed argument is still ignored (chunk seeds come from the
 ambient R state), but SHIELD calls `set.seed()` before setup, so a fixed workflow
@@ -310,6 +310,28 @@ start (two lookups per process, unauthenticated unless `GITHUB_TOKEN` or `GH_TOK
 is set); about fifteen simultaneous replays exceeded the 60-per-hour limit and
 stopped with HTTP 403. Later code loads verified cached releases without a lookup
 ([#14](https://github.com/tfojo1/jheem_analyses/pull/14)).
+
+### Cross-environment replay (2026-11-14) {#cross-environment-replay}
+
+The same checks, run as the restore test of the SHIELD paper 1 freeze (its repository's `scripts/l2`) in images
+rather than on the servers: one location's stage 4 setup rebuilt and compared with the archive, chain 1's first
+500-iteration chunk replayed from it, and the no-intervention and doxy-PEP 10% scenarios rerun on three simulations
+with the archived effectiveness values. Code at the paper's tags; jheem2 source-loaded; the paper's `locations`
+0.4.0; podman on shield2 with the archive mounted read-only.
+
+| Location (server that ran it) | Environment | Setup | Chain chunk | Interventions |
+|---|---|---|---|---|
+| Seattle (shield2: R 4.5.2, deSolve 1.40) | this pilot's image: R 4.4.2, Ubuntu, OpenBLAS 0.3.26, deSolve 1.40 | 128 of 128 identical | identical | identical (7 of 8 arrays; the 8th is each simulation's seed, drawn at run time, which also differs on the original server) |
+| Baltimore (shield3: R 4.6.0, deSolve 1.42) | the same image | 126 of 128: the prior's covariance differs in its last bit | diverges | identical |
+| Baltimore | an image of shield3's environment: rocker R 4.6.0 with shield3's package versions | 128 of 128 | identical | identical |
+
+The divergence comes from R, not from the simulation. SHIELD builds the covariance of its age-specific
+transmission multipliers as `0.7^abs(delta) * sd^2`; R 4.6.0 computes `0.7^4` as 0.24009999999999992, and R 4.5.2
+and 4.4.2 as 0.24009999999999995 (on shield2 and shield3, which share RHEL's C library, and in the Ubuntu image).
+The first sample's likelihood was identical across deSolve 1.40 and 1.42; the one-ulp prior difference entered the
+adaptive sampler's scaling and moved the chain to a different, statistically equivalent path within the chunk. So
+exact replay of a calibration needs the R minor version that ran it, and an image of that environment provides it;
+operating system, BLAS, and Rcpp did not matter here.
 
 ### Engine-loading comparison (2026-10-03) {#engine-loading-comparison}
 
