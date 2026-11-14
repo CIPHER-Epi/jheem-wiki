@@ -324,6 +324,7 @@ with the archived effectiveness values. Code at the paper's tags; jheem2 source-
 | Seattle (shield2: R 4.5.2, deSolve 1.40) | this pilot's image: R 4.4.2, Ubuntu, OpenBLAS 0.3.26, deSolve 1.40 | 128 of 128 identical | identical | identical (7 of 8 arrays; the 8th is each simulation's seed, drawn at run time, which also differs on the original server) |
 | Baltimore (shield3: R 4.6.0, deSolve 1.42) | the same image | 126 of 128: the prior's covariance differs in its last bit | diverges | identical |
 | Baltimore | an image of shield3's environment: rocker R 4.6.0 with shield3's package versions | 128 of 128 | identical | identical |
+| Seattle | an image of shield2's environment: rocker R 4.5.2 with shield2's package versions | 128 of 128 | identical | identical |
 
 The divergence comes from R, not from the simulation. SHIELD builds the covariance of its age-specific
 transmission multipliers as `0.7^abs(delta) * sd^2`; R 4.6.0 computes `0.7^4` as 0.24009999999999992, and R 4.5.2
