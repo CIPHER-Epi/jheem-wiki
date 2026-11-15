@@ -195,6 +195,15 @@ They reproduce bit for bit in an image of the environment that ran them, and exa
 same R minor version: R 4.6.0 computes `0.7^4` one ulp differently from R 4.5, which changes SHIELD's prior and,
 through the adaptive sampler, the chain ([details](shield-container-pilot.qmd#cross-environment-replay)).
 
+On 2026-11-15 every R data file in the archive loaded and was checked against its path, each in the image of the
+environment that wrote it: 23,357 files, 2.70 TB, in seven hours on one server with six processes. All passed.
+Simulation sets matched their simulation count, location, calibration code and scenario, with finite, positive
+populations; chain controls listed every finished chunk's file as present; the other calibration objects were valid
+for their class. Loading, not the NAS, set the pace for a single process (23-34 MB/s); six processes reached about
+100 MB/s, near the rate the NAS gave the checksum pass. The scripts and results are in the paper's private
+reproduction repository (`CIPHER-Epi/shield-paper1@d9f0319`, `reproducibility/scripts/l1/` and
+`reproducibility/restore/2026-11-15-L1-full/`).
+
 The [October 4 delivery sequence](shield-container-pilot.qmd#operational-delivery)
 prioritizes useful preserved execution and artifact-led recovery independently
 of exact replay ([D-025](../decisions.qmd#d-025)). A receipt can truthfully describe
