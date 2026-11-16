@@ -1,0 +1,190 @@
+---
+title: "Data Binding in Practice"
+date: 2026-11-16
+execute:
+  freeze: true
+  warning: false
+  message: false
+---
+
+How a SHIELD session chooses its data, what its results record about that data, and how the data
+behind a result is loaded again. Every output on this page comes from one run of the code shown, on
+Baltimore (`C.12580`) and SHIELD's two-iteration smoke calibration. The design and its history are on
+[Data-Manager Identity](investigations/data-manager-identity.qmd).
+
+## Then and now
+
+| | Before (September 2026) | Now |
+|---|---|---|
+| Which data a run uses | The newest file in a shared folder, which could change between runs or between the steps of one calibration | A dated release with a SHA-256, named in one committed file. Census and syphilis releases are built and checked in CI. |
+| What a result records about its data | Nothing | Kernels, likelihoods, simulation sets and calibrations record the releases they were built under |
+| What a run records | Nothing | Each step of the calibration launcher writes a run record: code commits and whether they are pushed, data releases and their digests, packages, and every file it saved, with its digest |
+| The data behind a past result | Whatever was in memory | `rebuild.data.binding()` loads the recorded releases and checks their digests |
+| Saved calibration controls | Carried the data manager: 139 MB on disk, 3.6 GB in memory | Keep only what a chain uses: about 20 MB, and 4.4 GB less memory per chain |
+| Freezing a paper | Paper 1's 230 run records were reconstructed from server histories, file times and file headers | Written at each step as the calibration runs |
+
+Daily use is unchanged: the same scripts, launchers and global names work as before.
+
+```{r}
+#| label: setup
+#| include: false
+# A jheem_analyses checkout with jheem2 beside it, as SHIELD expects. Calibration output goes to a
+# scratch root; data releases are cached in JHEEM_CACHE_DIR.
+analyses <- normalizePath(Sys.getenv("JHEEM_ANALYSES_CHECKOUT"))
+Sys.setenv(JHEEM_ROOT_DIR = file.path(tempdir(), "jheem-root"),
+           JHEEM_CACHE_DIR = Sys.getenv("JHEEM_CACHE_DIR", file.path(analyses, "cached")),
+           OPENBLAS_NUM_THREADS = "1")
+dir.create(Sys.getenv("JHEEM_ROOT_DIR"), showWarnings = FALSE)
+knitr::opts_knit$set(root.dir = analyses)
+short <- function(x) ifelse(is.na(x), NA, substr(x, 1, 12))
+```
+
+```{r}
+#| label: versions
+#| echo: false
+git <- function(...) system2("git", c("-C", ...), stdout = TRUE)
+cat("jheem_analyses", git(analyses, "rev-parse", "--short", "HEAD"),
+    "| jheem2", git(file.path(dirname(analyses), "jheem2"), "rev-parse", "--short", "HEAD"),
+    "|", R.version.string, "| run", format(Sys.Date()), "\n")
+```
+
+## 1. Declaring the data
+
+SHIELD names the releases it uses in one committed file. To move to a newer census, a modeler changes
+one line and commits it.
+
+```{r}
+cat(grep("^#", readLines("applications/SHIELD/data_managers.csv"), invert = TRUE, value = TRUE), sep = "\n")
+```
+
+Loading SHIELD fetches each named release from GitHub Releases, or from a local cache, and checks its
+SHA-256 before using it:
+
+```{r}
+log <- character()
+withCallingHandlers(
+  log <- c(log, capture.output(source("applications/SHIELD/shield_specification.R"))),
+  message = function(m) { log <<- c(log, conditionMessage(m)); invokeRestart("muffleMessage") })
+cat(grep("^Loaded ", log, value = TRUE), sep = "\n")
+```
+
+## 2. The session's binding
+
+SHIELD then binds the two managers by name. Code can ask for a manager by name, and the global names
+`CENSUS.MANAGER` and `SURVEILLANCE.MANAGER` still work: they look the manager up through the binding.
+
+```{r}
+id <- get.data.binding.identity(get.data.binding())
+id$sha256 <- short(id$sha256)
+id[, c("name", "release", "sha256", "modified")]
+identical(get.data.manager("census"), CENSUS.MANAGER)
+```
+
+## 3. Model objects record their data
+
+A kernel, the model instantiated for one location, records the releases it was built under, and which
+of them it read. Likelihoods, simulation sets and calibrations carry the same record. `bound` in its
+coverage means it was built under the session's binding; `used` shows which bound names it read.
+
+```{r}
+invisible(capture.output(kernel <- create.jheem.kernel("shield", "C.12580")))
+inputs <- get.data.inputs(kernel)
+inputs$coverage
+d <- inputs$data.managers
+d$sha256 <- short(d$sha256)
+d[, c("bound.as", "release", "sha256", "used")]
+```
+
+## 4. A calibration and its records
+
+SHIELD's modular launcher runs setup, each chain, and assembly as separate processes. Here it runs
+SHIELD's smoke calibration (two iterations, enabled for testing) in a scratch folder, step by step, as a
+modeler would on a server.
+
+```{r}
+launcher <- "applications/SHIELD/shield_calib_setup_and_run_modular.R"
+steps <- list(setup = "setup", chain = c("run", "1"), assemble = "assemble")
+for (step in names(steps)) {
+  seconds <- system.time(status <- system2(
+    "Rscript", c(launcher, "C.12580", "container.smoke.stage0", steps[[step]]),
+    env = "SHIELD_ENABLE_CONTAINER_SMOKE=true", stdout = FALSE, stderr = FALSE))[["elapsed"]]
+  cat(sprintf("%-9s exit %d, %3.0f s\n", step, status, seconds))
+}
+calibration <- get.calibration.dir("shield", "C.12580", "container.smoke.stage0")
+```
+
+Setup writes `data_inputs.dcf`, the record of the data the calibration was built under:
+
+```{r}
+record <- get.data.inputs(calibration)
+record$coverage
+d <- record$data.managers
+d$sha256 <- short(d$sha256)
+d[, c("bound.as", "release", "sha256", "used")]
+```
+
+Each step also writes a run record to `run_records/`. Selected entries from each:
+
+```{r}
+read.record <- function(file) {
+  r <- as.data.frame(read.dcf(file, all = TRUE))
+  run <- r[r$record == "run", ]; src <- r[r$record == "source" & r$kind == "checkout", ]
+  dm <- r[r$record == "data manager", ]; out <- r[r$record == "output", ]
+  release <- function(name) sub(".*-v", "", dm$release[dm$name == name])
+  data.frame(at = substr(run$recorded.at, 12, 19),
+             step = paste0(run$step, ifelse(is.na(run$chain), "", paste0(" ", run$chain))),
+             jheem_analyses = paste0(substr(src$commit[src$name == "jheem_analyses"], 1, 8),
+                                     ifelse(src$on.remote[src$name == "jheem_analyses"] == "yes", "", " (local)")),
+             jheem2 = substr(src$commit[src$name == "jheem2"], 1, 8),
+             census = release("census"), syphilis = release("syphilis"),
+             outputs = nrow(out), finished = any(r$record == "end"))
+}
+files <- list.files(file.path(calibration, "run_records"), pattern = "\\.dcf$", full.names = TRUE)
+records <- do.call(rbind, lapply(files, read.record))
+records[order(records$at), ]
+```
+
+The setup step's outputs, with the digests that let anyone check them later:
+
+```{r}
+setup <- as.data.frame(read.dcf(grep("/setup-", files, value = TRUE)[1], all = TRUE))
+out <- setup[setup$record == "output", ]
+data.frame(file = basename(out$path), MB = round(as.numeric(out$size) / 1e6, 1), sha256 = short(out$sha256))
+```
+
+The saved control keeps only what a chain uses. Before, the same control was 139 MB:
+
+```{r}
+round(file.size(file.path(calibration, "cache", "global_control.Rdata")) / 1e6, 1)
+```
+
+## 5. Loading the data behind a result
+
+`rebuild.data.binding()` takes a result's record, here the calibration's, loads each recorded release
+through SHIELD's release loader, and stops if a digest differs. In a new session, this reproduces exactly
+the data the calibration was built with.
+
+```{r}
+rebuilt <- rebuild.data.binding(calibration)
+r <- get.data.binding.identity(rebuilt)
+data.frame(name = r$name, release = r$release, sha256 = short(r$sha256),
+           matches.record = r$sha256 == record$data.managers$sha256[match(r$name, record$data.managers$bound.as)])
+```
+
+## What this gets us
+
+- **Every result can say, and show, what produced it.** The data releases and code commits behind a
+  calibration or simulation set are in its records, with digests to check them.
+- **A data update cannot change a run silently.** Releases are named in a committed file, and census CI
+  checks that SHIELD still builds with a new census before it is published.
+- **Freezing a paper is routine.** Paper 1's records were reconstructed after the fact. New calibrations
+  write them as they run.
+- **Calibrations are lighter.** Controls are about a seventh of their former size, and each chain needs
+  about 4 GB less memory.
+
+## Next
+
+- **F4:** reruns and transmutations rebuild the binding a result recorded, automatically, and a later
+  calibration stage checks its data against the stage before it.
+- **F5:** SHIELD's helpers ask for managers by name rather than through global variables, as those files
+  are next edited.

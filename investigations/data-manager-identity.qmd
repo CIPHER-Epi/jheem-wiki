@@ -1,7 +1,7 @@
 ---
 title: "Data-Manager Identity and Tracking"
 date: 2026-10-12
-date-modified: 2026-11-13
+date-modified: 2026-11-16
 ---
 
 **Status (2026-11-09): Design guide, revised. Phase A (identity and registry) is
@@ -642,7 +642,7 @@ jheem2 records on artifacts.
   gates for F1 and F2 compared kernel inputs and chains, not size or memory. jheem2
   [#26](https://github.com/CIPHER-Epi/jheem2/pull/26) takes the data-inputs record before
   the control is saved and drops the frame; the record and chain are unchanged.
-- **F3, lean controls (merged 2026-11-13, off by default).** jheem2
+- **F3, lean controls (merged 2026-11-13; on for SHIELD since 2026-11-16).** jheem2
   [#28](https://github.com/CIPHER-Epi/jheem2/pull/28) (`dev`
   [`454feb24`](https://github.com/CIPHER-Epi/jheem2/commit/454feb24065afc4be1115f829edca56121ce64c9)).
   A chain calls only the saved likelihood, simulation, and prior functions, which use the
@@ -660,7 +660,14 @@ jheem2 records on artifacts.
     data-inputs record are identical.
   - Regression check: `tests/calibration_control.R`, run by jheem2's checks on Linux,
     macOS, and Windows ([D-033](../decisions.qmd#d-033)).
-  - Open: switching the option on for SHIELD, a separate change.
+  - Switched on for SHIELD on 2026-11-16: jheem_analyses
+    [#34](https://github.com/tfojo1/jheem_analyses/pull/34) sets the option in `shield_source_code.R` after the
+    managers are bound. Before the change, no committed code on any jheem_analyses branch, in jheem2, or in
+    bayesian.simulations read a data manager out of a saved control; they read its slots (chains, chunk files and
+    their completion), which lean controls keep. Two container-pilot inspection scripts read objects that lean
+    controls drop (`starting.mcmc.parameter.values` and `calibration.info`). They are unaffected while the
+    container image pins a jheem2 from before F1, and need updating when it moves.
+  - A worked run of the result: [Data Binding in Practice](../data-binding-in-practice.qmd).
 
 ## Delivery practice {#delivery}
 

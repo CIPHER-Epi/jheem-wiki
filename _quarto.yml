@@ -18,6 +18,8 @@ website:
         text: Ecosystem Map
       - href: application-anatomy.qmd
         text: Application Anatomy
+      - href: data-binding-in-practice.qmd
+        text: Data Binding in Practice
       - href: roadmap.qmd
         text: Modernization Roadmap
       - section: Investigations
