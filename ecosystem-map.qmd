@@ -1,7 +1,7 @@
 ---
 title: "Ecosystem Map"
 date: 2026-08-17
-date-modified: 2026-11-05
+date-modified: 2026-11-18
 ---
 
 JHEEM is a family of compartmental epidemiological models (HIV and STIs) built on a shared simulation engine, calibrated to real surveillance data per city/state, and published as interactive policy tools at [jheem.org](https://jheem.org). The ecosystem spans roughly a dozen repositories in three groups: the **modeling core** (R packages and analysis code), the **delivery platform** (containerized data-generation and web infrastructure), and **support packages**.
@@ -24,6 +24,12 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 | `distributions` | Probability distribution utilities used across modeling code. |
 | `bayesian.simulations` | MCMC machinery (adaptive blockwise Metropolis). Runs calibrations, **checkpoints chains to per-version/per-location cache directories** (resumable; acceptance stats stored per chain/step). |
 
+### Papers
+
+| Repo | What it is |
+|------|-----------|
+| `shield-paper1` (CIPHER-Epi, private until publication) | The reproduction package for the first SHIELD paper: the model code as run, the paper index (tagged code, checksummed data releases, environment images, archive manifest), and the restore checks and their results. One repository per paper. |
+
 ### Delivery platform
 
 | Repo | What it is |
@@ -35,7 +41,7 @@ JHEEM is a family of compartmental epidemiological models (HIV and STIs) built o
 | `jheem-simulations` | Simulation data distributed as semver'd GitHub Releases (3–86 GB per release), with documented deprecations. Feeds the container workflows. |
 | `jheem-ryan-white-*-container`, `jheem-cdc-testing-container`, `jheem-container-minimal` | Former per-model container repos, consolidated into `jheem-containers` (history preserved). Treat as legacy; `jheem-container-minimal` remains a useful minimal-workspace reference. |
 
-**Where the repos live:** `jheem2` and this wiki are in the **CIPHER-Epi** GitHub org (`jheem2` was transferred there; clones pointed at the old location still redirect). The delivery-platform repos are under `ncsizemore`, with org migration an open item on the [roadmap](roadmap.qmd).
+**Where the repos live:** `jheem2`, this wiki, and the paper repositories (`shield-paper1`) are in the **CIPHER-Epi** GitHub org (`jheem2` was transferred there; clones pointed at the old location still redirect). The delivery-platform repos are under `ncsizemore`, with org migration an open item on the [roadmap](roadmap.qmd).
 
 ## How data flows
 
@@ -75,7 +81,7 @@ it; an existing process's loaded manager is unaffected.
 
 ## How jheem2 is loaded by consumers
 
-Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`:
+Two modes, toggled by `jheem_analyses/use_jheem2_package_setting.R`. Separately, jheem2 releases install as a package anywhere, as binaries for Windows and macOS, from [cipher-epi.r-universe.dev](https://cipher-epi.r-universe.dev) with its GitHub-only dependencies ([D-033](decisions.qmd#d-033)).
 
 - **Package mode** (`USE.JHEEM2.PACKAGE = T`): `library(jheem2)` against an installed build. CI and containers use this mode; production containers pin a git ref, while the syphilis-manager workflow accepts a ref whose current default is the moving `dev` branch.
 - **Source mode** (`F`, the committed default): `source()`s ~40 files in hand-maintained order (`jheem2/R/tests/source_jheem2_package.R`) and JIT-compiles the C++. The [current ordinary SHIELD bootstrap](https://github.com/tfojo1/jheem_analyses/blob/4264842ce3fda9fbbc9c3e6717f958c11b5152ca/applications/SHIELD/shield_source_code.R#L116-L224) requires the sibling checkout to be on `dev`; it pulls only in interactive sessions and otherwise verifies the branch and logs its SHA without updating it. Recorded source mode instead uses `pkgload::load_all()`; these loading paths must not be treated as already proven equivalent.
@@ -91,7 +97,7 @@ with package mode (plus `devtools::load_all()` during development) as the target
 ## Gotchas worth knowing
 
 - **Serialized R6 is fragile.** Data managers and simsets are serialized R6 objects; evolving a class can strand old `.rdata` files. The CI's version pinning contains this; a format-versioned representation is the long-term fix.
-- **jheem2 has no automated test suite yet.** The container golden tests in `jheem-containers` are currently the strongest regression net for engine changes — engine-touching work should be validated against them until in-package tests exist.
+- **jheem2's own tests cover the data-manager and binding code, not the engine broadly.** Since 2026-11-13 its `tests/*.R` run in R CMD check on Linux, macOS, and Windows on every change ([D-033](decisions.qmd#d-033)), and SHIELD's unit and model tiers run in CI; the container golden tests in `jheem-containers` remain the strongest net for engine numerics.
 - **Source-mode loading recompiles the C++ every session**, making the local toolchain (R version, clang, SDK) a hidden dependency of the computation — the same jheem2 source ran clean under R 4.4 and segfaulted under R 4.5 (latent UB, see [Spec Framework Notes](spec-framework-notes.qmd)). Package mode compiles once per install; the NAMESPACE export sweep on the [roadmap](roadmap.qmd) is what unblocks it as the default.
 - **A cache copy is not a run manifest.** The analysis workspace's `cached/` directory currently combines published managers, downloaded materializations, merge intermediates, backups, and analysis results. Code refs, environment identity, resolved input versions, run configuration, and output digests also determine reproducibility; see the [Analysis Reproducibility Investigation](investigations/reproducibility.qmd).
 - **The filesystem layout is an implicit API.** Local work commonly uses sibling repositories under `jheem/code/` and a `jheem/files/` scientific-output root. Shared machines instead map that output root directly to `Q:`, `/Volumes/jheem$`, or `/mnt/jheem_nas_share`; jheem2 then writes standard `mcmc_runs/`, `mcmc_summaries/`, and `simulations/` trees beneath it. The root is selected from working-directory, path-existence, and hostname assumptions, while some analysis scripts bypass it. Paths identify storage locations, not immutable inputs or outputs; the current contract is detailed in the [reproducibility investigation](investigations/reproducibility.qmd#the-current-filesystem-contract).

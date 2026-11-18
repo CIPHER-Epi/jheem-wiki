@@ -1,7 +1,7 @@
 ---
 title: "Decision Log"
 date: 2026-08-26
-date-modified: 2026-11-13
+date-modified: 2026-11-18
 ---
 
 Append-only record of decisions that shape cross-repo work. Newest first. Reversing a decision gets a **new entry** that supersedes the old one — don't edit history.
@@ -9,6 +9,33 @@ Append-only record of decisions that shape cross-repo work. Newest first. Revers
 Format: context → decision → rationale. Status is **Accepted** unless marked otherwise.
 
 ---
+
+## D-034 · One repository per paper, with a paper index, environment images, and restore checks {#d-034}
+
+*2026-11-13; built 2026-11-14 to 2026-11-16.* The first SHIELD paper's results were frozen on 2026-11-11 (tags,
+checksummed data releases, run records, a checksum list of the archive). The team asked for a container of the
+frozen environment and a place to share the paper's code; a link into `jheem_analyses`, which keeps changing, is a
+poor way to do that.
+
+Decision:
+
+- Each paper gets its own repository in the CIPHER-Epi org, private until publication, with a release and a DOI at
+  publication. The first is `shield-paper1`.
+- It holds the model code as run (a verbatim snapshot from the tags), the analysis scripts (added at submission), and
+  under `reproducibility/`: a machine-readable paper index (code tags, data releases with SHA-256, environment
+  images, the archive and its manifest, the steps that produced each result), the environment locks and image
+  recipe, and the restore checks with their results.
+- Results stay in the archive, checked by its manifest. The archival unit for the environment is an image per
+  server environment: the server's R version and its package versions, with no code inside.
+- Restore checks run at three levels: every archived file matches the manifest (L0); every archived R object loads
+  in the image of the environment that wrote it (L1); a sampled recompute is bit-identical in that image (L2). A full
+  rerun (L3) is not planned.
+
+Rationale: readers need one place, with the code as run and the means to check it. Exact replay of a calibration
+needs the R minor version that ran it (R 4.6.0 computes `0.7^4` one unit in the last place differently from R 4.5),
+so images pinned to each server's R preserve what the servers alone cannot once they are upgraded
+([details](investigations/shield-container-pilot.qmd#cross-environment-replay)). For paper 1, all three levels pass
+([reproducibility](investigations/reproducibility.qmd)).
 
 ## D-033 · jheem2 is checked on Linux, macOS, and Windows and released by a workflow; binaries come from r-universe — refines D-032 {#d-033}
 
