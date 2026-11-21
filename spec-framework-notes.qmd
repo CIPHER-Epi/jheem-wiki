@@ -5,7 +5,7 @@ date-modified: 2026-09-09
 ---
 
 ::: {.callout-note}
-**Provenance:** written and empirically verified by @ncsizemore during Tech2Check development (2026); originated as `tech2check/docs/jheem_spec_notes.md` and explicitly marked "not Tech2Check-specific — transferable to other JHEEM model work," which makes this wiki its natural home per the [boundary rule](index.qmd). Canonical here as of 2026-08-19; the tech2check copy should become a pointer. Code line numbers reference the jheem2 tree as of mid-2026.
+**Provenance:** written and empirically verified during Tech2Check development (2026); originated as `tech2check/docs/jheem_spec_notes.md` and explicitly marked "not Tech2Check-specific — transferable to other JHEEM model work," which makes this wiki its natural home per the [boundary rule](index.qmd). Canonical here as of 2026-08-19; the tech2check copy should become a pointer. Code line numbers reference the jheem2 tree as of mid-2026.
 :::
 
 
